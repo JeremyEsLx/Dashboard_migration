@@ -1,0 +1,21 @@
+# Databricks App configuration
+# Deploy with: databricks apps create --name tijuana-lms
+command:
+  - gunicorn
+  - lms_dashboard.wsgi:application
+  - --bind
+  - 0.0.0.0:8000
+  - --workers
+  - "2"
+
+env:
+  - name: DJANGO_SETTINGS_MODULE
+    value: lms_dashboard.settings
+  - name: DJANGO_DEBUG
+    value: "False"
+  - name: DATABRICKS_SERVER_HOSTNAME
+    valueFrom: DATABRICKS_SERVER_HOSTNAME
+  - name: DATABRICKS_HTTP_PATH
+    valueFrom: DATABRICKS_HTTP_PATH
+  - name: DATABRICKS_TOKEN
+    valueFrom: DATABRICKS_TOKEN

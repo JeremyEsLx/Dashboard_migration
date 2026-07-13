@@ -1,0 +1,7 @@
+Django>=4.2,<5.1
+gunicorn>=21.2.0
+plotly>=5.18.0
+pandas>=2.0.0
+databricks-sql-connector>=3.0.0
+python-dotenv>=1.0.0
+whitenoise>=6.5.0

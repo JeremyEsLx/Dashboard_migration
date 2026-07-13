@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS Dashboard - Summary</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f0f0; padding: 16px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .header h1 { font-size: 28px; font-weight: bold; }
+        
+        .filters { display: flex; gap: 12px; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 11px; color: #666; margin-bottom: 2px; }
+        .filter-group select, .filter-group input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; min-width: 120px; }
+        
+        .kpi-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .kpi-card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .kpi-card h3 { font-size: 12px; color: #666; margin-bottom: 8px; }
+        .kpi-value { font-size: 36px; font-weight: bold; }
+        .kpi-value.green { color: #2ecc40; }
+        .kpi-value.red { color: #ff4136; }
+        
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .chart-card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+        .chart-container { width: 100%; height: 280px; }
+        
+        #gauge-container { width: 100%; height: 120px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Summary</h1>
+        <div class="filters">
+            <div class="filter-group">
+                <label>Supervisor</label>
+                <select id="filter-supervisor">
+                    {% for s in data.filters.supervisors %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Week</label>
+                <select id="filter-week">
+                    {% for w in data.filters.weeks %}
+                    <option value="{{ w }}">{{ w }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Shift</label>
+                <select id="filter-shift">
+                    {% for sh in data.filters.shifts %}
+                    <option value="{{ sh }}">{{ sh }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Date</label>
+                <input type="date" id="filter-date" value="2026-07-13">
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <h3>Total UPH</h3>
+            <div id="gauge-container"></div>
+        </div>
+        <div class="kpi-card">
+            <h3>UPH %</h3>
+            <div class="kpi-value green">{{ data.uph_percent }}%</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Actual Time</h3>
+            <div class="kpi-value">{{ data.actual_time }}</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Standard Time</h3>
+            <div class="kpi-value">{{ data.standard_time }}</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Productivity</h3>
+            <div class="kpi-value red">{{ data.productivity }}%</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <h3>Quantity by Process</h3>
+            <div id="chart-quantity" class="chart-container"></div>
+        </div>
+        <div class="chart-card">
+            <h3>Actual UPH vs Target UPH by Process</h3>
+            <div id="chart-uph-target" class="chart-container"></div>
+        </div>
+        <div class="chart-card">
+            <h3>Productivity by Process</h3>
+            <div id="chart-productivity" class="chart-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Gauge Chart (Total UPH) ---
+        Plotly.newPlot('gauge-container', [{
+            type: 'indicator',
+            mode: 'gauge+number',
+            value: {{ data.total_uph }},
+            gauge: {
+                axis: { range: [0, 300], tickwidth: 1 },
+                bar: { color: '#333' },
+                steps: [
+                    { range: [0, 200], color: '#e8e8e8' },
+                    { range: [200, 300], color: '#2ecc40' }
+                ],
+                threshold: { line: { color: 'blue', width: 2 }, thickness: 0.75, value: {{ data.uph_target }} }
+            }
+        }], { margin: { t: 10, b: 10, l: 30, r: 30 }, height: 120 }, { responsive: true });
+
+        // --- Quantity by Process ---
+        var qtyData = {{ data.quantity_by_process|safe }};
+        var qtyProcesses = Object.keys(qtyData);
+        var qtyValues = Object.values(qtyData);
+        Plotly.newPlot('chart-quantity', [{
+            type: 'bar',
+            y: qtyProcesses,
+            x: qtyValues,
+            orientation: 'h',
+            marker: { color: qtyProcesses.map(p => p === 'PICKING' ? '#f0e68c' : '#2ecc40') }
+        }], { margin: { t: 10, b: 30, l: 100, r: 40 }, xaxis: { title: '' }, yaxis: { autorange: 'reversed' } }, { responsive: true });
+
+        // --- UPH vs Target by Process ---
+        var uphData = {{ data.uph_vs_target_by_process|safe }};
+        var uphProcesses = Object.keys(uphData);
+        var uphValues = Object.values(uphData);
+        Plotly.newPlot('chart-uph-target', [{
+            type: 'bar',
+            y: uphProcesses,
+            x: uphValues,
+            orientation: 'h',
+            text: uphValues.map(v => v + '%'),
+            textposition: 'outside',
+            marker: { color: uphValues.map(v => v >= 100 ? '#2ecc40' : '#4a90d9') }
+        }], { margin: { t: 10, b: 30, l: 120, r: 50 }, xaxis: { title: '', range: [0, Math.max(...uphValues) * 1.15] }, yaxis: { autorange: 'reversed' } }, { responsive: true });
+
+        // --- Productivity by Process ---
+        var prodData = {{ data.productivity_by_process|safe }};
+        var prodProcesses = Object.keys(prodData);
+        var prodValues = Object.values(prodData);
+        Plotly.newPlot('chart-productivity', [{
+            type: 'bar',
+            y: prodProcesses,
+            x: prodValues,
+            orientation: 'h',
+            text: prodValues.map(v => v + '%'),
+            textposition: 'outside',
+            marker: { color: prodValues.map(v => v >= 0 ? '#2ecc40' : '#ffb6c1') }
+        }], { margin: { t: 10, b: 30, l: 120, r: 50 }, yaxis: { autorange: 'reversed' } }, { responsive: true });
+    </script>
+</body>
+</html>
