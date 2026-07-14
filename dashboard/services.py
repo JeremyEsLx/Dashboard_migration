@@ -91,7 +91,7 @@ BASE_FILTERS = """
 
 
 def _build_where_clause(date_filter=None, supervisor=None, shift=None, direct_users=None):
-    """Build WHERE clause. Pass date_filter=None to ignore date (ALL(Date))."""
+    """Build WHERE clause with all Power BI filters."""
     where = BASE_FILTERS
 
     if date_filter:
@@ -129,7 +129,6 @@ def _base_subquery():
 # ============================================================
 # DAX: UPH = SUM(Quantity) / SUM([Line Day Activity]) * 60
 # DAX: Target_UPH = SUM(Quantity) / SUM(Quantity / Target)
-# Both use the DATE filter.
 # ============================================================
 
 def get_total_uph(date_filter=None, supervisor=None, shift=None):
@@ -171,82 +170,59 @@ def get_total_uph(date_filter=None, supervisor=None, shift=None):
 # KPI CARDS (UPH %, Actual Time, Standard Time, Productivity)
 # ============================================================
 # UPH % (Avg %):
-#   = UPH / Target_UPH — but with ALL(Date), so NO date filter
-#   = (SUM(Qty) / SUM(LineDay) * 60) / (SUM(Qty) / SUM(Qty/Target))
+#   = UPH / Target_UPH for the selected date
+#   Note: DAX uses ALL(lms[Date]) but slicer filters on Date3,
+#   so ALL(Date) doesn't actually remove the filter. Result = UPH/Target.
 #
 # Actual Time (Duration):
-#   = SUM([Line Day Activity]) / 60   (hours, WITH date filter)
+#   = SUM([Line Day Activity]) / 60   (hours)
 #
 # Standard Time (Target_Time):
-#   = SUM(Quantity / Target)           (hours, WITH date filter)
+#   = SUM(Quantity / Target)           (hours)
 #
 # Productivity:
-#   = SUM(Duration) / SUM(Target_Time) - 1
 #   = Actual Time / Standard Time - 1
 # ============================================================
 
 def get_kpi_data(date_filter=None, supervisor=None, shift=None):
     """
     Returns dict with uph_percent, actual_time, standard_time, productivity.
+    All KPIs use the same date filter (matching Power BI behavior).
     """
     direct_users = get_direct_users()
 
-    # --- UPH % uses ALL(Date) = no date filter ---
-    where_no_date = _build_where_clause(
-        date_filter=None,  # ALL(Date)
-        supervisor=supervisor,
-        shift=shift,
-        direct_users=direct_users,
-    )
+    # All KPIs use the same WHERE (including date filter)
+    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
 
-    uph_pct_query = f"""
+    # Single query for all KPI values
+    query = f"""
         SELECT
+            -- UPH % = UPH / Target_UPH
             CASE
                 WHEN SUM(CAST([Line Day Activity] AS FLOAT)) = 0 THEN 0
+                WHEN SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) = 0 THEN 0
                 ELSE
-                    -- UPH = SUM(Qty) / (SUM(LineDay) / 60)
                     (SUM(CAST([Quantity] AS FLOAT)) / (SUM(CAST([Line Day Activity] AS FLOAT)) / 60.0))
                     /
-                    -- Target_UPH = SUM(Qty) / SUM(Qty / Target)
-                    NULLIF(SUM(CAST([Quantity] AS FLOAT)) / NULLIF(SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)), 0), 0)
-            END AS uph_percent
-        FROM ({_base_subquery()}) AS LMS
-        {where_no_date}
-    """
-
-    # --- Actual Time, Standard Time, Productivity use WITH date filter ---
-    where_with_date = _build_where_clause(
-        date_filter=date_filter,
-        supervisor=supervisor,
-        shift=shift,
-        direct_users=direct_users,
-    )
-
-    time_query = f"""
-        SELECT
-            -- Actual Time = SUM(Line Day Activity) / 60 (convert minutes to hours)
+                    (SUM(CAST([Quantity] AS FLOAT)) / SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)))
+            END AS uph_percent,
+            -- Actual Time = SUM(Line Day Activity) / 60
             ROUND(SUM(CAST([Line Day Activity] AS FLOAT)) / 60.0, 2) AS actual_time,
-            -- Standard Time = SUM(Quantity / Target) = SUM(Target_Time)
+            -- Standard Time = SUM(Quantity / Target)
             ROUND(SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)), 2) AS standard_time
         FROM ({_base_subquery()}) AS LMS
-        {where_with_date}
+        {where}
     """
 
-    # Execute both queries
-    df_pct = run_query(uph_pct_query)
-    df_time = run_query(time_query)
+    df = run_query(query)
 
-    # Parse UPH %
-    uph_percent = 0
-    if not df_pct.empty and df_pct['uph_percent'].iloc[0]:
-        uph_percent = round(df_pct['uph_percent'].iloc[0] * 100)
+    if df.empty:
+        return {'uph_percent': 0, 'actual_time': 0, 'standard_time': 0, 'productivity': 0}
 
-    # Parse Actual Time & Standard Time
-    actual_time = 0.0
-    standard_time = 0.0
-    if not df_time.empty:
-        actual_time = round(float(df_time['actual_time'].iloc[0] or 0), 2)
-        standard_time = round(float(df_time['standard_time'].iloc[0] or 0), 2)
+    # Parse results
+    uph_percent = round((df['uph_percent'].iloc[0] or 0) * 100)
+    actual_time = round(float(df['actual_time'].iloc[0] or 0), 2)
+    standard_time = round(float(df['standard_time'].iloc[0] or 0), 2)
 
     # Productivity = Actual / Standard - 1
     if standard_time > 0:
