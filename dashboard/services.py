@@ -50,24 +50,12 @@ def get_summary_data(supervisor='All', week='All', shift='All', date=None):
     return data
 
 
-def get_data_from_databricks(query: str) -> pd.DataFrame:
+def load_csv_data(filename: str) -> pd.DataFrame:
     """
-    Execute a SQL query against Databricks and return a DataFrame.
-    Requires DATABRICKS_SERVER_HOSTNAME, DATABRICKS_HTTP_PATH, DATABRICKS_TOKEN
-    to be set in your .env file.
+    Load a CSV file from the /data directory.
+    Place your Power BI exported CSVs there.
     """
-    from databricks import sql as databricks_sql
-
-    connection = databricks_sql.connect(
-        server_hostname=settings.DATABRICKS_SERVER_HOSTNAME,
-        http_path=settings.DATABRICKS_HTTP_PATH,
-        access_token=settings.DATABRICKS_TOKEN,
-    )
-    try:
-        cursor = connection.cursor()
-        cursor.execute(query)
-        columns = [desc[0] for desc in cursor.description]
-        rows = cursor.fetchall()
-        return pd.DataFrame(rows, columns=columns)
-    finally:
-        connection.close()
+    filepath = settings.DATA_DIR / filename
+    if filepath.exists():
+        return pd.read_csv(filepath)
+    return pd.DataFrame()

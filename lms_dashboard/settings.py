@@ -71,7 +71,5 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# === Databricks Connection (for reading LMS data) ===
-DATABRICKS_SERVER_HOSTNAME = os.getenv('DATABRICKS_SERVER_HOSTNAME', '')
-DATABRICKS_HTTP_PATH = os.getenv('DATABRICKS_HTTP_PATH', '')
-DATABRICKS_TOKEN = os.getenv('DATABRICKS_TOKEN', '')
+# === Data directory (for CSV/Excel files exported from Power BI) ===
+DATA_DIR = BASE_DIR / 'data'
