@@ -238,13 +238,52 @@ def get_kpi_data(date_filter=None, supervisor=None, shift=None):
 
 
 # ============================================================
+# CHART: Quantity by Process
+# ============================================================
+# Power BI: Axis = [Movement], Values = SUM(Quantity)
+# Same base filters apply (Activity Type, Movement exclusions,
+# Process exclusions, Employee Type, Date)
+# ============================================================
+
+def get_quantity_by_process(date_filter=None, supervisor=None, shift=None):
+    """
+    Returns dict of {movement_name: total_quantity} sorted by quantity DESC.
+    """
+    print(f"[LMS] ─── Chart: Quantity by Process ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+
+    query = f"""
+        SELECT
+            [Movement],
+            SUM(CAST([Quantity] AS INT)) AS total_quantity
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        GROUP BY [Movement]
+        ORDER BY total_quantity DESC
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
+        return {}
+
+    result = dict(zip(df['Movement'], df['total_quantity']))
+    print(f"[LMS]   ✓ {len(result)} movements: {result} ({elapsed:.2f}s)")
+    return result
+
+
+# ============================================================
 # MAIN SUMMARY (aggregates all widgets)
 # ============================================================
 
 def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None):
     """
     Returns a dict with all data needed for the Summary dashboard.
-    Total UPH + KPI cards are live; charts remain sample data.
     """
     if not date_filter:
         date_filter = date.today().strftime('%Y-%m-%d')
@@ -278,10 +317,16 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         standard_time = 0
         productivity = 0
 
-    print(f"[LMS] ─── Charts: Using SAMPLE data (not yet wired) ───")
+    # --- LIVE DATA: Quantity by Process chart ---
+    try:
+        quantity_by_process = get_quantity_by_process(date_filter, supervisor, shift)
+    except Exception as e:
+        print(f"[LMS]   ✗ SQL Server error (Qty by Process): {e}")
+        quantity_by_process = {}
+
+    print(f"[LMS] ─── Remaining charts: Using SAMPLE data ───")
     print(f"{'='*60}\n")
 
-    # --- SAMPLE DATA (charts — will replace next) ---
     data = {
         'total_uph': total_uph,
         'uph_target': uph_target,
@@ -289,21 +334,15 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         'actual_time': actual_time,
         'standard_time': standard_time,
         'productivity': productivity,
-        'quantity_by_process': {
-            'PICKING': 27000,
-            'PUTAWAY': 25000,
-            'REPLENISHMENT': 17000,
-            'RECEIVING': 9000,
-            'PACKING': 4000,
-        },
-        'uph_vs_target_by_process': {
+        'quantity_by_process': quantity_by_process,
+        'uph_vs_target_by_process': {  # TODO: wire up
             'REPLENISHMENT': 254,
             'PUTAWAY': 123,
             'PICKING': 118,
             'PACKING': 89,
             'RECEIVING': 81,
         },
-        'productivity_by_process': {
+        'productivity_by_process': {   # TODO: wire up
             'REPLENISHMENT': -61,
             'PUTAWAY': -19,
             'PICKING': -16,
