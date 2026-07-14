@@ -99,12 +99,16 @@ BASE_FILTERS = """
 """
 
 
-def _build_where_clause(date_filter=None, supervisor=None, shift=None, direct_users=None):
+def _build_where_clause(date_filter=None, supervisor=None, shift=None,
+                         week=None, direct_users=None):
     """Build WHERE clause with all Power BI filters."""
     where = BASE_FILTERS
 
     if date_filter:
         where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+
+    if week and week != 'All':
+        where += f"  AND [Fiscal Week] = '{week}'\n"
 
     if direct_users:
         users_str = ", ".join(f"'{u}'" for u in direct_users)
@@ -134,17 +138,67 @@ def _base_subquery():
 
 
 # ============================================================
-# TOTAL UPH (Gauge widget)
+# FILTER OPTIONS (populate dropdowns from DB)
 # ============================================================
 
-def get_total_uph(date_filter=None, supervisor=None, shift=None):
-    """Returns dict with 'uph' and 'target_uph'."""
-    print(f"[LMS] ─── Gauge: Total UPH ───")
-    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}")
+@lru_cache(maxsize=1)
+def get_filter_options():
+    """
+    Fetch distinct Supervisor and Week values for filter dropdowns (cached).
+    """
+    print("[LMS] ─── Loading filter options ───")
     start = time.time()
 
     direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    # Supervisors: distinct values from LMS with base filters + DIRECT users
+    sup_query = f"""
+        SELECT DISTINCT [Supervisor Full Name]
+        FROM ({_base_subquery()}) AS LMS
+        {BASE_FILTERS}
+          AND [User Name] IN ({users_str})
+          AND [Supervisor Full Name] IS NOT NULL
+          AND [Supervisor Full Name] != ''
+        ORDER BY [Supervisor Full Name]
+    """
+
+    # Weeks: distinct Fiscal Week values
+    week_query = f"""
+        SELECT DISTINCT [Fiscal Week]
+        FROM ({_base_subquery()}) AS LMS
+        {BASE_FILTERS}
+          AND [User Name] IN ({users_str})
+          AND [Fiscal Week] IS NOT NULL
+          AND [Fiscal Week] != ''
+        ORDER BY [Fiscal Week] DESC
+    """
+
+    df_sup = run_query(sup_query)
+    df_week = run_query(week_query)
+
+    supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
+    weeks = ['All'] + df_week['Fiscal Week'].tolist()
+
+    elapsed = time.time() - start
+    print(f"[LMS]   ✓ {len(supervisors)-1} supervisors, {len(weeks)-1} weeks ({elapsed:.2f}s)")
+    print(f"[LMS]   (cached — won't query again until server restart)")
+
+    return {'supervisors': supervisors, 'weeks': weeks}
+
+
+# ============================================================
+# TOTAL UPH (Gauge widget)
+# ============================================================
+
+def get_total_uph(date_filter=None, supervisor=None, shift=None, week=None):
+    """Returns dict with 'uph' and 'target_uph'."""
+    print(f"[LMS] ─── Gauge: Total UPH ───")
+    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}, week={week}")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
 
     query = f"""
         SELECT
@@ -185,16 +239,16 @@ def get_total_uph(date_filter=None, supervisor=None, shift=None):
 # KPI CARDS (UPH %, Actual Time, Standard Time, Productivity)
 # ============================================================
 
-def get_kpi_data(date_filter=None, supervisor=None, shift=None):
+def get_kpi_data(date_filter=None, supervisor=None, shift=None, week=None):
     """
     Returns dict with uph_percent, actual_time, standard_time, productivity.
     """
     print(f"[LMS] ─── KPI Cards ───")
-    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}")
+    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}, week={week}")
     start = time.time()
 
     direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
 
     query = f"""
         SELECT
@@ -240,10 +294,8 @@ def get_kpi_data(date_filter=None, supervisor=None, shift=None):
 # ============================================================
 # CHART: Quantity by Process
 # ============================================================
-# Power BI: Axis = [Movement], Values = SUM(Quantity)
-# ============================================================
 
-def get_quantity_by_process(date_filter=None, supervisor=None, shift=None):
+def get_quantity_by_process(date_filter=None, supervisor=None, shift=None, week=None):
     """
     Returns dict of {movement_name: total_quantity} sorted by quantity DESC.
     """
@@ -251,7 +303,7 @@ def get_quantity_by_process(date_filter=None, supervisor=None, shift=None):
     start = time.time()
 
     direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
 
     query = f"""
         SELECT
@@ -278,23 +330,16 @@ def get_quantity_by_process(date_filter=None, supervisor=None, shift=None):
 # ============================================================
 # CHART: Actual UPH vs Target UPH by Process
 # ============================================================
-# Power BI: Axis = [Movement], Values = Target%
-# Target% = UPH / Target_UPH per movement
-#         = (SUM(Qty)/(SUM(LineDay)/60)) / (SUM(Qty)/SUM(Qty/Target))
-#         = SUM(Qty/Target) * 60 / SUM(LineDay)
-# Displayed as integer % (e.g. 260 means 260% of target)
-# ============================================================
 
-def get_uph_vs_target_by_process(date_filter=None, supervisor=None, shift=None):
+def get_uph_vs_target_by_process(date_filter=None, supervisor=None, shift=None, week=None):
     """
     Returns dict of {movement_name: target_percent} sorted by target_percent DESC.
-    target_percent is an integer (e.g. 260 = 260% of target UPH).
     """
     print(f"[LMS] ─── Chart: UPH vs Target by Process ───")
     start = time.time()
 
     direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
 
     query = f"""
         SELECT
@@ -330,22 +375,16 @@ def get_uph_vs_target_by_process(date_filter=None, supervisor=None, shift=None):
 # ============================================================
 # CHART: Productivity by Process
 # ============================================================
-# Power BI: Axis = [Movement], Values = Productivity
-# Productivity = (SUM(LineDay)/60) / SUM(Qty/Target) - 1
-# Displayed as integer % (e.g. -62 = 62% faster than standard,
-#                                244 = 244% slower than standard)
-# ============================================================
 
-def get_productivity_by_process(date_filter=None, supervisor=None, shift=None):
+def get_productivity_by_process(date_filter=None, supervisor=None, shift=None, week=None):
     """
     Returns dict of {movement_name: productivity_percent} sorted by productivity ASC.
-    Negative = good (faster than standard), Positive = bad (slower).
     """
     print(f"[LMS] ─── Chart: Productivity by Process ───")
     start = time.time()
 
     direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
 
     query = f"""
         SELECT
@@ -395,9 +434,16 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
     print(f"[LMS]   Supervisor: {supervisor} | Shift: {shift} | Week: {week}")
     print(f"{'='*60}")
 
+    # --- Filter options (cached) ---
+    try:
+        filter_options = get_filter_options()
+    except Exception as e:
+        print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
+        filter_options = {'supervisors': ['All'], 'weeks': ['All']}
+
     # --- LIVE DATA: Total UPH ---
     try:
-        uph_data = get_total_uph(date_filter, supervisor, shift)
+        uph_data = get_total_uph(date_filter, supervisor, shift, week)
         total_uph = uph_data['uph']
         uph_target = uph_data['target_uph']
     except Exception as e:
@@ -407,7 +453,7 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
 
     # --- LIVE DATA: KPI Cards ---
     try:
-        kpi = get_kpi_data(date_filter, supervisor, shift)
+        kpi = get_kpi_data(date_filter, supervisor, shift, week)
         uph_percent = kpi['uph_percent']
         actual_time = kpi['actual_time']
         standard_time = kpi['standard_time']
@@ -421,21 +467,21 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
 
     # --- LIVE DATA: Quantity by Process chart ---
     try:
-        quantity_by_process = get_quantity_by_process(date_filter, supervisor, shift)
+        quantity_by_process = get_quantity_by_process(date_filter, supervisor, shift, week)
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Qty by Process): {e}")
         quantity_by_process = {}
 
     # --- LIVE DATA: UPH vs Target by Process chart ---
     try:
-        uph_vs_target_by_process = get_uph_vs_target_by_process(date_filter, supervisor, shift)
+        uph_vs_target_by_process = get_uph_vs_target_by_process(date_filter, supervisor, shift, week)
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (UPH vs Target): {e}")
         uph_vs_target_by_process = {}
 
     # --- LIVE DATA: Productivity by Process chart ---
     try:
-        productivity_by_process = get_productivity_by_process(date_filter, supervisor, shift)
+        productivity_by_process = get_productivity_by_process(date_filter, supervisor, shift, week)
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Productivity by Process): {e}")
         productivity_by_process = {}
@@ -453,9 +499,15 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         'uph_vs_target_by_process': uph_vs_target_by_process,
         'productivity_by_process': productivity_by_process,
         'filters': {
-            'supervisors': ['All'],  # TODO: populate from DB
-            'weeks': ['All'],
+            'supervisors': filter_options['supervisors'],
+            'weeks': filter_options['weeks'],
             'shifts': ['All', 'A', 'B', 'C', 'D'],
+        },
+        'selected': {
+            'supervisor': supervisor,
+            'week': week,
+            'shift': shift,
+            'date': date_filter,
         },
     }
     return data
