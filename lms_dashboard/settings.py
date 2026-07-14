@@ -52,6 +52,12 @@ SQL_USERNAME = os.getenv('SQL_USERNAME', '')
 SQL_PASSWORD = os.getenv('SQL_PASSWORD', '')
 SQL_DRIVER = os.getenv('SQL_DRIVER', '{ODBC Driver 17 for SQL Server}')
 
+# === SQL Server Connection (Business Intelligence - Headcount/Roster) ===
+BI_SERVER = os.getenv('BI_SERVER', '')
+BI_DATABASE = os.getenv('BI_DATABASE', 'Business_Intelligence')
+BI_USERNAME = os.getenv('BI_USERNAME', '')
+BI_PASSWORD = os.getenv('BI_PASSWORD', '')
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'America/Tijuana'
 USE_I18N = True

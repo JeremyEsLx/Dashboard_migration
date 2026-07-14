@@ -1,35 +1,25 @@
 """Data service layer — queries SQL Server for LMS data.
 
 Connects to SQL Server via pyodbc and translates Power BI DAX measures to SQL.
-Table: [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03]
+LMS Table: [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03]
+Headcount Table: [Business_Intelligence].[dbo].[MX03_Roster] (same server, cross-DB query)
 
-Actual columns (from SQL Server):
-  Process, Process_Map, Flow Type, Flow_Type_Map, Fiscal Year, Wall Side,
-  Time, Date, Target UPT, Delivery, Fiscal Month, Fiscal Week,
-  Calendar Year/Week, Calendar Date, Warehouse Number (Code), Area, Plant,
-  Warehouse Number, Destination Storage Bin, Destination Storage Type,
-  Source Storage Bin, Source Storage Type, User Name, Surname, Name,
-  Time Frame, Activity Type, Mission Key, Previous Scan Day, Idle Time Day,
-  Previous Moment, Previous Process, Items Counter, Line Day Activity,
-  Working Gap Minutes, Inactive Time, Quantity, Physical Cart,
-  Transfer Order Number, Transfer Order Item, Picking Zone, Movement,
-  Line Day Activity (No TRESS Activities), Supervisor Full Name, Shift,
-  Material, Material Text, Stock Category, Grid Value, Packing Object,
-  SAP User Name, Full Name, Country of Origin, Backorder / No Backorder,
-  Cart Type, VAS Type, Tracking Number, Wave Number, Target, SHIFT2
+Power BI relationship: LMS[User Name] → Headcount[User]
+Employee Type filter: Headcount[Estacion_de_Trabajo] IN (DIRECT roles)
 """
 import pyodbc
 import pandas as pd
 from django.conf import settings
 from datetime import date
+from functools import lru_cache
 
 
 # ============================================================
-# DATABASE CONNECTION
+# DATABASE CONNECTION (single connection — both DBs on same server)
 # ============================================================
 
 def get_connection():
-    """Create a pyodbc connection to SQL Server using .env credentials."""
+    """Connect to SQL Server (cross-database queries work on same instance)."""
     conn_str = (
         f"DRIVER={settings.SQL_DRIVER};"
         f"SERVER={settings.SQL_SERVER};"
@@ -55,18 +45,56 @@ def run_query(query: str) -> pd.DataFrame:
 
 
 # ============================================================
+# HEADCOUNT / EMPLOYEE TYPE FILTER
+# ============================================================
+# Power BI: Employee Type = SWITCH on Headcount[Estacion_de_Trabajo]
+# Source: [Business_Intelligence].[dbo].[MX03_Roster]
+# Join: LMS[User Name] = Headcount[User]
+#   where User = ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50)))
+# Filter: Active_YN = 'SI' AND Estacion_de_Trabajo IN (DIRECT roles)
+# ============================================================
+
+DIRECT_ROLES = (
+    'Operador en Entrenamiento',
+    'Almacenista',
+    'Automation clerk I',
+    'DC clerk 1',
+    'Packing / VAS',
+    'Picking',
+    'Put away',
+    'Recibos',
+)
+
+
+@lru_cache(maxsize=1)
+def get_direct_users() -> set:
+    """
+    Fetch the list of DIRECT employee usernames from the BI Roster table.
+    Cached for the lifetime of the process (restart server to refresh).
+    Uses cross-database query (same server).
+    """
+    roles_str = ", ".join(f"'{r}'" for r in DIRECT_ROLES)
+
+    query = f"""
+        SELECT ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50))) AS [User]
+        FROM [Business_Intelligence].[dbo].[MX03_Roster]
+        WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
+          AND [Estacion_de_Trabajo] IN ({roles_str})
+    """
+
+    df = run_query(query)
+    return set(df['User'].dropna().str.strip().tolist())
+
+
+# ============================================================
 # BASE QUERY WITH FILTERS (mirrors Power BI slicers)
 # ============================================================
-# Power BI filters on the Summary page:
+# Filters applied to Total UPH visual:
 #   - Activity Type = 'DIRECT'
+#   - Date3 (= [Date]) = selected date
+#   - Employee Type = 'DIRECT' (via Headcount join on User Name)
 #   - Movement NOT IN ('BIN2BIN', 'LOST&FOUND', 'RECASE', 'HOUSEKEEPING')
 #   - Process NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
-#   - Date = selected date
-#
-# NOTE: "Employee Type" in Power BI does NOT exist as a column.
-#       "Activity Type = DIRECT" covers it.
-# NOTE: "Date3" in Power BI = the [Date] column (format: 2026-06-23).
-# NOTE: "Target_Time" in Power BI = calculated as Quantity / Target.
 # ============================================================
 
 BASE_FILTERS = """
@@ -76,16 +104,25 @@ BASE_FILTERS = """
 """
 
 
-def _build_where_clause(date_filter=None, supervisor=None, shift=None):
+def _build_where_clause(date_filter=None, supervisor=None, shift=None, direct_users=None):
     """Build the WHERE clause with base filters + optional slicer filters."""
     where = BASE_FILTERS
+
+    # Date filter (Date3 = [Date] column)
     if date_filter:
-        # [Date] column stores dates as '2026-06-23' format
         where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+
+    # Employee Type = DIRECT filter (via Headcount User lookup)
+    if direct_users:
+        users_str = ", ".join(f"'{u}'" for u in direct_users)
+        where += f"  AND [User Name] IN ({users_str})\n"
+
+    # Optional slicer filters
     if supervisor and supervisor != 'All':
         where += f"  AND [Supervisor Full Name] = '{supervisor}'\n"
     if shift and shift != 'All':
         where += f"  AND [SHIFT2] = '{shift}'\n"
+
     return where
 
 
@@ -111,9 +148,7 @@ def _base_subquery():
 #   - [Line Day Activity] is in MINUTES, *60 converts to per-hour
 #
 # DAX: Target_UPH = SUM(Quantity) / SUM(Target_Time)
-#   - Target_Time is NOT a real column — Power BI calculates it as:
-#     Target_Time = Quantity / [Target]
-#   - [Target] = target UPH per process (e.g. 70 for PUTAWAY)
+#   - Target_Time = IF(Target=0, 0.0000001, Quantity / Target)
 #   - So: Target_UPH = SUM(Quantity) / SUM(Quantity / Target)
 # ============================================================
 
@@ -121,7 +156,9 @@ def get_total_uph(date_filter=None, supervisor=None, shift=None):
     """
     Returns dict with 'uph' (gauge value) and 'target_uph' (blue marker).
     """
-    where = _build_where_clause(date_filter, supervisor, shift)
+    # Get DIRECT users from Headcount (cached after first call)
+    direct_users = get_direct_users()
+    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
 
     query = f"""
         SELECT
