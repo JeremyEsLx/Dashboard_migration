@@ -42,8 +42,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'lms_dashboard.wsgi.application'
 
-# No database — this app is stateless, queries SQL Server directly
+# No Django database — this app is stateless, queries SQL Server directly
 DATABASES = {}
+
+# === SQL Server Connection (LMS data source) ===
+SQL_SERVER = os.getenv('SQL_SERVER', '')
+SQL_DATABASE = os.getenv('SQL_DATABASE', 'LMS_Database')
+SQL_USERNAME = os.getenv('SQL_USERNAME', '')
+SQL_PASSWORD = os.getenv('SQL_PASSWORD', '')
+SQL_DRIVER = os.getenv('SQL_DRIVER', '{ODBC Driver 17 for SQL Server}')
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'America/Tijuana'

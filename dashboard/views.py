@@ -9,7 +9,7 @@ def summary(request):
         supervisor=request.GET.get('supervisor', 'All'),
         week=request.GET.get('week', 'All'),
         shift=request.GET.get('shift', 'All'),
-        date=request.GET.get('date'),
+        date_filter=request.GET.get('date'),
     )
     return render(request, 'dashboard/summary.html', {'data': data})
 
@@ -20,6 +20,6 @@ def summary_data(request):
         supervisor=request.GET.get('supervisor', 'All'),
         week=request.GET.get('week', 'All'),
         shift=request.GET.get('shift', 'All'),
-        date=request.GET.get('date'),
+        date_filter=request.GET.get('date'),
     )
     return JsonResponse(data)
