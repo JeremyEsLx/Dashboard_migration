@@ -251,6 +251,15 @@
                     <label>Date</label>
                     <input type="date" id="filter-date" value="{{ data.selected.date }}">
                 </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters to default">
+                        &#8634; Reset
+                    </button>
+                    <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data from server">
+                        &#8635; Refresh
+                    </button>
+                    <span class="refresh-timer" id="refresh-timer"></span>
+                </div>
             </div>
 
             <!-- KPI CARDS -->
@@ -550,6 +559,43 @@
 
     document.getElementById('filter-date').addEventListener('change', reloadForDate);
     document.getElementById('filter-week').addEventListener('change', reloadForWeek);
+
+    // ================================================================
+    // RESET & REFRESH BUTTONS
+    // ================================================================
+
+    document.getElementById('btn-reset').addEventListener('click', function() {
+        window.location.href = '/';
+    });
+
+    document.getElementById('btn-refresh').addEventListener('click', function() {
+        window.location.reload();
+    });
+
+    // ================================================================
+    // AUTO-REFRESH EVERY 15 MINUTES
+    // ================================================================
+    var REFRESH_INTERVAL = 15 * 60;
+    var secondsLeft = REFRESH_INTERVAL;
+    var timerEl = document.getElementById('refresh-timer');
+
+    function updateTimerDisplay() {
+        var mins = Math.floor(secondsLeft / 60);
+        var secs = secondsLeft % 60;
+        timerEl.textContent = 'Next refresh: ' + mins + ':' + (secs < 10 ? '0' : '') + secs;
+    }
+
+    function tickTimer() {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+            window.location.reload();
+        } else {
+            updateTimerDisplay();
+        }
+    }
+
+    updateTimerDisplay();
+    setInterval(tickTimer, 1000);
 
     // ================================================================
     // INITIAL RENDER
