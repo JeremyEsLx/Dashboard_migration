@@ -63,8 +63,15 @@ TIME_ZONE = 'America/Tijuana'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+# === Static Files ===
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# In DEBUG mode: Django's dev server serves static files directly from app dirs.
+# In production: WhiteNoise serves pre-collected files with compression + caching.
+if DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
