@@ -202,10 +202,7 @@ def get_filter_options():
 # ============================================================
 
 def get_day_cube(date_filter=None, week=None):
-    """
-    One SQL query that returns all aggregated data for the date OR week.
-    Date takes priority over Week (mutually exclusive).
-    """
+    """One SQL query that returns all aggregated data for the date OR week."""
     print(f"[LMS] ─── Loading Day Cube ───")
     start = time.time()
 
@@ -383,10 +380,7 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
 # ============================================================
 
 def get_performance_cube(date_from=None, date_to=None, week=None):
-    """
-    Query grouped by Process, Flow_Type_Map, Cart_Type, Supervisor, Shift.
-    Supports date RANGE (from/to) or single week.
-    """
+    """Query grouped by Process, Flow_Type_Map, Cart_Type, Supervisor, Shift."""
     print(f"[LMS] ─── Loading Performance Cube ───")
     start = time.time()
 
@@ -451,8 +445,8 @@ def get_performance_cube(date_from=None, date_to=None, week=None):
 
 def get_user_cube(date_from=None, date_to=None, week=None):
     """
-    Query grouped by User Name (+ Supervisor, Shift for client-side filtering).
-    Returns list of dicts for the user performance table.
+    Query grouped by User Name + Process (for Process filter support).
+    Also includes Supervisor, Shift for client-side filtering.
     """
     print(f"[LMS] ─── Loading User Cube ───")
     start = time.time()
@@ -466,6 +460,7 @@ def get_user_cube(date_from=None, date_to=None, week=None):
     query = f"""
         SELECT
             [User Name] AS [user_name],
+            ISNULL([Process], '') AS [process],
             [Supervisor Full Name] AS supervisor,
             [SHIFT2] AS shift,
             SUM(CAST([Quantity] AS FLOAT)) AS sum_qty,
@@ -473,7 +468,7 @@ def get_user_cube(date_from=None, date_to=None, week=None):
             SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) AS sum_target_time
         FROM ({_base_subquery()}) AS LMS
         {where}
-        GROUP BY [User Name], [Supervisor Full Name], [SHIFT2]
+        GROUP BY [User Name], [Process], [Supervisor Full Name], [SHIFT2]
     """
 
     df = run_query(query)
@@ -487,6 +482,7 @@ def get_user_cube(date_from=None, date_to=None, week=None):
     for _, row in df.iterrows():
         cube.append({
             'u': row['user_name'] or '',
+            'p': row['process'] or '',
             's': row['supervisor'] or '',
             'sh': row['shift'] or '',
             'q': round(float(row['sum_qty'] or 0), 2),
@@ -504,11 +500,7 @@ def get_user_cube(date_from=None, date_to=None, week=None):
 
 def get_performance_data(supervisor='All', week='All', process='All',
                          shift='All', date_from=None, date_to=None):
-    """
-    Returns all data for the Performance by User page.
-    Includes BOTH the process cube and the user cube.
-    """
-    # Date range vs Week logic
+    """Returns all data for the Performance by User page."""
     if date_from or date_to:
         effective_week = 'All'
         if not date_to:

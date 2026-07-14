@@ -6,7 +6,7 @@
  *   2. User performance (flat table per user) from USER_CUBE
  *
  * Cube rows: { p, f, c, s, sh, q, ld, tt }
- * User cube rows: { u, s, sh, q, ld, tt }
+ * User cube rows: { u, p, s, sh, q, ld, tt }
  *
  * Client-side filters: Supervisor, Process, Shift (instant)
  * Server-side filters: Date Range, Week (reload)
@@ -64,6 +64,9 @@ function filterUserCube() {
     var rows = USER_CUBE;
     if (f.supervisor && f.supervisor !== 'All') {
         rows = rows.filter(function(r) { return r.s === f.supervisor; });
+    }
+    if (f.process && f.process !== 'All') {
+        rows = rows.filter(function(r) { return r.p === f.process; });
     }
     if (f.shift && f.shift !== 'All') {
         rows = rows.filter(function(r) { return r.sh === f.shift; });
@@ -212,7 +215,7 @@ function renderUserTable() {
     var filtered = filterUserCube();
     var tbody = document.getElementById('user-tbody');
 
-    // Aggregate by user name (user may have multiple shifts/supervisors)
+    // Aggregate by user name (user may have multiple shifts/supervisors/processes)
     var byUser = {};
     for (var i = 0; i < filtered.length; i++) {
         var r = filtered[i];

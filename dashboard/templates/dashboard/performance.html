@@ -67,51 +67,50 @@
     </div>
 </div>
 
-<!-- PROCESS HIERARCHY TABLE -->
-<div class="table-card">
-    <h3>Performance by Process</h3>
-    <div class="table-scroll">
-        <table class="perf-table" id="perf-table">
-            <thead>
-                <tr>
-                    <th class="col-process">Process</th>
-                    <th class="col-num">Quantity</th>
-                    <th class="col-num">Actual Time</th>
-                    <th class="col-num">Standard Time</th>
-                    <th class="col-num">Productivity</th>
-                    <th class="col-num">UPH</th>
-                    <th class="col-num">Target UPH</th>
-                    <th class="col-num">% UPH</th>
-                </tr>
-            </thead>
-            <tbody id="perf-tbody">
-                <!-- Rendered by JS -->
-            </tbody>
-        </table>
+<!-- TABLES CONTAINER — fills viewport, no outer scroll -->
+<div class="tables-container">
+    <!-- PROCESS HIERARCHY TABLE -->
+    <div class="table-card process-card">
+        <h3>Performance by Process</h3>
+        <div class="table-scroll">
+            <table class="perf-table" id="perf-table">
+                <thead>
+                    <tr>
+                        <th class="col-process">Process</th>
+                        <th class="col-num">Quantity</th>
+                        <th class="col-num">Actual Time</th>
+                        <th class="col-num">Standard Time</th>
+                        <th class="col-num">Productivity</th>
+                        <th class="col-num">UPH</th>
+                        <th class="col-num">Target UPH</th>
+                        <th class="col-num">% UPH</th>
+                    </tr>
+                </thead>
+                <tbody id="perf-tbody"></tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-<!-- USER PERFORMANCE TABLE -->
-<div class="table-card" style="margin-top: 16px;">
-    <h3>Performance by User</h3>
-    <div class="table-scroll">
-        <table class="perf-table" id="user-table">
-            <thead>
-                <tr>
-                    <th class="col-process">User Name</th>
-                    <th class="col-num">Quantity</th>
-                    <th class="col-num">Actual Time</th>
-                    <th class="col-num">Standard Time</th>
-                    <th class="col-num">Productivity</th>
-                    <th class="col-num">UPH</th>
-                    <th class="col-num">Target UPH</th>
-                    <th class="col-num">% UPH</th>
-                </tr>
-            </thead>
-            <tbody id="user-tbody">
-                <!-- Rendered by JS -->
-            </tbody>
-        </table>
+    <!-- USER PERFORMANCE TABLE -->
+    <div class="table-card user-card">
+        <h3>Performance by User</h3>
+        <div class="table-scroll">
+            <table class="perf-table" id="user-table">
+                <thead>
+                    <tr>
+                        <th class="col-process">User Name</th>
+                        <th class="col-num">Quantity</th>
+                        <th class="col-num">Actual Time</th>
+                        <th class="col-num">Standard Time</th>
+                        <th class="col-num">Productivity</th>
+                        <th class="col-num">UPH</th>
+                        <th class="col-num">Target UPH</th>
+                        <th class="col-num">% UPH</th>
+                    </tr>
+                </thead>
+                <tbody id="user-tbody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
