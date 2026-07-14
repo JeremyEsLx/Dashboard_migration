@@ -119,6 +119,16 @@ def _base_subquery():
     """
 
 
+def _build_date_where(date_filter=None, week=None):
+    """Shared WHERE clause builder for date/week filtering."""
+    where = BASE_FILTERS
+    if date_filter:
+        where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+    elif week and week != 'All':
+        where += f"  AND [Fiscal Week] = '{week}'\n"
+    return where
+
+
 # ============================================================
 # FILTER OPTIONS (populate dropdowns — cached)
 # ============================================================
@@ -165,11 +175,6 @@ def get_filter_options():
 # ============================================================
 # DAY CUBE — one query, all the data for the selected date/week
 # ============================================================
-# Date and Week are MUTUALLY EXCLUSIVE:
-#   - date_filter set → use date only
-#   - week set (no date) → use week only
-#   - neither → caller should default to today before calling
-# ============================================================
 
 def get_day_cube(date_filter=None, week=None):
     """
@@ -182,13 +187,10 @@ def get_day_cube(date_filter=None, week=None):
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    # Build WHERE — date and week are mutually exclusive
-    where = BASE_FILTERS
+    where = _build_date_where(date_filter, week)
     if date_filter:
-        where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
         print(f"[LMS]   Mode: DATE = {date_filter}")
     elif week and week != 'All':
-        where += f"  AND [Fiscal Week] = '{week}'\n"
         print(f"[LMS]   Mode: WEEK = {week}")
     else:
         print(f"[LMS]   Mode: NO FILTER (all data)")
@@ -214,7 +216,6 @@ def get_day_cube(date_filter=None, week=None):
         print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
         return []
 
-    # Convert to list of dicts for JSON serialization
     cube = []
     for _, row in df.iterrows():
         cube.append({
@@ -235,23 +236,17 @@ def get_day_cube(date_filter=None, week=None):
 # ============================================================
 
 def compute_from_cube(cube, supervisor='All', shift='All'):
-    """
-    Filter the cube and compute all KPIs + chart data.
-    Same logic as the JavaScript will do client-side.
-    """
-    # Filter
+    """Filter the cube and compute all KPIs + chart data."""
     filtered = cube
     if supervisor and supervisor != 'All':
         filtered = [r for r in filtered if r['s'] == supervisor]
     if shift and shift != 'All':
         filtered = [r for r in filtered if r['sh'] == shift]
 
-    # Totals
     total_qty = sum(r['q'] for r in filtered)
     total_ld = sum(r['ld'] for r in filtered)
     total_tt = sum(r['tt'] for r in filtered)
 
-    # KPIs
     uph = round(total_qty / (total_ld / 60)) if total_ld > 0 else 0
     target_uph = round(total_qty / total_tt) if total_tt > 0 else 0
     uph_percent = round((uph / target_uph) * 100) if target_uph > 0 else 0
@@ -259,7 +254,6 @@ def compute_from_cube(cube, supervisor='All', shift='All'):
     standard_time = round(total_tt, 2)
     productivity = round((actual_time / standard_time - 1) * 100) if standard_time > 0 else 0
 
-    # Charts — group by movement
     by_movement = {}
     for r in filtered:
         m = r['m']
@@ -269,13 +263,11 @@ def compute_from_cube(cube, supervisor='All', shift='All'):
         by_movement[m]['ld'] += r['ld']
         by_movement[m]['tt'] += r['tt']
 
-    # Quantity by Process (sorted DESC)
     qty_by_process = dict(sorted(
         {m: int(v['q']) for m, v in by_movement.items()}.items(),
         key=lambda x: x[1], reverse=True
     ))
 
-    # UPH vs Target by Process (Target% = sum_tt * 60 / sum_ld * 100)
     uph_vs_target = {}
     for m, v in by_movement.items():
         if v['ld'] > 0:
@@ -284,7 +276,6 @@ def compute_from_cube(cube, supervisor='All', shift='All'):
             uph_vs_target[m] = 0
     uph_vs_target = dict(sorted(uph_vs_target.items(), key=lambda x: x[1], reverse=True))
 
-    # Productivity by Process
     prod_by_process = {}
     for m, v in by_movement.items():
         if v['tt'] > 0:
@@ -311,20 +302,11 @@ def compute_from_cube(cube, supervisor='All', shift='All'):
 # ============================================================
 
 def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None):
-    """
-    Returns all data for the Summary dashboard.
-    Includes the cube JSON so the frontend can re-filter instantly.
-
-    Date vs Week logic:
-      - date_filter provided → use date, ignore week
-      - week provided (no date) → use week for all days in that week
-      - neither → default to today
-    """
-    # Determine effective date/week (mutually exclusive)
+    """Returns all data for the Summary dashboard."""
     if date_filter:
-        effective_week = 'All'  # Date wins — ignore week
+        effective_week = 'All'
     elif week and week != 'All':
-        date_filter = None  # Week mode — no date filter
+        date_filter = None
         effective_week = week
     else:
         date_filter = date.today().strftime('%Y-%m-%d')
@@ -336,30 +318,27 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
           f"Supervisor: {supervisor} | Shift: {shift}")
     print(f"{'='*60}")
 
-    # Filter options (cached)
     try:
         filter_options = get_filter_options()
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
         filter_options = {'supervisors': ['All'], 'weeks': ['All']}
 
-    # Day cube (ONE query for all data)
     try:
         cube = get_day_cube(date_filter, effective_week)
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Cube): {e}")
         cube = []
 
-    # Compute KPIs from cube for initial server-side render
     computed = compute_from_cube(cube, supervisor, shift)
 
     print(f"[LMS]   ✓ UPH={computed['total_uph']}, Target={computed['uph_target']}, "
           f"UPH%={computed['uph_percent']}%, Productivity={computed['productivity']}%")
     print(f"{'='*60}\n")
 
-    data = {
+    return {
         **computed,
-        'cube_json': json.dumps(cube),  # For client-side JS filtering
+        'cube_json': json.dumps(cube),
         'filters': {
             'supervisors': filter_options['supervisors'],
             'weeks': filter_options['weeks'],
@@ -372,4 +351,107 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
             'date': date_filter or '',
         },
     }
-    return data
+
+
+# ============================================================
+# PERFORMANCE BY USER — Process hierarchy cube
+# ============================================================
+# Groups by Process × Flow_Type_Map × Cart Type
+# Same base measures: sum_qty, sum_line_day, sum_target_time
+# JS computes KPIs and handles expand/collapse hierarchy
+# ============================================================
+
+def get_performance_cube(date_filter=None, week=None):
+    """
+    Query grouped by Process, Flow_Type_Map, Cart_Type.
+    Returns list of dicts for hierarchical table rendering.
+    """
+    print(f"[LMS] ─── Loading Performance Cube ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    where = _build_date_where(date_filter, week)
+    where += f"  AND [User Name] IN ({users_str})\n"
+
+    query = f"""
+        SELECT
+            ISNULL([Process], '') AS [process],
+            ISNULL([Flow_Type_Map], '') AS [flow_type],
+            ISNULL([Cart Type], '') AS [cart_type],
+            SUM(CAST([Quantity] AS FLOAT)) AS sum_qty,
+            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day,
+            SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) AS sum_target_time
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        GROUP BY [Process], [Flow_Type_Map], [Cart Type]
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
+        return []
+
+    cube = []
+    for _, row in df.iterrows():
+        cube.append({
+            'p': row['process'] or '',
+            'f': row['flow_type'] or '',
+            'c': row['cart_type'] or '',
+            'q': round(float(row['sum_qty'] or 0), 2),
+            'ld': round(float(row['sum_line_day'] or 0), 4),
+            'tt': round(float(row['sum_target_time'] or 0), 4),
+        })
+
+    print(f"[LMS]   ✓ {len(cube)} rows in performance cube ({elapsed:.2f}s)")
+    return cube
+
+
+def get_performance_data(week='All', shift='All', date_filter=None):
+    """
+    Returns all data for the Performance by User page.
+    Same date/week logic as Summary.
+    """
+    if date_filter:
+        effective_week = 'All'
+    elif week and week != 'All':
+        date_filter = None
+        effective_week = week
+    else:
+        date_filter = date.today().strftime('%Y-%m-%d')
+        effective_week = 'All'
+
+    print(f"\n{'='*60}")
+    print(f"[LMS] PERFORMANCE REQUEST")
+    print(f"[LMS]   Date: {date_filter or '(none)'} | Week: {effective_week} | Shift: {shift}")
+    print(f"{'='*60}")
+
+    try:
+        filter_options = get_filter_options()
+    except Exception as e:
+        print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
+        filter_options = {'supervisors': ['All'], 'weeks': ['All']}
+
+    try:
+        cube = get_performance_cube(date_filter, effective_week)
+    except Exception as e:
+        print(f"[LMS]   ✗ SQL Server error (Performance Cube): {e}")
+        cube = []
+
+    print(f"{'='*60}\n")
+
+    return {
+        'cube_json': json.dumps(cube),
+        'filters': {
+            'weeks': filter_options['weeks'],
+            'shifts': ['All', 'A', 'B', 'C', 'D'],
+        },
+        'selected': {
+            'week': effective_week,
+            'shift': shift,
+            'date': date_filter or '',
+        },
+    }

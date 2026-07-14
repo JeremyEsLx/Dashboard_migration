@@ -1,0 +1,80 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Performance by User — Tijuana LMS{% endblock %}
+
+{% block nav_performance %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/performance/performance.css' %}">
+{% endblock %}
+
+{% block page_title %}
+<h1 class="page-title">Performance by User</h1>
+{% endblock %}
+
+{% block content %}
+<!-- FILTERS -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label>Week</label>
+        <select id="filter-week">
+            {% for w in data.filters.weeks %}
+            <option value="{{ w }}" {% if w == data.selected.week %}selected{% endif %}>{{ w }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Shift</label>
+        <select id="filter-shift">
+            {% for sh in data.filters.shifts %}
+            <option value="{{ sh }}" {% if sh == data.selected.shift %}selected{% endif %}>{{ sh }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Date</label>
+        <input type="date" id="filter-date" value="{{ data.selected.date }}">
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">
+            &#8634; Reset Filters
+        </button>
+        <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data">
+            &#8635; Refresh
+        </button>
+        <span class="refresh-timer" id="refresh-timer"></span>
+    </div>
+</div>
+
+<!-- PROCESS HIERARCHY TABLE -->
+<div class="table-card">
+    <h3>Performance by Process</h3>
+    <div class="table-scroll">
+        <table class="perf-table" id="perf-table">
+            <thead>
+                <tr>
+                    <th class="col-process">Process</th>
+                    <th class="col-num">Quantity</th>
+                    <th class="col-num">Actual Time</th>
+                    <th class="col-num">Standard Time</th>
+                    <th class="col-num">Productivity</th>
+                    <th class="col-num">UPH</th>
+                    <th class="col-num">Target UPH</th>
+                    <th class="col-num">% UPH</th>
+                </tr>
+            </thead>
+            <tbody id="perf-tbody">
+                <!-- Rendered by JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var CUBE = {{ data.cube_json|safe }};
+</script>
+<script src="{% static 'dashboard/performance/performance.js' %}"></script>
+{% endblock %}

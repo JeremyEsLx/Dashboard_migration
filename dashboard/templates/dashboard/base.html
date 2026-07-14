@@ -30,11 +30,11 @@
             <a href="/" class="{% block nav_summary %}{% endblock %}">
                 <span class="sidebar-icon">&#9632;</span> Summary
             </a>
-            <a href="#" class="{% block nav_detail %}{% endblock %}">
-                <span class="sidebar-icon">&#9650;</span> Detail
+            <a href="/performance/" class="{% block nav_performance %}{% endblock %}">
+                <span class="sidebar-icon">&#9650;</span> Performance by User
             </a>
-            <a href="#" class="{% block nav_employee %}{% endblock %}">
-                <span class="sidebar-icon">&#9679;</span> By Employee
+            <a href="#" class="{% block nav_process %}{% endblock %}">
+                <span class="sidebar-icon">&#9679;</span> Performance by Process
             </a>
             <a href="#" class="{% block nav_trends %}{% endblock %}">
                 <span class="sidebar-icon">&#9670;</span> Trends
@@ -43,6 +43,9 @@
 
         <!-- MAIN CONTENT -->
         <main class="main">
+            <!-- Page Title -->
+            {% block page_title %}{% endblock %}
+
             {% block content %}{% endblock %}
         </main>
     </div>

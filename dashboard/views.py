@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .services import get_summary_data
+from .services import get_summary_data, get_performance_data
 
 
 def summary(request):
@@ -23,3 +23,13 @@ def summary_data(request):
         date_filter=request.GET.get('date'),
     )
     return JsonResponse(data)
+
+
+def performance(request):
+    """Render the Performance by User dashboard page."""
+    data = get_performance_data(
+        week=request.GET.get('week', 'All'),
+        shift=request.GET.get('shift', 'All'),
+        date_filter=request.GET.get('date'),
+    )
+    return render(request, 'dashboard/performance.html', {'data': data})
