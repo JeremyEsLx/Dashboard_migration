@@ -3,108 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LMS Dashboard - Summary</title>
+    <title>Tijuana LMS</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f0f0; padding: 16px; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .header h1 { font-size: 28px; font-weight: bold; }
-        
-        .filters { display: flex; gap: 12px; }
-        .filter-group { display: flex; flex-direction: column; }
-        .filter-group label { font-size: 11px; color: #666; margin-bottom: 2px; }
-        .filter-group select, .filter-group input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; min-width: 120px; }
-        
-        .kpi-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-        .kpi-card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
-        .kpi-card h3 { font-size: 12px; color: #666; margin-bottom: 8px; }
-        .kpi-value { font-size: 36px; font-weight: bold; }
-        .kpi-value.green { color: #2ecc40; }
-        .kpi-value.red { color: #ff4136; }
-        
-        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .chart-card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+        body { font-family: 'Inter', sans-serif; background: #f5f6fa; height: 100vh; display: flex; flex-direction: column; }
+
+        /* === HEADER === */
+        .header {
+            background: #1a1a2e;
+            color: white;
+            padding: 14px 24px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 100;
+        }
+        .header .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: #4ade80;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #1a1a2e;
+        }
+
+        /* === LAYOUT === */
+        .layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* === SIDEBAR === */
+        .sidebar {
+            width: 220px;
+            background: #16213e;
+            color: #a0aec0;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-section {
+            padding: 8px 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: #a0aec0;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar a:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+        .sidebar a.active {
+            background: rgba(74, 222, 128, 0.1);
+            color: #4ade80;
+            border-left-color: #4ade80;
+            font-weight: 500;
+        }
+        .sidebar-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* === MAIN CONTENT === */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* === FILTERS === */
+        .filters-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .filter-group select, .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            min-width: 140px;
+            background: white;
+            color: #334155;
+            transition: border-color 0.2s;
+        }
+        .filter-group select:focus, .filter-group input:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+
+        /* === KPI CARDS === */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            text-align: center;
+            border: 1px solid #f1f5f9;
+        }
+        .kpi-card h3 {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .kpi-value {
+            font-size: 34px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .kpi-value.green { color: #16a34a; }
+        .kpi-value.red { color: #dc2626; }
+
+        /* === CHART CARDS === */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border: 1px solid #f1f5f9;
+        }
+        .chart-card h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 12px;
+        }
         .chart-container { width: 100%; height: 280px; }
-        
-        #gauge-container { width: 100%; height: 120px; }
+        #gauge-container { width: 100%; height: 130px; }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 1200px) {
+            .kpi-row { grid-template-columns: repeat(3, 1fr); }
+            .charts-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .kpi-row { grid-template-columns: 1fr 1fr; }
+        }
     </style>
 </head>
 <body>
+    <!-- HEADER -->
     <div class="header">
-        <h1>Summary</h1>
-        <div class="filters">
-            <div class="filter-group">
-                <label>Supervisor</label>
-                <select id="filter-supervisor">
-                    {% for s in data.filters.supervisors %}
-                    <option value="{{ s }}">{{ s }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Week</label>
-                <select id="filter-week">
-                    {% for w in data.filters.weeks %}
-                    <option value="{{ w }}">{{ w }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Shift</label>
-                <select id="filter-shift">
-                    {% for sh in data.filters.shifts %}
-                    <option value="{{ sh }}">{{ sh }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Date</label>
-                <input type="date" id="filter-date" value="2026-07-13">
-            </div>
-        </div>
+        <div class="logo-icon">T</div>
+        TIJUANA LMS
     </div>
 
-    <!-- KPI Cards -->
-    <div class="kpi-row">
-        <div class="kpi-card">
-            <h3>Total UPH</h3>
-            <div id="gauge-container"></div>
-        </div>
-        <div class="kpi-card">
-            <h3>UPH %</h3>
-            <div class="kpi-value green">{{ data.uph_percent }}%</div>
-        </div>
-        <div class="kpi-card">
-            <h3>Actual Time</h3>
-            <div class="kpi-value">{{ data.actual_time }}</div>
-        </div>
-        <div class="kpi-card">
-            <h3>Standard Time</h3>
-            <div class="kpi-value">{{ data.standard_time }}</div>
-        </div>
-        <div class="kpi-card">
-            <h3>Productivity</h3>
-            <div class="kpi-value red">{{ data.productivity }}%</div>
-        </div>
-    </div>
+    <div class="layout">
+        <!-- SIDEBAR NAVIGATION -->
+        <nav class="sidebar">
+            <div class="sidebar-section">Dashboards</div>
+            <a href="/" class="active">
+                <span class="sidebar-icon">&#9632;</span>
+                Summary
+            </a>
+            <a href="#">
+                <span class="sidebar-icon">&#9650;</span>
+                Detail
+            </a>
+            <a href="#">
+                <span class="sidebar-icon">&#9679;</span>
+                By Employee
+            </a>
+            <a href="#">
+                <span class="sidebar-icon">&#9670;</span>
+                Trends
+            </a>
+        </nav>
 
-    <!-- Charts -->
-    <div class="charts-row">
-        <div class="chart-card">
-            <h3>Quantity by Process</h3>
-            <div id="chart-quantity" class="chart-container"></div>
-        </div>
-        <div class="chart-card">
-            <h3>Actual UPH vs Target UPH by Process</h3>
-            <div id="chart-uph-target" class="chart-container"></div>
-        </div>
-        <div class="chart-card">
-            <h3>Productivity by Process</h3>
-            <div id="chart-productivity" class="chart-container"></div>
-        </div>
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            <!-- FILTERS -->
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Supervisor</label>
+                    <select id="filter-supervisor">
+                        {% for s in data.filters.supervisors %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Week</label>
+                    <select id="filter-week">
+                        {% for w in data.filters.weeks %}
+                        <option value="{{ w }}">{{ w }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Shift</label>
+                    <select id="filter-shift">
+                        {% for sh in data.filters.shifts %}
+                        <option value="{{ sh }}">{{ sh }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Date</label>
+                    <input type="date" id="filter-date" value="2026-07-13">
+                </div>
+            </div>
+
+            <!-- KPI CARDS -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <h3>Total UPH</h3>
+                    <div id="gauge-container"></div>
+                </div>
+                <div class="kpi-card">
+                    <h3>UPH %</h3>
+                    <div class="kpi-value green">{{ data.uph_percent }}%</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Actual Time</h3>
+                    <div class="kpi-value">{{ data.actual_time }}</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Standard Time</h3>
+                    <div class="kpi-value">{{ data.standard_time }}</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Productivity</h3>
+                    <div class="kpi-value red">{{ data.productivity }}%</div>
+                </div>
+            </div>
+
+            <!-- CHARTS -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h3>Quantity by Process</h3>
+                    <div id="chart-quantity" class="chart-container"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Actual UPH vs Target UPH by Process</h3>
+                    <div id="chart-uph-target" class="chart-container"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Productivity by Process</h3>
+                    <div id="chart-productivity" class="chart-container"></div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
@@ -113,33 +306,64 @@
             type: 'indicator',
             mode: 'gauge+number',
             value: {{ data.total_uph }},
+            number: { font: { size: 36, color: '#1e293b' } },
             gauge: {
-                axis: { range: [0, 300], tickwidth: 1 },
-                bar: { color: '#333' },
+                axis: { range: [0, 300], tickwidth: 1, tickcolor: '#e2e8f0' },
+                bar: { color: '#1e293b', thickness: 0.15 },
+                bgcolor: '#f8fafc',
+                borderwidth: 0,
                 steps: [
-                    { range: [0, 200], color: '#e8e8e8' },
-                    { range: [200, 300], color: '#2ecc40' }
+                    { range: [0, {{ data.uph_target }}], color: '#dcfce7' },
+                    { range: [{{ data.uph_target }}, 300], color: '#4ade80' }
                 ],
-                threshold: { line: { color: 'blue', width: 2 }, thickness: 0.75, value: {{ data.uph_target }} }
+                threshold: {
+                    line: { color: '#1d4ed8', width: 3 },
+                    thickness: 0.8,
+                    value: {{ data.uph_target }}
+                }
             }
-        }], { margin: { t: 10, b: 10, l: 30, r: 30 }, height: 120 }, { responsive: true });
+        }], {
+            margin: { t: 8, b: 0, l: 30, r: 30 },
+            height: 130,
+            paper_bgcolor: 'transparent',
+            annotations: [{
+                x: 0.85, y: 0.35,
+                text: '<b>{{ data.uph_target }}</b>',
+                showarrow: false,
+                font: { size: 13, color: '#1d4ed8' }
+            }]
+        }, { responsive: true, displayModeBar: false });
 
         // --- Quantity by Process ---
         var qtyData = {{ data.quantity_by_process|safe }};
-        var qtyProcesses = Object.keys(qtyData);
-        var qtyValues = Object.values(qtyData);
+        var qtyProcesses = Object.keys(qtyData).reverse();
+        var qtyValues = Object.values(qtyData).reverse();
         Plotly.newPlot('chart-quantity', [{
             type: 'bar',
             y: qtyProcesses,
             x: qtyValues,
             orientation: 'h',
-            marker: { color: qtyProcesses.map(p => p === 'PICKING' ? '#f0e68c' : '#2ecc40') }
-        }], { margin: { t: 10, b: 30, l: 100, r: 40 }, xaxis: { title: '' }, yaxis: { autorange: 'reversed' } }, { responsive: true });
+            text: qtyValues.map(v => (v/1000).toFixed(0) + 'K'),
+            textposition: 'outside',
+            marker: {
+                color: qtyProcesses.map(p =>
+                    p === 'RECEIVING' || p === 'PACKING' ? '#fecdd3' : '#4ade80'
+                ),
+                line: { width: 0 }
+            },
+            hovertemplate: '%{y}: %{x:,.0f}<extra></extra>'
+        }], {
+            margin: { t: 5, b: 30, l: 110, r: 50 },
+            xaxis: { title: '', gridcolor: '#f1f5f9' },
+            yaxis: {},
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent'
+        }, { responsive: true, displayModeBar: false });
 
         // --- UPH vs Target by Process ---
         var uphData = {{ data.uph_vs_target_by_process|safe }};
-        var uphProcesses = Object.keys(uphData);
-        var uphValues = Object.values(uphData);
+        var uphProcesses = Object.keys(uphData).reverse();
+        var uphValues = Object.values(uphData).reverse();
         Plotly.newPlot('chart-uph-target', [{
             type: 'bar',
             y: uphProcesses,
@@ -147,13 +371,23 @@
             orientation: 'h',
             text: uphValues.map(v => v + '%'),
             textposition: 'outside',
-            marker: { color: uphValues.map(v => v >= 100 ? '#2ecc40' : '#4a90d9') }
-        }], { margin: { t: 10, b: 30, l: 120, r: 50 }, xaxis: { title: '', range: [0, Math.max(...uphValues) * 1.15] }, yaxis: { autorange: 'reversed' } }, { responsive: true });
+            marker: {
+                color: uphValues.map(v => v >= 100 ? '#4ade80' : '#a3a33a'),
+                line: { width: 0 }
+            },
+            hovertemplate: '%{y}: %{x}%<extra></extra>'
+        }], {
+            margin: { t: 5, b: 30, l: 120, r: 55 },
+            xaxis: { title: '', range: [0, Math.max(...uphValues) * 1.15], gridcolor: '#f1f5f9' },
+            yaxis: {},
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent'
+        }, { responsive: true, displayModeBar: false });
 
         // --- Productivity by Process ---
         var prodData = {{ data.productivity_by_process|safe }};
-        var prodProcesses = Object.keys(prodData);
-        var prodValues = Object.values(prodData);
+        var prodProcesses = Object.keys(prodData).reverse();
+        var prodValues = Object.values(prodData).reverse();
         Plotly.newPlot('chart-productivity', [{
             type: 'bar',
             y: prodProcesses,
@@ -161,8 +395,18 @@
             orientation: 'h',
             text: prodValues.map(v => v + '%'),
             textposition: 'outside',
-            marker: { color: prodValues.map(v => v >= 0 ? '#2ecc40' : '#ffb6c1') }
-        }], { margin: { t: 10, b: 30, l: 120, r: 50 }, yaxis: { autorange: 'reversed' } }, { responsive: true });
+            marker: {
+                color: prodValues.map(v => v >= 0 ? '#4ade80' : '#fecdd3'),
+                line: { width: 0 }
+            },
+            hovertemplate: '%{y}: %{x}%<extra></extra>'
+        }], {
+            margin: { t: 5, b: 30, l: 120, r: 55 },
+            yaxis: {},
+            xaxis: { gridcolor: '#f1f5f9' },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent'
+        }, { responsive: true, displayModeBar: false });
     </script>
 </body>
 </html>
