@@ -10,6 +10,11 @@ Employee Type filter: Headcount[Estacion_de_Trabajo] IN (DIRECT roles)
 Architecture: "Hybrid Cube" — one SQL query per date loads a small aggregated
 cube (~200 rows). Supervisor/Shift filtering happens client-side in JavaScript
 for instant responsiveness. Only Date/Week changes trigger a server round-trip.
+
+Date vs Week: MUTUALLY EXCLUSIVE.
+  - If Date is provided → filter by that single day (ignore Week)
+  - If Week is provided (no Date) → filter by that fiscal week (all days)
+  - If neither → default to today's date
 """
 import json
 import pyodbc
@@ -158,42 +163,35 @@ def get_filter_options():
 
 
 # ============================================================
-# DAY CUBE — one query, all the data for the selected date
+# DAY CUBE — one query, all the data for the selected date/week
 # ============================================================
-# Returns rows grouped by (Movement, Supervisor, Shift) with
-# three aggregate columns that are enough to compute every KPI:
-#   sum_qty, sum_line_day, sum_target_time
-#
-# From these 3 values you can derive:
-#   UPH = sum_qty / (sum_line_day / 60)
-#   Target_UPH = sum_qty / sum_target_time
-#   UPH% = UPH / Target_UPH
-#   Actual Time = sum_line_day / 60
-#   Standard Time = sum_target_time
-#   Productivity = Actual / Standard - 1
-#   Quantity by Movement = SUM(sum_qty) per movement
-#   Target% by Movement = group-level calculation
+# Date and Week are MUTUALLY EXCLUSIVE:
+#   - date_filter set → use date only
+#   - week set (no date) → use week only
+#   - neither → caller should default to today before calling
 # ============================================================
 
 def get_day_cube(date_filter=None, week=None):
     """
-    One SQL query that returns all aggregated data for the date/week.
-    Returns a list of dicts, each with:
-      movement, supervisor, shift, sum_qty, sum_line_day, sum_target_time
+    One SQL query that returns all aggregated data for the date OR week.
+    Date takes priority over Week (mutually exclusive).
     """
     print(f"[LMS] ─── Loading Day Cube ───")
-    print(f"[LMS]   date={date_filter}, week={week}")
     start = time.time()
 
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    # Build WHERE
+    # Build WHERE — date and week are mutually exclusive
     where = BASE_FILTERS
     if date_filter:
         where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
-    if week and week != 'All':
+        print(f"[LMS]   Mode: DATE = {date_filter}")
+    elif week and week != 'All':
         where += f"  AND [Fiscal Week] = '{week}'\n"
+        print(f"[LMS]   Mode: WEEK = {week}")
+    else:
+        print(f"[LMS]   Mode: NO FILTER (all data)")
     where += f"  AND [User Name] IN ({users_str})\n"
 
     query = f"""
@@ -316,13 +314,26 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
     """
     Returns all data for the Summary dashboard.
     Includes the cube JSON so the frontend can re-filter instantly.
+
+    Date vs Week logic:
+      - date_filter provided → use date, ignore week
+      - week provided (no date) → use week for all days in that week
+      - neither → default to today
     """
-    if not date_filter:
+    # Determine effective date/week (mutually exclusive)
+    if date_filter:
+        effective_week = 'All'  # Date wins — ignore week
+    elif week and week != 'All':
+        date_filter = None  # Week mode — no date filter
+        effective_week = week
+    else:
         date_filter = date.today().strftime('%Y-%m-%d')
+        effective_week = 'All'
 
     print(f"\n{'='*60}")
-    print(f"[LMS] DASHBOARD REQUEST — Date: {date_filter}")
-    print(f"[LMS]   Supervisor: {supervisor} | Shift: {shift} | Week: {week}")
+    print(f"[LMS] DASHBOARD REQUEST")
+    print(f"[LMS]   Date: {date_filter or '(none)'} | Week: {effective_week} | "
+          f"Supervisor: {supervisor} | Shift: {shift}")
     print(f"{'='*60}")
 
     # Filter options (cached)
@@ -334,7 +345,7 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
 
     # Day cube (ONE query for all data)
     try:
-        cube = get_day_cube(date_filter, week)
+        cube = get_day_cube(date_filter, effective_week)
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Cube): {e}")
         cube = []
@@ -356,9 +367,9 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         },
         'selected': {
             'supervisor': supervisor,
-            'week': week,
+            'week': effective_week,
             'shift': shift,
-            'date': date_filter,
+            'date': date_filter or '',
         },
     }
     return data

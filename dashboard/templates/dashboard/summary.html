@@ -484,24 +484,39 @@
     document.getElementById('filter-supervisor').addEventListener('change', renderAll);
     document.getElementById('filter-shift').addEventListener('change', renderAll);
 
-    // Date & Week = SERVER reload (different dataset)
-    function reloadWithParams() {
+    // Date & Week = SERVER reload (different dataset) — MUTUALLY EXCLUSIVE
+    function reloadForDate() {
+        // Date selected → clear Week, reload with date
         var params = new URLSearchParams();
         var sup = document.getElementById('filter-supervisor').value;
-        var week = document.getElementById('filter-week').value;
         var shift = document.getElementById('filter-shift').value;
         var dateVal = document.getElementById('filter-date').value;
 
         if (sup !== 'All') params.set('supervisor', sup);
-        if (week !== 'All') params.set('week', week);
         if (shift !== 'All') params.set('shift', shift);
         if (dateVal) params.set('date', dateVal);
+        // Week intentionally NOT included — date takes priority
 
         window.location.href = '/' + (params.toString() ? '?' + params.toString() : '');
     }
 
-    document.getElementById('filter-date').addEventListener('change', reloadWithParams);
-    document.getElementById('filter-week').addEventListener('change', reloadWithParams);
+    function reloadForWeek() {
+        // Week selected → clear Date, reload with week
+        var params = new URLSearchParams();
+        var sup = document.getElementById('filter-supervisor').value;
+        var shift = document.getElementById('filter-shift').value;
+        var week = document.getElementById('filter-week').value;
+
+        if (sup !== 'All') params.set('supervisor', sup);
+        if (shift !== 'All') params.set('shift', shift);
+        if (week !== 'All') params.set('week', week);
+        // Date intentionally NOT included — week mode shows all days
+
+        window.location.href = '/' + (params.toString() ? '?' + params.toString() : '');
+    }
+
+    document.getElementById('filter-date').addEventListener('change', reloadForDate);
+    document.getElementById('filter-week').addEventListener('change', reloadForWeek);
 
     // ================================================================
     // INITIAL RENDER
