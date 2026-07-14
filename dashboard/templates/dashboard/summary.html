@@ -8,33 +8,39 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #f5f6fa; height: 100vh; display: flex; flex-direction: column; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8f9fb;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
 
         /* === HEADER === */
         .header {
-            background: #1a1a2e;
+            background: #0f172a;
             color: white;
-            padding: 14px 24px;
-            font-size: 18px;
+            padding: 12px 20px;
+            font-size: 15px;
             font-weight: 600;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 100;
+            gap: 10px;
+            border-bottom: 1px solid #1e293b;
         }
         .header .logo-icon {
-            width: 28px;
-            height: 28px;
-            background: #4ade80;
-            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, #34d399, #10b981);
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 14px;
-            color: #1a1a2e;
+            font-size: 13px;
+            color: #0f172a;
         }
 
         /* === LAYOUT === */
@@ -42,154 +48,170 @@
 
         /* === SIDEBAR === */
         .sidebar {
-            width: 220px;
-            background: #16213e;
-            color: #a0aec0;
-            padding: 20px 0;
+            width: 200px;
+            background: #0f172a;
+            color: #94a3b8;
+            padding: 16px 0;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
+            border-right: 1px solid #1e293b;
         }
         .sidebar-section {
-            padding: 8px 20px;
-            font-size: 11px;
+            padding: 8px 16px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #64748b;
+            letter-spacing: 1.2px;
+            color: #475569;
             font-weight: 600;
         }
         .sidebar a {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 20px;
-            color: #a0aec0;
+            gap: 8px;
+            padding: 9px 16px;
+            color: #94a3b8;
             text-decoration: none;
-            font-size: 14px;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
+            font-size: 13px;
+            font-weight: 400;
+            transition: all 0.15s;
+            border-left: 2px solid transparent;
         }
-        .sidebar a:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar a:hover { background: rgba(255,255,255,0.04); color: #e2e8f0; }
         .sidebar a.active {
-            background: rgba(74, 222, 128, 0.1);
-            color: #4ade80;
-            border-left-color: #4ade80;
+            background: rgba(16, 185, 129, 0.08);
+            color: #34d399;
+            border-left-color: #34d399;
             font-weight: 500;
         }
-        .sidebar-icon { font-size: 16px; width: 20px; text-align: center; }
+        .sidebar-icon { font-size: 14px; width: 16px; text-align: center; }
 
         /* === MAIN CONTENT === */
-        .main { flex: 1; overflow-y: auto; padding: 24px; }
+        .main { flex: 1; overflow-y: auto; padding: 20px; }
 
         /* === FILTERS === */
         .filters-bar {
             display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
             align-items: flex-end;
+            padding: 14px 16px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 3px;
         }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group { display: flex; flex-direction: column; gap: 3px; }
         .filter-group label {
-            font-size: 11px;
-            font-weight: 500;
-            color: #64748b;
+            font-size: 10px;
+            font-weight: 600;
+            color: #6b7280;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .filter-group select, .filter-group input {
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
+            padding: 7px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
             font-size: 13px;
-            min-width: 140px;
-            background: white;
-            color: #334155;
-            transition: border-color 0.2s;
+            font-family: inherit;
+            min-width: 130px;
+            background: #fafbfc;
+            color: #1f2937;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .filter-group select:hover, .filter-group input:hover {
+            border-color: #9ca3af;
         }
         .filter-group select:focus, .filter-group input:focus {
             outline: none;
-            border-color: #4ade80;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
         }
         .filter-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: flex-end;
         }
         .btn-filter {
-            padding: 8px 14px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
+            padding: 7px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
             font-size: 12px;
             font-weight: 500;
+            font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
+            white-space: nowrap;
         }
         .btn-reset {
-            background: #f8fafc;
-            color: #64748b;
+            background: white;
+            color: #6b7280;
         }
-        .btn-reset:hover { background: #f1f5f9; color: #334155; }
+        .btn-reset:hover { background: #f3f4f6; color: #374151; border-color: #9ca3af; }
         .btn-refresh {
-            background: #4ade80;
-            color: #1a1a2e;
-            border-color: #4ade80;
+            background: #0f172a;
+            color: white;
+            border-color: #0f172a;
         }
-        .btn-refresh:hover { background: #22c55e; }
+        .btn-refresh:hover { background: #1e293b; }
         .refresh-timer {
             font-size: 11px;
-            color: #94a3b8;
-            margin-left: 4px;
+            color: #9ca3af;
+            margin-left: 6px;
+            font-variant-numeric: tabular-nums;
         }
 
         /* === KPI CARDS === */
         .kpi-row {
             display: grid;
             grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 16px;
         }
         .kpi-card {
             background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border-radius: 3px;
+            padding: 18px;
+            border: 1px solid #e5e7eb;
             text-align: center;
-            border: 1px solid #f1f5f9;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 170px;
+            min-height: 160px;
+            transition: box-shadow 0.15s;
         }
-        .kpi-card.gauge-card { justify-content: flex-start; padding-top: 12px; }
+        .kpi-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .kpi-card.gauge-card { justify-content: flex-start; padding-top: 10px; }
         .kpi-card h3 {
-            font-size: 11px;
-            color: #64748b;
+            font-size: 10px;
+            color: #6b7280;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
             font-weight: 600;
         }
-        .kpi-value { font-size: 40px; font-weight: 700; color: #1e293b; }
-        .kpi-value.green { color: #16a34a; }
+        .kpi-value { font-size: 36px; font-weight: 700; color: #111827; }
+        .kpi-value.green { color: #059669; }
         .kpi-value.red { color: #dc2626; }
 
         /* === CHART CARDS === */
-        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
         .chart-card {
             background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            border: 1px solid #f1f5f9;
+            border-radius: 3px;
+            padding: 18px;
+            border: 1px solid #e5e7eb;
+            transition: box-shadow 0.15s;
         }
-        .chart-card h3 { font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 12px; }
+        .chart-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .chart-card h3 { font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 12px; letter-spacing: 0.2px; }
         .chart-container { width: 100%; height: 280px; }
-        #gauge-container { width: 100%; height: 150px; }
+        #gauge-container { width: 100%; height: 140px; }
 
         /* === RESPONSIVE === */
         @media (max-width: 1200px) {
@@ -253,7 +275,7 @@
                 </div>
                 <div class="filter-actions">
                     <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters to default">
-                        &#8634; Reset
+                        &#8634; Reset Filters
                     </button>
                     <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data from server">
                         &#8635; Refresh
@@ -311,10 +333,10 @@
     // ================================================================
     var CUBE = {{ data.cube_json|safe }};
 
-    const COLOR_GREEN = '#82c56f';
-    const COLOR_YELLOW = '#d4b42c';
-    const COLOR_PINK = '#e5b4bb';
-    const GRID_COLOR = '#f1f5f9';
+    const COLOR_GREEN = '#10b981';
+    const COLOR_YELLOW = '#f59e0b';
+    const COLOR_PINK = '#f87171';
+    const GRID_COLOR = '#f3f4f6';
 
     // ================================================================
     // CLIENT-SIDE FILTERING & COMPUTATION (instant, no server call)
@@ -528,32 +550,26 @@
 
     // Date & Week = SERVER reload (different dataset) — MUTUALLY EXCLUSIVE
     function reloadForDate() {
-        // Date selected → clear Week, reload with date
         var params = new URLSearchParams();
         var sup = document.getElementById('filter-supervisor').value;
         var shift = document.getElementById('filter-shift').value;
         var dateVal = document.getElementById('filter-date').value;
-
         if (sup !== 'All') params.set('supervisor', sup);
         if (shift !== 'All') params.set('shift', shift);
         if (dateVal) params.set('date', dateVal);
-        // Week intentionally NOT included — date takes priority
-
+        preserveTimer();
         window.location.href = '/' + (params.toString() ? '?' + params.toString() : '');
     }
 
     function reloadForWeek() {
-        // Week selected → clear Date, reload with week
         var params = new URLSearchParams();
         var sup = document.getElementById('filter-supervisor').value;
         var shift = document.getElementById('filter-shift').value;
         var week = document.getElementById('filter-week').value;
-
         if (sup !== 'All') params.set('supervisor', sup);
         if (shift !== 'All') params.set('shift', shift);
         if (week !== 'All') params.set('week', week);
-        // Date intentionally NOT included — week mode shows all days
-
+        preserveTimer();
         window.location.href = '/' + (params.toString() ? '?' + params.toString() : '');
     }
 
@@ -561,41 +577,73 @@
     document.getElementById('filter-week').addEventListener('change', reloadForWeek);
 
     // ================================================================
-    // RESET & REFRESH BUTTONS
-    // ================================================================
-
-    document.getElementById('btn-reset').addEventListener('click', function() {
-        window.location.href = '/';
-    });
-
-    document.getElementById('btn-refresh').addEventListener('click', function() {
-        window.location.reload();
-    });
-
-    // ================================================================
-    // AUTO-REFRESH EVERY 15 MINUTES
+    // AUTO-REFRESH TIMER (15 min) — persists across filter/reset navigation
+    // Reset Filters: preserves timer | Refresh button: resets timer
     // ================================================================
     var REFRESH_INTERVAL = 15 * 60;
-    var secondsLeft = REFRESH_INTERVAL;
     var timerEl = document.getElementById('refresh-timer');
+    var timerStart;
+
+    function preserveTimer() {
+        sessionStorage.setItem('lms_timer_start', timerStart.toString());
+    }
+
+    function initTimer() {
+        var stored = sessionStorage.getItem('lms_timer_start');
+        if (stored) {
+            timerStart = parseInt(stored, 10);
+            var elapsed = Math.floor((Date.now() - timerStart) / 1000);
+            if (elapsed >= REFRESH_INTERVAL) {
+                sessionStorage.removeItem('lms_timer_start');
+                window.location.reload();
+                return;
+            }
+        } else {
+            timerStart = Date.now();
+            sessionStorage.setItem('lms_timer_start', timerStart.toString());
+        }
+    }
+
+    function getSecondsLeft() {
+        var elapsed = Math.floor((Date.now() - timerStart) / 1000);
+        return Math.max(0, REFRESH_INTERVAL - elapsed);
+    }
 
     function updateTimerDisplay() {
-        var mins = Math.floor(secondsLeft / 60);
-        var secs = secondsLeft % 60;
-        timerEl.textContent = 'Next refresh: ' + mins + ':' + (secs < 10 ? '0' : '') + secs;
+        var left = getSecondsLeft();
+        var mins = Math.floor(left / 60);
+        var secs = left % 60;
+        timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
     }
 
     function tickTimer() {
-        secondsLeft--;
-        if (secondsLeft <= 0) {
+        if (getSecondsLeft() <= 0) {
+            sessionStorage.removeItem('lms_timer_start');
             window.location.reload();
         } else {
             updateTimerDisplay();
         }
     }
 
+    initTimer();
     updateTimerDisplay();
     setInterval(tickTimer, 1000);
+
+    // ================================================================
+    // RESET FILTERS & REFRESH BUTTONS
+    // ================================================================
+
+    document.getElementById('btn-reset').addEventListener('click', function() {
+        // Reset filters but KEEP timer running
+        preserveTimer();
+        window.location.href = '/';
+    });
+
+    document.getElementById('btn-refresh').addEventListener('click', function() {
+        // Refresh data + RESET timer
+        sessionStorage.removeItem('lms_timer_start');
+        window.location.reload();
+    });
 
     // ================================================================
     // INITIAL RENDER
