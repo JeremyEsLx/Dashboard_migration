@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tijuana LMS{% endblock %}</title>
+
+    <!-- CDN Libraries -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Shared Styles -->
+    <link rel="stylesheet" href="{% static 'dashboard/base.css' %}">
+
+    <!-- Page-specific Styles -->
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="logo-icon">T</div>
+        TIJUANA LMS
+    </div>
+
+    <div class="layout">
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+            <div class="sidebar-section">Dashboards</div>
+            <a href="/" class="{% block nav_summary %}{% endblock %}">
+                <span class="sidebar-icon">&#9632;</span> Summary
+            </a>
+            <a href="#" class="{% block nav_detail %}{% endblock %}">
+                <span class="sidebar-icon">&#9650;</span> Detail
+            </a>
+            <a href="#" class="{% block nav_employee %}{% endblock %}">
+                <span class="sidebar-icon">&#9679;</span> By Employee
+            </a>
+            <a href="#" class="{% block nav_trends %}{% endblock %}">
+                <span class="sidebar-icon">&#9670;</span> Trends
+            </a>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Page-specific Scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

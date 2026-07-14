@@ -1,0 +1,92 @@
+/* ============================================================
+   BASE STYLES — Shared across all dashboard pages
+   Header, Sidebar, Layout, Typography, Responsive
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f8f9fb;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* === HEADER === */
+.header {
+    background: #0f172a;
+    color: white;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #1e293b;
+}
+.header .logo-icon {
+    width: 26px;
+    height: 26px;
+    background: linear-gradient(135deg, #34d399, #10b981);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #0f172a;
+}
+
+/* === LAYOUT === */
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+/* === SIDEBAR === */
+.sidebar {
+    width: 200px;
+    background: #0f172a;
+    color: #94a3b8;
+    padding: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-right: 1px solid #1e293b;
+}
+.sidebar-section {
+    padding: 8px 16px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #475569;
+    font-weight: 600;
+}
+.sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 400;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+}
+.sidebar a:hover { background: rgba(255,255,255,0.04); color: #e2e8f0; }
+.sidebar a.active {
+    background: rgba(16, 185, 129, 0.08);
+    color: #34d399;
+    border-left-color: #34d399;
+    font-weight: 500;
+}
+.sidebar-icon { font-size: 14px; width: 16px; text-align: center; }
+
+/* === MAIN CONTENT === */
+.main { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .sidebar { display: none; }
+}

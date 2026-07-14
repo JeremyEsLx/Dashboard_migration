@@ -1,655 +1,101 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tijuana LMS</title>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f8f9fb;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            -webkit-font-smoothing: antialiased;
-        }
+{% extends "dashboard/base.html" %}
+{% load static %}
 
-        /* === HEADER === */
-        .header {
-            background: #0f172a;
-            color: white;
-            padding: 12px 20px;
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid #1e293b;
-        }
-        .header .logo-icon {
-            width: 26px;
-            height: 26px;
-            background: linear-gradient(135deg, #34d399, #10b981);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 13px;
-            color: #0f172a;
-        }
+{% block title %}Summary — Tijuana LMS{% endblock %}
 
-        /* === LAYOUT === */
-        .layout { display: flex; flex: 1; overflow: hidden; }
+{% block nav_summary %}active{% endblock %}
 
-        /* === SIDEBAR === */
-        .sidebar {
-            width: 200px;
-            background: #0f172a;
-            color: #94a3b8;
-            padding: 16px 0;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            border-right: 1px solid #1e293b;
-        }
-        .sidebar-section {
-            padding: 8px 16px;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #475569;
-            font-weight: 600;
-        }
-        .sidebar a {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 16px;
-            color: #94a3b8;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 400;
-            transition: all 0.15s;
-            border-left: 2px solid transparent;
-        }
-        .sidebar a:hover { background: rgba(255,255,255,0.04); color: #e2e8f0; }
-        .sidebar a.active {
-            background: rgba(16, 185, 129, 0.08);
-            color: #34d399;
-            border-left-color: #34d399;
-            font-weight: 500;
-        }
-        .sidebar-icon { font-size: 14px; width: 16px; text-align: center; }
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/summary/summary.css' %}">
+{% endblock %}
 
-        /* === MAIN CONTENT === */
-        .main { flex: 1; overflow-y: auto; padding: 20px; }
-
-        /* === FILTERS === */
-        .filters-bar {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            padding: 14px 16px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 3px;
-        }
-        .filter-group { display: flex; flex-direction: column; gap: 3px; }
-        .filter-group label {
-            font-size: 10px;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .filter-group select, .filter-group input {
-            padding: 7px 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 3px;
-            font-size: 13px;
-            font-family: inherit;
-            min-width: 130px;
-            background: #fafbfc;
-            color: #1f2937;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .filter-group select:hover, .filter-group input:hover {
-            border-color: #9ca3af;
-        }
-        .filter-group select:focus, .filter-group input:focus {
-            outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
-        }
-        .filter-actions {
-            display: flex;
-            gap: 6px;
-            align-items: flex-end;
-        }
-        .btn-filter {
-            padding: 7px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.15s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            white-space: nowrap;
-        }
-        .btn-reset {
-            background: white;
-            color: #6b7280;
-        }
-        .btn-reset:hover { background: #f3f4f6; color: #374151; border-color: #9ca3af; }
-        .btn-refresh {
-            background: #0f172a;
-            color: white;
-            border-color: #0f172a;
-        }
-        .btn-refresh:hover { background: #1e293b; }
-        .refresh-timer {
-            font-size: 11px;
-            color: #9ca3af;
-            margin-left: 6px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* === KPI CARDS === */
-        .kpi-row {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .kpi-card {
-            background: white;
-            border-radius: 3px;
-            padding: 18px;
-            border: 1px solid #e5e7eb;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 160px;
-            transition: box-shadow 0.15s;
-        }
-        .kpi-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .kpi-card.gauge-card { justify-content: flex-start; padding-top: 10px; }
-        .kpi-card h3 {
-            font-size: 10px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        .kpi-value { font-size: 36px; font-weight: 700; color: #111827; }
-        .kpi-value.green { color: #059669; }
-        .kpi-value.red { color: #dc2626; }
-
-        /* === CHART CARDS === */
-        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .chart-card {
-            background: white;
-            border-radius: 3px;
-            padding: 18px;
-            border: 1px solid #e5e7eb;
-            transition: box-shadow 0.15s;
-        }
-        .chart-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .chart-card h3 { font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 12px; letter-spacing: 0.2px; }
-        .chart-container { width: 100%; height: 280px; }
-        #gauge-container { width: 100%; height: 140px; }
-
-        /* === RESPONSIVE === */
-        @media (max-width: 1200px) {
-            .kpi-row { grid-template-columns: repeat(3, 1fr); }
-            .charts-row { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .kpi-row { grid-template-columns: 1fr 1fr; }
-        }
-    </style>
-</head>
-<body>
-    <!-- HEADER -->
-    <div class="header">
-        <div class="logo-icon">T</div>
-        TIJUANA LMS
+{% block content %}
+<!-- FILTERS -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label>Supervisor</label>
+        <select id="filter-supervisor">
+            {% for s in data.filters.supervisors %}
+            <option value="{{ s }}" {% if s == data.selected.supervisor %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
     </div>
-
-    <div class="layout">
-        <!-- SIDEBAR -->
-        <nav class="sidebar">
-            <div class="sidebar-section">Dashboards</div>
-            <a href="/" class="active"><span class="sidebar-icon">&#9632;</span> Summary</a>
-            <a href="#"><span class="sidebar-icon">&#9650;</span> Detail</a>
-            <a href="#"><span class="sidebar-icon">&#9679;</span> By Employee</a>
-            <a href="#"><span class="sidebar-icon">&#9670;</span> Trends</a>
-        </nav>
-
-        <!-- MAIN CONTENT -->
-        <main class="main">
-            <!-- FILTERS -->
-            <div class="filters-bar">
-                <div class="filter-group">
-                    <label>Supervisor</label>
-                    <select id="filter-supervisor">
-                        {% for s in data.filters.supervisors %}
-                        <option value="{{ s }}" {% if s == data.selected.supervisor %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Week</label>
-                    <select id="filter-week">
-                        {% for w in data.filters.weeks %}
-                        <option value="{{ w }}" {% if w == data.selected.week %}selected{% endif %}>{{ w }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Shift</label>
-                    <select id="filter-shift">
-                        {% for sh in data.filters.shifts %}
-                        <option value="{{ sh }}" {% if sh == data.selected.shift %}selected{% endif %}>{{ sh }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Date</label>
-                    <input type="date" id="filter-date" value="{{ data.selected.date }}">
-                </div>
-                <div class="filter-actions">
-                    <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters to default">
-                        &#8634; Reset Filters
-                    </button>
-                    <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data from server">
-                        &#8635; Refresh
-                    </button>
-                    <span class="refresh-timer" id="refresh-timer"></span>
-                </div>
-            </div>
-
-            <!-- KPI CARDS -->
-            <div class="kpi-row">
-                <div class="kpi-card gauge-card">
-                    <h3>Total UPH</h3>
-                    <div id="gauge-container"></div>
-                </div>
-                <div class="kpi-card">
-                    <h3>UPH %</h3>
-                    <div class="kpi-value green" id="kpi-uph-pct">{{ data.uph_percent }}%</div>
-                </div>
-                <div class="kpi-card">
-                    <h3>Actual Time</h3>
-                    <div class="kpi-value" id="kpi-actual">{{ data.actual_time }}</div>
-                </div>
-                <div class="kpi-card">
-                    <h3>Standard Time</h3>
-                    <div class="kpi-value" id="kpi-standard">{{ data.standard_time }}</div>
-                </div>
-                <div class="kpi-card">
-                    <h3>Productivity</h3>
-                    <div class="kpi-value red" id="kpi-productivity">{{ data.productivity }}%</div>
-                </div>
-            </div>
-
-            <!-- CHARTS -->
-            <div class="charts-row">
-                <div class="chart-card">
-                    <h3>Quantity by Process</h3>
-                    <div id="chart-quantity" class="chart-container"></div>
-                </div>
-                <div class="chart-card">
-                    <h3>Actual UPH vs Target UPH by Process</h3>
-                    <div id="chart-uph-target" class="chart-container"></div>
-                </div>
-                <div class="chart-card">
-                    <h3>Productivity by Process</h3>
-                    <div id="chart-productivity" class="chart-container"></div>
-                </div>
-            </div>
-        </main>
+    <div class="filter-group">
+        <label>Week</label>
+        <select id="filter-week">
+            {% for w in data.filters.weeks %}
+            <option value="{{ w }}" {% if w == data.selected.week %}selected{% endif %}>{{ w }}</option>
+            {% endfor %}
+        </select>
     </div>
+    <div class="filter-group">
+        <label>Shift</label>
+        <select id="filter-shift">
+            {% for sh in data.filters.shifts %}
+            <option value="{{ sh }}" {% if sh == data.selected.shift %}selected{% endif %}>{{ sh }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Date</label>
+        <input type="date" id="filter-date" value="{{ data.selected.date }}">
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters to default">
+            &#8634; Reset Filters
+        </button>
+        <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data from server">
+            &#8635; Refresh
+        </button>
+        <span class="refresh-timer" id="refresh-timer"></span>
+    </div>
+</div>
 
-    <script>
-    // ================================================================
-    // CUBE DATA (loaded once from server — ~200 rows, ~5KB)
-    // Each row: {m: Movement, s: Supervisor, sh: Shift, q: qty, ld: lineDay, tt: targetTime}
-    // ================================================================
+<!-- KPI CARDS -->
+<div class="kpi-row">
+    <div class="kpi-card gauge-card">
+        <h3>Total UPH</h3>
+        <div id="gauge-container"></div>
+    </div>
+    <div class="kpi-card">
+        <h3>UPH %</h3>
+        <div class="kpi-value green" id="kpi-uph-pct">{{ data.uph_percent }}%</div>
+    </div>
+    <div class="kpi-card">
+        <h3>Actual Time</h3>
+        <div class="kpi-value" id="kpi-actual">{{ data.actual_time }}</div>
+    </div>
+    <div class="kpi-card">
+        <h3>Standard Time</h3>
+        <div class="kpi-value" id="kpi-standard">{{ data.standard_time }}</div>
+    </div>
+    <div class="kpi-card">
+        <h3>Productivity</h3>
+        <div class="kpi-value red" id="kpi-productivity">{{ data.productivity }}%</div>
+    </div>
+</div>
+
+<!-- CHARTS -->
+<div class="charts-row">
+    <div class="chart-card">
+        <h3>Quantity by Process</h3>
+        <div id="chart-quantity" class="chart-container"></div>
+    </div>
+    <div class="chart-card">
+        <h3>Actual UPH vs Target UPH by Process</h3>
+        <div id="chart-uph-target" class="chart-container"></div>
+    </div>
+    <div class="chart-card">
+        <h3>Productivity by Process</h3>
+        <div id="chart-productivity" class="chart-container"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Cube data injected by Django (server-side)
     var CUBE = {{ data.cube_json|safe }};
-
-    const COLOR_GREEN = '#10b981';
-    const COLOR_YELLOW = '#f59e0b';
-    const COLOR_PINK = '#f87171';
-    const GRID_COLOR = '#f3f4f6';
-
-    // ================================================================
-    // CLIENT-SIDE FILTERING & COMPUTATION (instant, no server call)
-    // ================================================================
-
-    function filterCube(supervisor, shift) {
-        var rows = CUBE;
-        if (supervisor && supervisor !== 'All') {
-            rows = rows.filter(r => r.s === supervisor);
-        }
-        if (shift && shift !== 'All') {
-            rows = rows.filter(r => r.sh === shift);
-        }
-        return rows;
-    }
-
-    function computeAll(filtered) {
-        // Totals
-        var totalQty = 0, totalLd = 0, totalTt = 0;
-        for (var i = 0; i < filtered.length; i++) {
-            totalQty += filtered[i].q;
-            totalLd += filtered[i].ld;
-            totalTt += filtered[i].tt;
-        }
-
-        // KPIs
-        var uph = totalLd > 0 ? Math.round(totalQty / (totalLd / 60)) : 0;
-        var targetUph = totalTt > 0 ? Math.round(totalQty / totalTt) : 0;
-        var uphPct = targetUph > 0 ? Math.round((uph / targetUph) * 100) : 0;
-        var actualTime = Math.round(totalLd / 60 * 100) / 100;
-        var standardTime = Math.round(totalTt * 100) / 100;
-        var productivity = standardTime > 0 ? Math.round((actualTime / standardTime - 1) * 100) : 0;
-
-        // Group by movement
-        var byMovement = {};
-        for (var i = 0; i < filtered.length; i++) {
-            var r = filtered[i];
-            if (!byMovement[r.m]) byMovement[r.m] = {q: 0, ld: 0, tt: 0};
-            byMovement[r.m].q += r.q;
-            byMovement[r.m].ld += r.ld;
-            byMovement[r.m].tt += r.tt;
-        }
-
-        // Quantity by Process (sorted DESC by qty)
-        var qtyEntries = Object.entries(byMovement).map(([m, v]) => [m, Math.round(v.q)]);
-        qtyEntries.sort((a, b) => b[1] - a[1]);
-
-        // Target% by Process (sorted DESC)
-        var targetEntries = Object.entries(byMovement).map(([m, v]) => {
-            var pct = v.ld > 0 ? Math.round(v.tt * 60 / v.ld * 100) : 0;
-            return [m, pct];
-        });
-        targetEntries.sort((a, b) => b[1] - a[1]);
-
-        // Productivity by Process (sorted ASC)
-        var prodEntries = Object.entries(byMovement).map(([m, v]) => {
-            var p = v.tt > 0 ? Math.round(((v.ld / 60) / v.tt - 1) * 100) : 0;
-            return [m, p];
-        });
-        prodEntries.sort((a, b) => a[1] - b[1]);
-
-        return {
-            uph: uph,
-            targetUph: targetUph,
-            uphPct: uphPct,
-            actualTime: actualTime,
-            standardTime: standardTime,
-            productivity: productivity,
-            qtyByProcess: qtyEntries,
-            targetByProcess: targetEntries,
-            prodByProcess: prodEntries
-        };
-    }
-
-    // ================================================================
-    // RENDER FUNCTIONS
-    // ================================================================
-
-    function renderGauge(uph, target) {
-        Plotly.react('gauge-container', [{
-            type: 'indicator',
-            mode: 'gauge+number',
-            value: uph,
-            number: { font: { size: 38, color: '#1e293b' } },
-            gauge: {
-                axis: { range: [0, 300], tickwidth: 1, tickcolor: '#e2e8f0', dtick: 100 },
-                bar: { color: '#1e293b', thickness: 0.12 },
-                bgcolor: '#f8fafc',
-                borderwidth: 0,
-                steps: [
-                    { range: [0, target], color: '#dcfce7' },
-                    { range: [target, 300], color: '#4ade80' }
-                ],
-                threshold: { line: { color: '#1d4ed8', width: 4 }, thickness: 0.85, value: target }
-            }
-        }], {
-            margin: { t: 10, b: 5, l: 30, r: 30 },
-            height: 150,
-            paper_bgcolor: 'transparent',
-            annotations: [{
-                x: 0.82, y: 0.45,
-                text: '<b style="color:#1d4ed8">' + target + '</b>',
-                showarrow: false,
-                font: { size: 14, color: '#1d4ed8' }
-            }]
-        }, { responsive: true, displayModeBar: false });
-    }
-
-    function renderKPIs(data) {
-        document.getElementById('kpi-uph-pct').textContent = data.uphPct + '%';
-        document.getElementById('kpi-actual').textContent = data.actualTime;
-        document.getElementById('kpi-standard').textContent = data.standardTime;
-        document.getElementById('kpi-productivity').textContent = data.productivity + '%';
-    }
-
-    function renderQtyChart(entries) {
-        var labels = entries.map(e => e[0]).reverse();
-        var values = entries.map(e => e[1]).reverse();
-        Plotly.react('chart-quantity', [{
-            type: 'bar', y: labels, x: values, orientation: 'h',
-            text: values.map(v => (v / 1000).toFixed(0) + 'K'),
-            textposition: 'outside',
-            marker: {
-                color: labels.map(p => p === 'REPLENISHMENT' ? COLOR_GREEN : COLOR_PINK),
-                line: { width: 0 }
-            },
-            hovertemplate: '%{y}: %{x:,.0f}<extra></extra>'
-        }], {
-            margin: { t: 5, b: 30, l: 110, r: 50 },
-            xaxis: { title: '', gridcolor: GRID_COLOR },
-            yaxis: { automargin: true },
-            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
-        }, { responsive: true, displayModeBar: false });
-    }
-
-    function renderTargetChart(entries) {
-        var labels = entries.map(e => e[0]).reverse();
-        var values = entries.map(e => e[1]).reverse();
-        Plotly.react('chart-uph-target', [{
-            type: 'bar', y: labels, x: values, orientation: 'h',
-            text: values.map(v => v + '%'),
-            textposition: 'outside',
-            marker: {
-                color: values.map(v => {
-                    if (v >= 100) return COLOR_GREEN;
-                    if (v >= 80) return COLOR_YELLOW;
-                    return COLOR_PINK;
-                }),
-                line: { width: 0 }
-            },
-            hovertemplate: '%{y}: %{x}%<extra></extra>'
-        }], {
-            margin: { t: 5, b: 30, l: 120, r: 55 },
-            xaxis: { title: '', range: [0, Math.max(...values, 0) * 1.15], gridcolor: GRID_COLOR },
-            yaxis: { automargin: true },
-            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
-        }, { responsive: true, displayModeBar: false });
-    }
-
-    function renderProdChart(entries) {
-        var labels = entries.map(e => e[0]).reverse();
-        var values = entries.map(e => e[1]).reverse();
-        var mn = Math.min(...values, 0);
-        var mx = Math.max(...values, 0);
-        Plotly.react('chart-productivity', [{
-            type: 'bar', y: labels, x: values, orientation: 'h',
-            text: values.map(v => v + '%'),
-            textposition: 'auto',
-            marker: {
-                color: values.map(v => {
-                    if (v < 0) return COLOR_GREEN;
-                    if (v <= 20) return COLOR_YELLOW;
-                    return COLOR_PINK;
-                }),
-                line: { width: 0 }
-            },
-            hovertemplate: '%{y}: %{x}%<extra></extra>'
-        }], {
-            margin: { t: 5, b: 30, l: 120, r: 55 },
-            yaxis: { automargin: true },
-            xaxis: { range: [mn * 1.15, mx * 1.15], gridcolor: GRID_COLOR, zeroline: true, zerolinecolor: '#94a3b8' },
-            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
-        }, { responsive: true, displayModeBar: false });
-    }
-
-    // ================================================================
-    // MASTER RENDER — called on page load and on filter change
-    // ================================================================
-
-    function renderAll() {
-        var supervisor = document.getElementById('filter-supervisor').value;
-        var shift = document.getElementById('filter-shift').value;
-
-        var filtered = filterCube(supervisor, shift);
-        var data = computeAll(filtered);
-
-        renderGauge(data.uph, data.targetUph);
-        renderKPIs(data);
-        renderQtyChart(data.qtyByProcess);
-        renderTargetChart(data.targetByProcess);
-        renderProdChart(data.prodByProcess);
-    }
-
-    // ================================================================
-    // FILTER EVENT HANDLERS
-    // ================================================================
-
-    // Supervisor & Shift = CLIENT-SIDE instant (no server call)
-    document.getElementById('filter-supervisor').addEventListener('change', renderAll);
-    document.getElementById('filter-shift').addEventListener('change', renderAll);
-
-    // Date & Week = SERVER reload (different dataset) — MUTUALLY EXCLUSIVE
-    function reloadForDate() {
-        var params = new URLSearchParams();
-        var sup = document.getElementById('filter-supervisor').value;
-        var shift = document.getElementById('filter-shift').value;
-        var dateVal = document.getElementById('filter-date').value;
-        if (sup !== 'All') params.set('supervisor', sup);
-        if (shift !== 'All') params.set('shift', shift);
-        if (dateVal) params.set('date', dateVal);
-        preserveTimer();
-        window.location.href = '/' + (params.toString() ? '?' + params.toString() : '');
-    }
-
-    function reloadForWeek() {
-        var params = new URLSearchParams();
-        var sup = document.getElementById('filter-supervisor').value;
-        var shift = document.getElementById('filter-shift').value;
-        var week = document.getElementById('filter-week').value;
-        if (sup !== 'All') params.set('supervisor', sup);
-        if (shift !== 'All') params.set('shift', shift);
-        if (week !== 'All') params.set('week', week);
-        preserveTimer();
-        window.location.href = '/' + (params.toString() ? '?' + params.toString() : '');
-    }
-
-    document.getElementById('filter-date').addEventListener('change', reloadForDate);
-    document.getElementById('filter-week').addEventListener('change', reloadForWeek);
-
-    // ================================================================
-    // AUTO-REFRESH TIMER (15 min) — persists across filter/reset navigation
-    // Reset Filters: preserves timer | Refresh button: resets timer
-    // ================================================================
-    var REFRESH_INTERVAL = 15 * 60;
-    var timerEl = document.getElementById('refresh-timer');
-    var timerStart;
-
-    function preserveTimer() {
-        sessionStorage.setItem('lms_timer_start', timerStart.toString());
-    }
-
-    function initTimer() {
-        var stored = sessionStorage.getItem('lms_timer_start');
-        if (stored) {
-            timerStart = parseInt(stored, 10);
-            var elapsed = Math.floor((Date.now() - timerStart) / 1000);
-            if (elapsed >= REFRESH_INTERVAL) {
-                sessionStorage.removeItem('lms_timer_start');
-                window.location.reload();
-                return;
-            }
-        } else {
-            timerStart = Date.now();
-            sessionStorage.setItem('lms_timer_start', timerStart.toString());
-        }
-    }
-
-    function getSecondsLeft() {
-        var elapsed = Math.floor((Date.now() - timerStart) / 1000);
-        return Math.max(0, REFRESH_INTERVAL - elapsed);
-    }
-
-    function updateTimerDisplay() {
-        var left = getSecondsLeft();
-        var mins = Math.floor(left / 60);
-        var secs = left % 60;
-        timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
-    }
-
-    function tickTimer() {
-        if (getSecondsLeft() <= 0) {
-            sessionStorage.removeItem('lms_timer_start');
-            window.location.reload();
-        } else {
-            updateTimerDisplay();
-        }
-    }
-
-    initTimer();
-    updateTimerDisplay();
-    setInterval(tickTimer, 1000);
-
-    // ================================================================
-    // RESET FILTERS & REFRESH BUTTONS
-    // ================================================================
-
-    document.getElementById('btn-reset').addEventListener('click', function() {
-        // Reset filters but KEEP timer running
-        preserveTimer();
-        window.location.href = '/';
-    });
-
-    document.getElementById('btn-refresh').addEventListener('click', function() {
-        // Refresh data + RESET timer
-        sessionStorage.removeItem('lms_timer_start');
-        window.location.reload();
-    });
-
-    // ================================================================
-    // INITIAL RENDER
-    // ================================================================
-    renderAll();
-
-    </script>
-</body>
-</html>
+</script>
+<script src="{% static 'dashboard/summary/summary.js' %}"></script>
+{% endblock %}
