@@ -12,6 +12,7 @@ import pandas as pd
 from django.conf import settings
 from datetime import date
 from functools import lru_cache
+import time
 
 
 # ============================================================
@@ -66,6 +67,9 @@ def get_direct_users() -> set:
     Fetch DIRECT employee usernames from BI Roster (cached).
     Cross-database query to [Business_Intelligence].[dbo].[MX03_Roster].
     """
+    print("[LMS] ─── Loading DIRECT users from Headcount ───")
+    start = time.time()
+
     roles_str = ", ".join(f"'{r}'" for r in DIRECT_ROLES)
 
     query = f"""
@@ -76,7 +80,12 @@ def get_direct_users() -> set:
     """
 
     df = run_query(query)
-    return set(df['User'].dropna().str.strip().tolist())
+    users = set(df['User'].dropna().str.strip().tolist())
+
+    elapsed = time.time() - start
+    print(f"[LMS]   ✓ Found {len(users)} DIRECT users ({elapsed:.2f}s)")
+    print(f"[LMS]   (cached — won't query again until server restart)")
+    return users
 
 
 # ============================================================
@@ -127,12 +136,13 @@ def _base_subquery():
 # ============================================================
 # TOTAL UPH (Gauge widget)
 # ============================================================
-# DAX: UPH = SUM(Quantity) / SUM([Line Day Activity]) * 60
-# DAX: Target_UPH = SUM(Quantity) / SUM(Quantity / Target)
-# ============================================================
 
 def get_total_uph(date_filter=None, supervisor=None, shift=None):
     """Returns dict with 'uph' and 'target_uph'."""
+    print(f"[LMS] ─── Gauge: Total UPH ───")
+    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}")
+    start = time.time()
+
     direct_users = get_direct_users()
     where = _build_where_clause(date_filter, supervisor, shift, direct_users)
 
@@ -157,47 +167,37 @@ def get_total_uph(date_filter=None, supervisor=None, shift=None):
     """
 
     df = run_query(query)
+    elapsed = time.time() - start
+
     if df.empty:
+        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
         return {'uph': 0, 'target_uph': 0}
 
-    return {
+    result = {
         'uph': int(df['uph'].iloc[0] or 0),
         'target_uph': int(df['target_uph'].iloc[0] or 0),
     }
+    print(f"[LMS]   ✓ UPH={result['uph']}, Target={result['target_uph']} ({elapsed:.2f}s)")
+    return result
 
 
 # ============================================================
 # KPI CARDS (UPH %, Actual Time, Standard Time, Productivity)
 # ============================================================
-# UPH % (Avg %):
-#   = UPH / Target_UPH for the selected date
-#   Note: DAX uses ALL(lms[Date]) but slicer filters on Date3,
-#   so ALL(Date) doesn't actually remove the filter. Result = UPH/Target.
-#
-# Actual Time (Duration):
-#   = SUM([Line Day Activity]) / 60   (hours)
-#
-# Standard Time (Target_Time):
-#   = SUM(Quantity / Target)           (hours)
-#
-# Productivity:
-#   = Actual Time / Standard Time - 1
-# ============================================================
 
 def get_kpi_data(date_filter=None, supervisor=None, shift=None):
     """
     Returns dict with uph_percent, actual_time, standard_time, productivity.
-    All KPIs use the same date filter (matching Power BI behavior).
     """
-    direct_users = get_direct_users()
+    print(f"[LMS] ─── KPI Cards ───")
+    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}")
+    start = time.time()
 
-    # All KPIs use the same WHERE (including date filter)
+    direct_users = get_direct_users()
     where = _build_where_clause(date_filter, supervisor, shift, direct_users)
 
-    # Single query for all KPI values
     query = f"""
         SELECT
-            -- UPH % = UPH / Target_UPH
             CASE
                 WHEN SUM(CAST([Line Day Activity] AS FLOAT)) = 0 THEN 0
                 WHEN SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) = 0 THEN 0
@@ -206,30 +206,29 @@ def get_kpi_data(date_filter=None, supervisor=None, shift=None):
                     /
                     (SUM(CAST([Quantity] AS FLOAT)) / SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)))
             END AS uph_percent,
-            -- Actual Time = SUM(Line Day Activity) / 60
             ROUND(SUM(CAST([Line Day Activity] AS FLOAT)) / 60.0, 2) AS actual_time,
-            -- Standard Time = SUM(Quantity / Target)
             ROUND(SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)), 2) AS standard_time
         FROM ({_base_subquery()}) AS LMS
         {where}
     """
 
     df = run_query(query)
+    elapsed = time.time() - start
 
     if df.empty:
+        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
         return {'uph_percent': 0, 'actual_time': 0, 'standard_time': 0, 'productivity': 0}
 
-    # Parse results
     uph_percent = round((df['uph_percent'].iloc[0] or 0) * 100)
     actual_time = round(float(df['actual_time'].iloc[0] or 0), 2)
     standard_time = round(float(df['standard_time'].iloc[0] or 0), 2)
 
-    # Productivity = Actual / Standard - 1
     if standard_time > 0:
         productivity = round((actual_time / standard_time - 1) * 100)
     else:
         productivity = 0
 
+    print(f"[LMS]   ✓ UPH%={uph_percent}%, Actual={actual_time}h, Standard={standard_time}h, Productivity={productivity}% ({elapsed:.2f}s)")
     return {
         'uph_percent': uph_percent,
         'actual_time': actual_time,
@@ -250,13 +249,18 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
     if not date_filter:
         date_filter = date.today().strftime('%Y-%m-%d')
 
+    print(f"\n{'='*60}")
+    print(f"[LMS] DASHBOARD REQUEST — Date: {date_filter}")
+    print(f"[LMS]   Supervisor: {supervisor} | Shift: {shift} | Week: {week}")
+    print(f"{'='*60}")
+
     # --- LIVE DATA: Total UPH ---
     try:
         uph_data = get_total_uph(date_filter, supervisor, shift)
         total_uph = uph_data['uph']
         uph_target = uph_data['target_uph']
     except Exception as e:
-        print(f"[LMS] SQL Server error (UPH): {e}")
+        print(f"[LMS]   ✗ SQL Server error (UPH): {e}")
         total_uph = 0
         uph_target = 0
 
@@ -268,11 +272,14 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         standard_time = kpi['standard_time']
         productivity = kpi['productivity']
     except Exception as e:
-        print(f"[LMS] SQL Server error (KPI): {e}")
+        print(f"[LMS]   ✗ SQL Server error (KPI): {e}")
         uph_percent = 0
         actual_time = 0
         standard_time = 0
         productivity = 0
+
+    print(f"[LMS] ─── Charts: Using SAMPLE data (not yet wired) ───")
+    print(f"{'='*60}\n")
 
     # --- SAMPLE DATA (charts — will replace next) ---
     data = {
