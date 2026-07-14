@@ -310,6 +310,11 @@
     </div>
 
     <script>
+        const COLOR_GREEN = '#82c56f';
+        const COLOR_YELLOW = '#d4b42c';
+        const COLOR_PINK = '#e5b4bb';
+        const GRID_COLOR = '#f1f5f9';
+
         // --- Gauge Chart (Total UPH) ---
         Plotly.newPlot('gauge-container', [{
             type: 'indicator',
@@ -352,19 +357,17 @@
             y: qtyProcesses,
             x: qtyValues,
             orientation: 'h',
-            text: qtyValues.map(v => (v/1000).toFixed(0) + 'K'),
+            text: qtyValues.map(v => (v / 1000).toFixed(0) + 'K'),
             textposition: 'outside',
             marker: {
-                color: qtyProcesses.map(p =>
-                    p === 'RECEIVING' || p === 'PACKING' ? '#fecdd3' : '#4ade80'
-                ),
+                color: qtyProcesses.map(p => p === 'REPLENISHMENT' ? COLOR_GREEN : COLOR_PINK),
                 line: { width: 0 }
             },
             hovertemplate: '%{y}: %{x:,.0f}<extra></extra>'
         }], {
             margin: { t: 5, b: 30, l: 110, r: 50 },
-            xaxis: { title: '', gridcolor: '#f1f5f9' },
-            yaxis: {},
+            xaxis: { title: '', gridcolor: GRID_COLOR },
+            yaxis: { automargin: true },
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent'
         }, { responsive: true, displayModeBar: false });
@@ -381,14 +384,22 @@
             text: uphValues.map(v => v + '%'),
             textposition: 'outside',
             marker: {
-                color: uphValues.map(v => v >= 100 ? '#4ade80' : '#a3a33a'),
+                color: uphValues.map(v => {
+                    if (v >= 100) return COLOR_GREEN;
+                    if (v >= 80) return COLOR_YELLOW;
+                    return COLOR_PINK;
+                }),
                 line: { width: 0 }
             },
             hovertemplate: '%{y}: %{x}%<extra></extra>'
         }], {
             margin: { t: 5, b: 30, l: 120, r: 55 },
-            xaxis: { title: '', range: [0, Math.max(...uphValues) * 1.15], gridcolor: '#f1f5f9' },
-            yaxis: {},
+            xaxis: {
+                title: '',
+                range: [0, Math.max(...uphValues, 0) * 1.15],
+                gridcolor: GRID_COLOR
+            },
+            yaxis: { automargin: true },
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent'
         }, { responsive: true, displayModeBar: false });
@@ -397,22 +408,33 @@
         var prodData = {{ data.productivity_by_process|safe }};
         var prodProcesses = Object.keys(prodData).reverse();
         var prodValues = Object.values(prodData).reverse();
+        var prodMin = Math.min(...prodValues, 0);
+        var prodMax = Math.max(...prodValues, 0);
         Plotly.newPlot('chart-productivity', [{
             type: 'bar',
             y: prodProcesses,
             x: prodValues,
             orientation: 'h',
             text: prodValues.map(v => v + '%'),
-            textposition: 'outside',
+            textposition: 'auto',
             marker: {
-                color: prodValues.map(v => v >= 0 ? '#4ade80' : '#fecdd3'),
+                color: prodValues.map(v => {
+                    if (v < 0) return COLOR_GREEN;
+                    if (v <= 20) return COLOR_YELLOW;
+                    return COLOR_PINK;
+                }),
                 line: { width: 0 }
             },
             hovertemplate: '%{y}: %{x}%<extra></extra>'
         }], {
             margin: { t: 5, b: 30, l: 120, r: 55 },
-            yaxis: {},
-            xaxis: { gridcolor: '#f1f5f9' },
+            yaxis: { automargin: true },
+            xaxis: {
+                range: [prodMin * 1.15, prodMax * 1.15],
+                gridcolor: GRID_COLOR,
+                zeroline: true,
+                zerolinecolor: '#94a3b8'
+            },
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent'
         }, { responsive: true, displayModeBar: false });
