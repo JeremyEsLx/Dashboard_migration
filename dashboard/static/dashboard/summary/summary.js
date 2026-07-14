@@ -43,11 +43,13 @@ function getUphPctColor(pct) {
 function getProductivityColor(pct) {
     // Productivity = (Actual/Standard - 1) * 100
     // Negative = efficient (actual < standard = good)
-    // Positive = over time (bad)
-    if (pct <= 0)   return '#059669';  // green — beating standard
-    if (pct <= 20)  return '#f59e0b';  // amber — slightly over
-    if (pct <= 50)  return '#f97316';  // orange — significantly over
-    return '#dc2626';                   // red — critical
+    // Positive = over time (bad) — more gradual scale
+    if (pct <= 0)    return '#059669';  // green — beating standard
+    if (pct <= 15)   return '#65a30d';  // lime — nearly on target
+    if (pct <= 30)   return '#f59e0b';  // amber — slightly over
+    if (pct <= 50)   return '#f97316';  // orange — moderately over
+    if (pct <= 80)   return '#ef4444';  // coral — significantly over
+    return '#dc2626';                    // deep red — critical (>80%)
 }
 
 
@@ -126,7 +128,6 @@ function computeAll(filtered) {
 // ================================================================
 
 function renderGauge(uph, target) {
-    // Wider, smoother gauge with gradient-like steps
     Plotly.react('gauge-container', [{
         type: 'indicator',
         mode: 'gauge+number',
@@ -138,7 +139,7 @@ function renderGauge(uph, target) {
         gauge: {
             shape: 'angular',
             axis: {
-                range: [0, 350],
+                range: [0, 250],
                 tickwidth: 1,
                 tickcolor: '#d1d5db',
                 dtick: 50,
@@ -148,10 +149,10 @@ function renderGauge(uph, target) {
             bgcolor: '#f9fafb',
             borderwidth: 0,
             steps: [
-                { range: [0, 80], color: '#fef2f2' },        // light red zone
-                { range: [80, 150], color: '#fef9c3' },      // light yellow zone
-                { range: [150, target], color: '#dcfce7' },   // light green zone
-                { range: [target, 350], color: '#86efac' }    // strong green (above target)
+                { range: [0, 80], color: '#fef2f2' },
+                { range: [80, 120], color: '#fef9c3' },
+                { range: [120, target], color: '#dcfce7' },
+                { range: [target, 250], color: '#86efac' }
             ],
             threshold: {
                 line: { color: '#1d4ed8', width: 3 },
@@ -248,6 +249,7 @@ function renderProdChart(entries) {
             color: values.map(v => {
                 if (v < 0) return COLOR_GREEN;
                 if (v <= 20) return COLOR_YELLOW;
+                if (v <= 50) return COLOR_ORANGE;
                 return COLOR_PINK;
             }),
             line: { width: 0 }
