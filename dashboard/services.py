@@ -241,8 +241,6 @@ def get_kpi_data(date_filter=None, supervisor=None, shift=None):
 # CHART: Quantity by Process
 # ============================================================
 # Power BI: Axis = [Movement], Values = SUM(Quantity)
-# Same base filters apply (Activity Type, Movement exclusions,
-# Process exclusions, Employee Type, Date)
 # ============================================================
 
 def get_quantity_by_process(date_filter=None, supervisor=None, shift=None):
@@ -273,6 +271,110 @@ def get_quantity_by_process(date_filter=None, supervisor=None, shift=None):
         return {}
 
     result = dict(zip(df['Movement'], df['total_quantity']))
+    print(f"[LMS]   ✓ {len(result)} movements: {result} ({elapsed:.2f}s)")
+    return result
+
+
+# ============================================================
+# CHART: Actual UPH vs Target UPH by Process
+# ============================================================
+# Power BI: Axis = [Movement], Values = Target%
+# Target% = UPH / Target_UPH per movement
+#         = (SUM(Qty)/(SUM(LineDay)/60)) / (SUM(Qty)/SUM(Qty/Target))
+#         = SUM(Qty/Target) * 60 / SUM(LineDay)
+# Displayed as integer % (e.g. 260 means 260% of target)
+# ============================================================
+
+def get_uph_vs_target_by_process(date_filter=None, supervisor=None, shift=None):
+    """
+    Returns dict of {movement_name: target_percent} sorted by target_percent DESC.
+    target_percent is an integer (e.g. 260 = 260% of target UPH).
+    """
+    print(f"[LMS] ─── Chart: UPH vs Target by Process ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+
+    query = f"""
+        SELECT
+            [Movement],
+            CASE
+                WHEN SUM(CAST([Line Day Activity] AS FLOAT)) = 0 THEN 0
+                ELSE ROUND(
+                    SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0))
+                    * 60.0
+                    / SUM(CAST([Line Day Activity] AS FLOAT))
+                    * 100, 0
+                )
+            END AS target_percent
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        GROUP BY [Movement]
+        HAVING SUM(CAST([Line Day Activity] AS FLOAT)) > 0
+        ORDER BY target_percent DESC
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
+        return {}
+
+    result = {row['Movement']: int(row['target_percent']) for _, row in df.iterrows()}
+    print(f"[LMS]   ✓ {len(result)} movements: {result} ({elapsed:.2f}s)")
+    return result
+
+
+# ============================================================
+# CHART: Productivity by Process
+# ============================================================
+# Power BI: Axis = [Movement], Values = Productivity
+# Productivity = (SUM(LineDay)/60) / SUM(Qty/Target) - 1
+# Displayed as integer % (e.g. -62 = 62% faster than standard,
+#                                244 = 244% slower than standard)
+# ============================================================
+
+def get_productivity_by_process(date_filter=None, supervisor=None, shift=None):
+    """
+    Returns dict of {movement_name: productivity_percent} sorted by productivity ASC.
+    Negative = good (faster than standard), Positive = bad (slower).
+    """
+    print(f"[LMS] ─── Chart: Productivity by Process ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    where = _build_where_clause(date_filter, supervisor, shift, direct_users)
+
+    query = f"""
+        SELECT
+            [Movement],
+            CASE
+                WHEN SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) = 0 THEN 0
+                ELSE ROUND(
+                    (
+                        (SUM(CAST([Line Day Activity] AS FLOAT)) / 60.0)
+                        / SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0))
+                        - 1
+                    ) * 100, 0
+                )
+            END AS productivity
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        GROUP BY [Movement]
+        HAVING SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) > 0
+        ORDER BY productivity ASC
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
+        return {}
+
+    result = {row['Movement']: int(row['productivity']) for _, row in df.iterrows()}
     print(f"[LMS]   ✓ {len(result)} movements: {result} ({elapsed:.2f}s)")
     return result
 
@@ -324,7 +426,20 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         print(f"[LMS]   ✗ SQL Server error (Qty by Process): {e}")
         quantity_by_process = {}
 
-    print(f"[LMS] ─── Remaining charts: Using SAMPLE data ───")
+    # --- LIVE DATA: UPH vs Target by Process chart ---
+    try:
+        uph_vs_target_by_process = get_uph_vs_target_by_process(date_filter, supervisor, shift)
+    except Exception as e:
+        print(f"[LMS]   ✗ SQL Server error (UPH vs Target): {e}")
+        uph_vs_target_by_process = {}
+
+    # --- LIVE DATA: Productivity by Process chart ---
+    try:
+        productivity_by_process = get_productivity_by_process(date_filter, supervisor, shift)
+    except Exception as e:
+        print(f"[LMS]   ✗ SQL Server error (Productivity by Process): {e}")
+        productivity_by_process = {}
+
     print(f"{'='*60}\n")
 
     data = {
@@ -335,20 +450,8 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         'standard_time': standard_time,
         'productivity': productivity,
         'quantity_by_process': quantity_by_process,
-        'uph_vs_target_by_process': {  # TODO: wire up
-            'REPLENISHMENT': 254,
-            'PUTAWAY': 123,
-            'PICKING': 118,
-            'PACKING': 89,
-            'RECEIVING': 81,
-        },
-        'productivity_by_process': {   # TODO: wire up
-            'REPLENISHMENT': -61,
-            'PUTAWAY': -19,
-            'PICKING': -16,
-            'PACKING': 13,
-            'RECEIVING': 24,
-        },
+        'uph_vs_target_by_process': uph_vs_target_by_process,
+        'productivity_by_process': productivity_by_process,
         'filters': {
             'supervisors': ['All'],  # TODO: populate from DB
             'weeks': ['All'],
