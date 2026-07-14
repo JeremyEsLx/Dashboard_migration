@@ -11,16 +11,14 @@ Architecture: "Hybrid Cube" — one SQL query per date loads a small aggregated
 cube (~200 rows). Supervisor/Shift filtering happens client-side in JavaScript
 for instant responsiveness. Only Date/Week changes trigger a server round-trip.
 
-Date vs Week: MUTUALLY EXCLUSIVE.
-  - If Date is provided → filter by that single day (ignore Week)
-  - If Week is provided (no Date) → filter by that fiscal week (all days)
-  - If neither → default to today's date
+Date vs Week: MUTUALLY EXCLUSIVE (Summary page).
+Performance page uses DATE RANGE (date_from, date_to) OR week.
 """
 import json
 import pyodbc
 import pandas as pd
 from django.conf import settings
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 import time
 
@@ -120,10 +118,25 @@ def _base_subquery():
 
 
 def _build_date_where(date_filter=None, week=None):
-    """Shared WHERE clause builder for date/week filtering."""
+    """WHERE clause builder for single-date or week filtering (Summary)."""
     where = BASE_FILTERS
     if date_filter:
         where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+    elif week and week != 'All':
+        where += f"  AND [Fiscal Week] = '{week}'\n"
+    return where
+
+
+def _build_date_range_where(date_from=None, date_to=None, week=None):
+    """WHERE clause builder for date-range or week filtering (Performance)."""
+    where = BASE_FILTERS
+    if date_from and date_to:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+    elif date_from:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+    elif date_to:
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
     elif week and week != 'All':
         where += f"  AND [Fiscal Week] = '{week}'\n"
     return where
@@ -135,7 +148,7 @@ def _build_date_where(date_filter=None, week=None):
 
 @lru_cache(maxsize=1)
 def get_filter_options():
-    """Fetch distinct Supervisor and Week values for filter dropdowns."""
+    """Fetch distinct Supervisor, Week, and Process values for filter dropdowns."""
     print("[LMS] ─── Loading filter options ───")
     start = time.time()
 
@@ -160,16 +173,28 @@ def get_filter_options():
           AND [Fiscal Week] != ''
         ORDER BY [Fiscal Week] DESC
     """
+    process_query = f"""
+        SELECT DISTINCT [Process]
+        FROM ({_base_subquery()}) AS LMS
+        {BASE_FILTERS}
+          AND [User Name] IN ({users_str})
+          AND [Process] IS NOT NULL
+          AND [Process] != ''
+        ORDER BY [Process]
+    """
 
     df_sup = run_query(sup_query)
     df_week = run_query(week_query)
+    df_proc = run_query(process_query)
 
     supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
     weeks = ['All'] + df_week['Fiscal Week'].tolist()
+    processes = ['All'] + df_proc['Process'].tolist()
 
     elapsed = time.time() - start
-    print(f"[LMS]   ✓ {len(supervisors)-1} supervisors, {len(weeks)-1} weeks ({elapsed:.2f}s)")
-    return {'supervisors': supervisors, 'weeks': weeks}
+    print(f"[LMS]   ✓ {len(supervisors)-1} supervisors, {len(weeks)-1} weeks, "
+          f"{len(processes)-1} processes ({elapsed:.2f}s)")
+    return {'supervisors': supervisors, 'weeks': weeks, 'processes': processes}
 
 
 # ============================================================
@@ -322,7 +347,7 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
         filter_options = get_filter_options()
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
-        filter_options = {'supervisors': ['All'], 'weeks': ['All']}
+        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
 
     try:
         cube = get_day_cube(date_filter, effective_week)
@@ -357,13 +382,14 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
 # PERFORMANCE BY USER — Process hierarchy cube
 # ============================================================
 # Groups by Process × Flow_Type_Map × Cart Type
-# Same base measures: sum_qty, sum_line_day, sum_target_time
-# JS computes KPIs and handles expand/collapse hierarchy
+# Supports DATE RANGE (date_from + date_to) OR week filter
+# Supervisor + Process filtering done client-side via cube keys
 # ============================================================
 
-def get_performance_cube(date_filter=None, week=None):
+def get_performance_cube(date_from=None, date_to=None, week=None):
     """
-    Query grouped by Process, Flow_Type_Map, Cart_Type.
+    Query grouped by Process, Flow_Type_Map, Cart_Type, Supervisor, Shift.
+    Supports date RANGE (from/to) or single week.
     Returns list of dicts for hierarchical table rendering.
     """
     print(f"[LMS] ─── Loading Performance Cube ───")
@@ -372,20 +398,32 @@ def get_performance_cube(date_filter=None, week=None):
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    where = _build_date_where(date_filter, week)
+    where = _build_date_range_where(date_from, date_to, week)
     where += f"  AND [User Name] IN ({users_str})\n"
+
+    if date_from and date_to:
+        print(f"[LMS]   Mode: DATE RANGE = {date_from} → {date_to}")
+    elif date_from:
+        print(f"[LMS]   Mode: DATE FROM = {date_from}")
+    elif week and week != 'All':
+        print(f"[LMS]   Mode: WEEK = {week}")
+    else:
+        print(f"[LMS]   Mode: NO DATE FILTER")
 
     query = f"""
         SELECT
             ISNULL([Process], '') AS [process],
             ISNULL([Flow_Type_Map], '') AS [flow_type],
             ISNULL([Cart Type], '') AS [cart_type],
+            [Supervisor Full Name] AS supervisor,
+            [SHIFT2] AS shift,
             SUM(CAST([Quantity] AS FLOAT)) AS sum_qty,
             SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day,
             SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) AS sum_target_time
         FROM ({_base_subquery()}) AS LMS
         {where}
-        GROUP BY [Process], [Flow_Type_Map], [Cart Type]
+        GROUP BY [Process], [Flow_Type_Map], [Cart Type],
+                 [Supervisor Full Name], [SHIFT2]
     """
 
     df = run_query(query)
@@ -401,6 +439,8 @@ def get_performance_cube(date_filter=None, week=None):
             'p': row['process'] or '',
             'f': row['flow_type'] or '',
             'c': row['cart_type'] or '',
+            's': row['supervisor'] or '',
+            'sh': row['shift'] or '',
             'q': round(float(row['sum_qty'] or 0), 2),
             'ld': round(float(row['sum_line_day'] or 0), 4),
             'tt': round(float(row['sum_target_time'] or 0), 4),
@@ -410,33 +450,50 @@ def get_performance_cube(date_filter=None, week=None):
     return cube
 
 
-def get_performance_data(week='All', shift='All', date_filter=None):
+def get_performance_data(supervisor='All', week='All', process='All',
+                         shift='All', date_from=None, date_to=None):
     """
     Returns all data for the Performance by User page.
-    Same date/week logic as Summary.
+    Uses DATE RANGE (date_from + date_to) instead of single date.
+    If no dates provided and no week, defaults to current fiscal week.
     """
-    if date_filter:
+    # Date range vs Week logic:
+    #   - If either date_from or date_to provided → use date range, ignore week
+    #   - If week provided (no dates) → use week
+    #   - If neither → default to last 7 days
+    if date_from or date_to:
         effective_week = 'All'
+        # Fill in missing end if only start given (or vice versa)
+        if not date_to:
+            date_to = date.today().strftime('%Y-%m-%d')
+        if not date_from:
+            date_from = date_to
     elif week and week != 'All':
-        date_filter = None
         effective_week = week
+        date_from = None
+        date_to = None
     else:
-        date_filter = date.today().strftime('%Y-%m-%d')
+        # Default: last 7 days
+        today = date.today()
+        date_from = (today - timedelta(days=6)).strftime('%Y-%m-%d')
+        date_to = today.strftime('%Y-%m-%d')
         effective_week = 'All'
 
     print(f"\n{'='*60}")
     print(f"[LMS] PERFORMANCE REQUEST")
-    print(f"[LMS]   Date: {date_filter or '(none)'} | Week: {effective_week} | Shift: {shift}")
+    print(f"[LMS]   Date Range: {date_from or '(none)'} → {date_to or '(none)'} | "
+          f"Week: {effective_week} | Supervisor: {supervisor} | "
+          f"Process: {process} | Shift: {shift}")
     print(f"{'='*60}")
 
     try:
         filter_options = get_filter_options()
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
-        filter_options = {'supervisors': ['All'], 'weeks': ['All']}
+        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
 
     try:
-        cube = get_performance_cube(date_filter, effective_week)
+        cube = get_performance_cube(date_from, date_to, effective_week)
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Performance Cube): {e}")
         cube = []
@@ -446,12 +503,17 @@ def get_performance_data(week='All', shift='All', date_filter=None):
     return {
         'cube_json': json.dumps(cube),
         'filters': {
+            'supervisors': filter_options['supervisors'],
             'weeks': filter_options['weeks'],
+            'processes': filter_options['processes'],
             'shifts': ['All', 'A', 'B', 'C', 'D'],
         },
         'selected': {
+            'supervisor': supervisor,
             'week': effective_week,
+            'process': process,
             'shift': shift,
-            'date': date_filter or '',
+            'date_from': date_from or '',
+            'date_to': date_to or '',
         },
     }

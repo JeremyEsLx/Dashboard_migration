@@ -4,7 +4,12 @@
  * Renders a hierarchical table: Process → Flow_Type_Map → Cart Type
  * with expand/collapse and computed KPIs per row.
  *
- * Cube rows: { p: process, f: flow_type, c: cart_type, q: qty, ld: lineDay, tt: targetTime }
+ * Cube rows: { p: process, f: flow_type, c: cart_type, s: supervisor, sh: shift,
+ *              q: qty, ld: lineDay, tt: targetTime }
+ *
+ * Filters:
+ *   - Supervisor, Process, Shift → client-side (instant)
+ *   - Date Range, Week → server-side reload
  */
 
 // ================================================================
@@ -28,25 +33,40 @@ function getUphPctClass(pct) {
 
 
 // ================================================================
-// HIERARCHY BUILDER
-// Aggregates cube data into a 3-level tree:
-//   Level 0: Process (sum of all flow types)
-//   Level 1: Flow_Type_Map (sum of all cart types)
-//   Level 2: Cart Type (leaf)
+// CUBE FILTERING (client-side — Supervisor, Process, Shift)
 // ================================================================
 
-function buildHierarchy(cube, shift) {
-    // Optional shift filter
-    var rows = cube;
-    if (shift && shift !== 'All') {
-        // Note: shift not in performance cube currently,
-        // but kept for future expansion
-    }
+function filterCube() {
+    var supervisor = document.getElementById('filter-supervisor').value;
+    var process = document.getElementById('filter-process').value;
+    var shift = document.getElementById('filter-shift').value;
 
-    // Aggregate into tree
+    var rows = CUBE;
+    if (supervisor && supervisor !== 'All') {
+        rows = rows.filter(function(r) { return r.s === supervisor; });
+    }
+    if (process && process !== 'All') {
+        rows = rows.filter(function(r) { return r.p === process; });
+    }
+    if (shift && shift !== 'All') {
+        rows = rows.filter(function(r) { return r.sh === shift; });
+    }
+    return rows;
+}
+
+
+// ================================================================
+// HIERARCHY BUILDER
+// Aggregates cube data into a 3-level tree:
+//   Level 0: Process
+//   Level 1: Flow_Type_Map
+//   Level 2: Cart Type
+// ================================================================
+
+function buildHierarchy(filteredCube) {
     var tree = {}; // { process: { flow: { cart: {q, ld, tt} } } }
-    for (var i = 0; i < rows.length; i++) {
-        var r = rows[i];
+    for (var i = 0; i < filteredCube.length; i++) {
+        var r = filteredCube[i];
         var p = r.p || '(blank)';
         var f = r.f || '(blank)';
         var c = r.c || '(blank)';
@@ -59,7 +79,6 @@ function buildHierarchy(cube, shift) {
         tree[p][f][c].ld += r.ld;
         tree[p][f][c].tt += r.tt;
     }
-
     return tree;
 }
 
@@ -88,8 +107,8 @@ function computeMetrics(q, ld, tt) {
 // ================================================================
 
 function renderTable() {
-    var shift = document.getElementById('filter-shift').value;
-    var tree = buildHierarchy(CUBE, shift);
+    var filtered = filterCube();
+    var tree = buildHierarchy(filtered);
     var tbody = document.getElementById('perf-tbody');
     var html = '';
 
@@ -112,10 +131,9 @@ function renderTable() {
             var carts = flows[f];
             var cartKeys = Object.keys(carts);
             for (var ci = 0; ci < cartKeys.length; ci++) {
-                var c = cartKeys[ci];
-                pQ += carts[c].q;
-                pLd += carts[c].ld;
-                pTt += carts[c].tt;
+                pQ += carts[cartKeys[ci]].q;
+                pLd += carts[cartKeys[ci]].ld;
+                pTt += carts[cartKeys[ci]].tt;
             }
         }
         grandQ += pQ; grandLd += pLd; grandTt += pTt;
@@ -198,11 +216,9 @@ function attachToggleListeners() {
             var isExpanded = this.classList.contains('expanded');
 
             if (isExpanded) {
-                // Collapse — hide children and their descendants
                 this.classList.remove('expanded');
                 collapseRecursive(target);
             } else {
-                // Expand — show direct children only
                 this.classList.add('expanded');
                 for (var j = 0; j < children.length; j++) {
                     children[j].classList.remove('row-hidden');
@@ -217,7 +233,6 @@ function collapseRecursive(parentClass) {
     for (var i = 0; i < children.length; i++) {
         children[i].classList.add('row-hidden');
         children[i].classList.remove('expanded');
-        // Also collapse any sub-children
         var subTarget = children[i].getAttribute('data-target');
         if (subTarget) {
             collapseRecursive(subTarget);
@@ -230,29 +245,44 @@ function collapseRecursive(parentClass) {
 // FILTER HANDLERS
 // ================================================================
 
-// Shift = client-side re-render
+// Supervisor, Process, Shift = CLIENT-SIDE instant re-render
+document.getElementById('filter-supervisor').addEventListener('change', renderTable);
+document.getElementById('filter-process').addEventListener('change', renderTable);
 document.getElementById('filter-shift').addEventListener('change', renderTable);
 
-// Date & Week = server reload (mutually exclusive)
-function reloadForDate() {
+// Date Range & Week = SERVER reload
+function buildServerUrl() {
     var params = new URLSearchParams();
+    var sup = document.getElementById('filter-supervisor').value;
+    var proc = document.getElementById('filter-process').value;
     var shift = document.getElementById('filter-shift').value;
-    var dateVal = document.getElementById('filter-date').value;
+    var week = document.getElementById('filter-week').value;
+    var dateFrom = document.getElementById('filter-date-from').value;
+    var dateTo = document.getElementById('filter-date-to').value;
+
+    if (sup !== 'All') params.set('supervisor', sup);
+    if (proc !== 'All') params.set('process', proc);
     if (shift !== 'All') params.set('shift', shift);
-    if (dateVal) params.set('date', dateVal);
-    window.location.href = '/performance/' + (params.toString() ? '?' + params.toString() : '');
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    if (!dateFrom && !dateTo && week !== 'All') params.set('week', week);
+
+    return '/performance/' + (params.toString() ? '?' + params.toString() : '');
+}
+
+function reloadForDate() {
+    window.location.href = buildServerUrl();
 }
 
 function reloadForWeek() {
-    var params = new URLSearchParams();
-    var shift = document.getElementById('filter-shift').value;
-    var week = document.getElementById('filter-week').value;
-    if (shift !== 'All') params.set('shift', shift);
-    if (week !== 'All') params.set('week', week);
-    window.location.href = '/performance/' + (params.toString() ? '?' + params.toString() : '');
+    // Clear date inputs when selecting week (mutually exclusive)
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value = '';
+    window.location.href = buildServerUrl();
 }
 
-document.getElementById('filter-date').addEventListener('change', reloadForDate);
+document.getElementById('filter-date-from').addEventListener('change', reloadForDate);
+document.getElementById('filter-date-to').addEventListener('change', reloadForDate);
 document.getElementById('filter-week').addEventListener('change', reloadForWeek);
 
 
