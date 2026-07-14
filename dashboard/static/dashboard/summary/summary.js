@@ -20,9 +20,35 @@
 // ================================================================
 const COLOR_GREEN = '#10b981';
 const COLOR_YELLOW = '#f59e0b';
+const COLOR_ORANGE = '#f97316';
 const COLOR_PINK = '#f87171';
+const COLOR_RED = '#dc2626';
 const GRID_COLOR = '#f3f4f6';
 const REFRESH_INTERVAL = 15 * 60; // seconds
+
+
+// ================================================================
+// KPI COLOR HELPER
+// Determines text color based on the value and metric type.
+// ================================================================
+
+function getUphPctColor(pct) {
+    // UPH%: higher is better (above target = good)
+    if (pct >= 100) return '#059669';  // green — at/above target
+    if (pct >= 80)  return '#f59e0b';  // amber — close
+    if (pct >= 60)  return '#f97316';  // orange — needs attention
+    return '#dc2626';                   // red — critical
+}
+
+function getProductivityColor(pct) {
+    // Productivity = (Actual/Standard - 1) * 100
+    // Negative = efficient (actual < standard = good)
+    // Positive = over time (bad)
+    if (pct <= 0)   return '#059669';  // green — beating standard
+    if (pct <= 20)  return '#f59e0b';  // amber — slightly over
+    if (pct <= 50)  return '#f97316';  // orange — significantly over
+    return '#dc2626';                   // red — critical
+}
 
 
 // ================================================================
@@ -100,40 +126,69 @@ function computeAll(filtered) {
 // ================================================================
 
 function renderGauge(uph, target) {
+    // Wider, smoother gauge with gradient-like steps
     Plotly.react('gauge-container', [{
         type: 'indicator',
         mode: 'gauge+number',
         value: uph,
-        number: { font: { size: 38, color: '#1e293b' } },
+        number: {
+            font: { size: 42, color: '#111827', family: 'Inter, sans-serif' },
+            suffix: ''
+        },
         gauge: {
-            axis: { range: [0, 300], tickwidth: 1, tickcolor: '#e2e8f0', dtick: 100 },
-            bar: { color: '#1e293b', thickness: 0.12 },
-            bgcolor: '#f8fafc',
+            shape: 'angular',
+            axis: {
+                range: [0, 350],
+                tickwidth: 1,
+                tickcolor: '#d1d5db',
+                dtick: 50,
+                tickfont: { size: 10, color: '#9ca3af', family: 'Inter' }
+            },
+            bar: { color: '#111827', thickness: 0.08 },
+            bgcolor: '#f9fafb',
             borderwidth: 0,
             steps: [
-                { range: [0, target], color: '#dcfce7' },
-                { range: [target, 300], color: '#4ade80' }
+                { range: [0, 80], color: '#fef2f2' },        // light red zone
+                { range: [80, 150], color: '#fef9c3' },      // light yellow zone
+                { range: [150, target], color: '#dcfce7' },   // light green zone
+                { range: [target, 350], color: '#86efac' }    // strong green (above target)
             ],
-            threshold: { line: { color: '#1d4ed8', width: 4 }, thickness: 0.85, value: target }
+            threshold: {
+                line: { color: '#1d4ed8', width: 3 },
+                thickness: 0.8,
+                value: target
+            }
         }
     }], {
-        margin: { t: 10, b: 5, l: 30, r: 30 },
-        height: 150,
+        margin: { t: 20, b: 0, l: 20, r: 20 },
+        height: 180,
         paper_bgcolor: 'transparent',
+        font: { family: 'Inter, sans-serif' },
         annotations: [{
-            x: 0.82, y: 0.45,
-            text: '<b style="color:#1d4ed8">' + target + '</b>',
+            x: 0.5, y: -0.05,
+            text: '<b style="color:#1d4ed8">Target: ' + target + '</b>',
             showarrow: false,
-            font: { size: 14, color: '#1d4ed8' }
+            font: { size: 11, color: '#1d4ed8', family: 'Inter' }
         }]
     }, { responsive: true, displayModeBar: false });
 }
 
 function renderKPIs(data) {
-    document.getElementById('kpi-uph-pct').textContent = data.uphPct + '%';
+    // UPH% — dynamic color
+    var uphEl = document.getElementById('kpi-uph-pct');
+    uphEl.textContent = data.uphPct + '%';
+    uphEl.style.color = getUphPctColor(data.uphPct);
+
+    // Actual Time — neutral
     document.getElementById('kpi-actual').textContent = data.actualTime;
+
+    // Standard Time — neutral
     document.getElementById('kpi-standard').textContent = data.standardTime;
-    document.getElementById('kpi-productivity').textContent = data.productivity + '%';
+
+    // Productivity — dynamic color
+    var prodEl = document.getElementById('kpi-productivity');
+    prodEl.textContent = data.productivity + '%';
+    prodEl.style.color = getProductivityColor(data.productivity);
 }
 
 function renderQtyChart(entries) {

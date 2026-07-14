@@ -87,7 +87,7 @@
 /* === KPI CARDS === */
 .kpi-row {
     display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1.8fr 1fr 1fr 1fr 1fr;
     gap: 12px;
     margin-bottom: 16px;
 }
@@ -105,7 +105,11 @@
     transition: box-shadow 0.15s;
 }
 .kpi-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-.kpi-card.gauge-card { justify-content: flex-start; padding-top: 10px; }
+.kpi-card.gauge-card {
+    justify-content: flex-start;
+    padding-top: 8px;
+    min-height: 200px;
+}
 .kpi-card h3 {
     font-size: 10px;
     color: #6b7280;
@@ -114,9 +118,12 @@
     margin-bottom: 8px;
     font-weight: 600;
 }
-.kpi-value { font-size: 36px; font-weight: 700; color: #111827; }
-.kpi-value.green { color: #059669; }
-.kpi-value.red { color: #dc2626; }
+.kpi-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #111827;
+    transition: color 0.2s;
+}
 
 /* === CHART CARDS === */
 .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
@@ -136,7 +143,7 @@
     letter-spacing: 0.2px;
 }
 .chart-container { width: 100%; height: 280px; }
-#gauge-container { width: 100%; height: 140px; }
+#gauge-container { width: 100%; height: 180px; }
 
 /* === RESPONSIVE (page-specific) === */
 @media (max-width: 1200px) {
