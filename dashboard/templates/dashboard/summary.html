@@ -38,11 +38,7 @@
         }
 
         /* === LAYOUT === */
-        .layout {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
+        .layout { display: flex; flex: 1; overflow: hidden; }
 
         /* === SIDEBAR === */
         .sidebar {
@@ -73,28 +69,17 @@
             transition: all 0.2s;
             border-left: 3px solid transparent;
         }
-        .sidebar a:hover {
-            background: rgba(255,255,255,0.05);
-            color: white;
-        }
+        .sidebar a:hover { background: rgba(255,255,255,0.05); color: white; }
         .sidebar a.active {
             background: rgba(74, 222, 128, 0.1);
             color: #4ade80;
             border-left-color: #4ade80;
             font-weight: 500;
         }
-        .sidebar-icon {
-            font-size: 16px;
-            width: 20px;
-            text-align: center;
-        }
+        .sidebar-icon { font-size: 16px; width: 20px; text-align: center; }
 
         /* === MAIN CONTENT === */
-        .main {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
+        .main { flex: 1; overflow-y: auto; padding: 24px; }
 
         /* === FILTERS === */
         .filters-bar {
@@ -104,11 +89,7 @@
             flex-wrap: wrap;
             align-items: flex-end;
         }
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
         .filter-group label {
             font-size: 11px;
             font-weight: 500;
@@ -151,10 +132,7 @@
             justify-content: center;
             min-height: 170px;
         }
-        .kpi-card.gauge-card {
-            justify-content: flex-start;
-            padding-top: 12px;
-        }
+        .kpi-card.gauge-card { justify-content: flex-start; padding-top: 12px; }
         .kpi-card h3 {
             font-size: 11px;
             color: #64748b;
@@ -163,20 +141,12 @@
             margin-bottom: 10px;
             font-weight: 600;
         }
-        .kpi-value {
-            font-size: 40px;
-            font-weight: 700;
-            color: #1e293b;
-        }
+        .kpi-value { font-size: 40px; font-weight: 700; color: #1e293b; }
         .kpi-value.green { color: #16a34a; }
         .kpi-value.red { color: #dc2626; }
 
         /* === CHART CARDS === */
-        .charts-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 16px;
-        }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
         .chart-card {
             background: white;
             border-radius: 10px;
@@ -184,12 +154,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.06);
             border: 1px solid #f1f5f9;
         }
-        .chart-card h3 {
-            font-size: 12px;
-            font-weight: 600;
-            color: #334155;
-            margin-bottom: 12px;
-        }
+        .chart-card h3 { font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 12px; }
         .chart-container { width: 100%; height: 280px; }
         #gauge-container { width: 100%; height: 150px; }
 
@@ -212,25 +177,13 @@
     </div>
 
     <div class="layout">
-        <!-- SIDEBAR NAVIGATION -->
+        <!-- SIDEBAR -->
         <nav class="sidebar">
             <div class="sidebar-section">Dashboards</div>
-            <a href="/" class="active">
-                <span class="sidebar-icon">&#9632;</span>
-                Summary
-            </a>
-            <a href="#">
-                <span class="sidebar-icon">&#9650;</span>
-                Detail
-            </a>
-            <a href="#">
-                <span class="sidebar-icon">&#9679;</span>
-                By Employee
-            </a>
-            <a href="#">
-                <span class="sidebar-icon">&#9670;</span>
-                Trends
-            </a>
+            <a href="/" class="active"><span class="sidebar-icon">&#9632;</span> Summary</a>
+            <a href="#"><span class="sidebar-icon">&#9650;</span> Detail</a>
+            <a href="#"><span class="sidebar-icon">&#9679;</span> By Employee</a>
+            <a href="#"><span class="sidebar-icon">&#9670;</span> Trends</a>
         </nav>
 
         <!-- MAIN CONTENT -->
@@ -275,19 +228,19 @@
                 </div>
                 <div class="kpi-card">
                     <h3>UPH %</h3>
-                    <div class="kpi-value green">{{ data.uph_percent }}%</div>
+                    <div class="kpi-value green" id="kpi-uph-pct">{{ data.uph_percent }}%</div>
                 </div>
                 <div class="kpi-card">
                     <h3>Actual Time</h3>
-                    <div class="kpi-value">{{ data.actual_time }}</div>
+                    <div class="kpi-value" id="kpi-actual">{{ data.actual_time }}</div>
                 </div>
                 <div class="kpi-card">
                     <h3>Standard Time</h3>
-                    <div class="kpi-value">{{ data.standard_time }}</div>
+                    <div class="kpi-value" id="kpi-standard">{{ data.standard_time }}</div>
                 </div>
                 <div class="kpi-card">
                     <h3>Productivity</h3>
-                    <div class="kpi-value red">{{ data.productivity }}%</div>
+                    <div class="kpi-value red" id="kpi-productivity">{{ data.productivity }}%</div>
                 </div>
             </div>
 
@@ -310,38 +263,99 @@
     </div>
 
     <script>
-        const COLOR_GREEN = '#82c56f';
-        const COLOR_YELLOW = '#d4b42c';
-        const COLOR_PINK = '#e5b4bb';
-        const GRID_COLOR = '#f1f5f9';
+    // ================================================================
+    // CUBE DATA (loaded once from server — ~200 rows, ~5KB)
+    // Each row: {m: Movement, s: Supervisor, sh: Shift, q: qty, ld: lineDay, tt: targetTime}
+    // ================================================================
+    var CUBE = {{ data.cube_json|safe }};
 
-        // === FILTER AUTO-RELOAD ===
-        function applyFilters() {
-            var params = new URLSearchParams();
-            var sup = document.getElementById('filter-supervisor').value;
-            var week = document.getElementById('filter-week').value;
-            var shift = document.getElementById('filter-shift').value;
-            var dateVal = document.getElementById('filter-date').value;
+    const COLOR_GREEN = '#82c56f';
+    const COLOR_YELLOW = '#d4b42c';
+    const COLOR_PINK = '#e5b4bb';
+    const GRID_COLOR = '#f1f5f9';
 
-            if (sup !== 'All') params.set('supervisor', sup);
-            if (week !== 'All') params.set('week', week);
-            if (shift !== 'All') params.set('shift', shift);
-            if (dateVal) params.set('date', dateVal);
+    // ================================================================
+    // CLIENT-SIDE FILTERING & COMPUTATION (instant, no server call)
+    // ================================================================
 
-            var url = '/' + (params.toString() ? '?' + params.toString() : '');
-            window.location.href = url;
+    function filterCube(supervisor, shift) {
+        var rows = CUBE;
+        if (supervisor && supervisor !== 'All') {
+            rows = rows.filter(r => r.s === supervisor);
+        }
+        if (shift && shift !== 'All') {
+            rows = rows.filter(r => r.sh === shift);
+        }
+        return rows;
+    }
+
+    function computeAll(filtered) {
+        // Totals
+        var totalQty = 0, totalLd = 0, totalTt = 0;
+        for (var i = 0; i < filtered.length; i++) {
+            totalQty += filtered[i].q;
+            totalLd += filtered[i].ld;
+            totalTt += filtered[i].tt;
         }
 
-        document.getElementById('filter-supervisor').addEventListener('change', applyFilters);
-        document.getElementById('filter-week').addEventListener('change', applyFilters);
-        document.getElementById('filter-shift').addEventListener('change', applyFilters);
-        document.getElementById('filter-date').addEventListener('change', applyFilters);
+        // KPIs
+        var uph = totalLd > 0 ? Math.round(totalQty / (totalLd / 60)) : 0;
+        var targetUph = totalTt > 0 ? Math.round(totalQty / totalTt) : 0;
+        var uphPct = targetUph > 0 ? Math.round((uph / targetUph) * 100) : 0;
+        var actualTime = Math.round(totalLd / 60 * 100) / 100;
+        var standardTime = Math.round(totalTt * 100) / 100;
+        var productivity = standardTime > 0 ? Math.round((actualTime / standardTime - 1) * 100) : 0;
 
-        // --- Gauge Chart (Total UPH) ---
-        Plotly.newPlot('gauge-container', [{
+        // Group by movement
+        var byMovement = {};
+        for (var i = 0; i < filtered.length; i++) {
+            var r = filtered[i];
+            if (!byMovement[r.m]) byMovement[r.m] = {q: 0, ld: 0, tt: 0};
+            byMovement[r.m].q += r.q;
+            byMovement[r.m].ld += r.ld;
+            byMovement[r.m].tt += r.tt;
+        }
+
+        // Quantity by Process (sorted DESC by qty)
+        var qtyEntries = Object.entries(byMovement).map(([m, v]) => [m, Math.round(v.q)]);
+        qtyEntries.sort((a, b) => b[1] - a[1]);
+
+        // Target% by Process (sorted DESC)
+        var targetEntries = Object.entries(byMovement).map(([m, v]) => {
+            var pct = v.ld > 0 ? Math.round(v.tt * 60 / v.ld * 100) : 0;
+            return [m, pct];
+        });
+        targetEntries.sort((a, b) => b[1] - a[1]);
+
+        // Productivity by Process (sorted ASC)
+        var prodEntries = Object.entries(byMovement).map(([m, v]) => {
+            var p = v.tt > 0 ? Math.round(((v.ld / 60) / v.tt - 1) * 100) : 0;
+            return [m, p];
+        });
+        prodEntries.sort((a, b) => a[1] - b[1]);
+
+        return {
+            uph: uph,
+            targetUph: targetUph,
+            uphPct: uphPct,
+            actualTime: actualTime,
+            standardTime: standardTime,
+            productivity: productivity,
+            qtyByProcess: qtyEntries,
+            targetByProcess: targetEntries,
+            prodByProcess: prodEntries
+        };
+    }
+
+    // ================================================================
+    // RENDER FUNCTIONS
+    // ================================================================
+
+    function renderGauge(uph, target) {
+        Plotly.react('gauge-container', [{
             type: 'indicator',
             mode: 'gauge+number',
-            value: {{ data.total_uph }},
+            value: uph,
             number: { font: { size: 38, color: '#1e293b' } },
             gauge: {
                 axis: { range: [0, 300], tickwidth: 1, tickcolor: '#e2e8f0', dtick: 100 },
@@ -349,14 +363,10 @@
                 bgcolor: '#f8fafc',
                 borderwidth: 0,
                 steps: [
-                    { range: [0, {{ data.uph_target }}], color: '#dcfce7' },
-                    { range: [{{ data.uph_target }}, 300], color: '#4ade80' }
+                    { range: [0, target], color: '#dcfce7' },
+                    { range: [target, 300], color: '#4ade80' }
                 ],
-                threshold: {
-                    line: { color: '#1d4ed8', width: 4 },
-                    thickness: 0.85,
-                    value: {{ data.uph_target }}
-                }
+                threshold: { line: { color: '#1d4ed8', width: 4 }, thickness: 0.85, value: target }
             }
         }], {
             margin: { t: 10, b: 5, l: 30, r: 30 },
@@ -364,25 +374,29 @@
             paper_bgcolor: 'transparent',
             annotations: [{
                 x: 0.82, y: 0.45,
-                text: '<b style="color:#1d4ed8">{{ data.uph_target }}</b>',
+                text: '<b style="color:#1d4ed8">' + target + '</b>',
                 showarrow: false,
                 font: { size: 14, color: '#1d4ed8' }
             }]
         }, { responsive: true, displayModeBar: false });
+    }
 
-        // --- Quantity by Process ---
-        var qtyData = {{ data.quantity_by_process|safe }};
-        var qtyProcesses = Object.keys(qtyData).reverse();
-        var qtyValues = Object.values(qtyData).reverse();
-        Plotly.newPlot('chart-quantity', [{
-            type: 'bar',
-            y: qtyProcesses,
-            x: qtyValues,
-            orientation: 'h',
-            text: qtyValues.map(v => (v / 1000).toFixed(0) + 'K'),
+    function renderKPIs(data) {
+        document.getElementById('kpi-uph-pct').textContent = data.uphPct + '%';
+        document.getElementById('kpi-actual').textContent = data.actualTime;
+        document.getElementById('kpi-standard').textContent = data.standardTime;
+        document.getElementById('kpi-productivity').textContent = data.productivity + '%';
+    }
+
+    function renderQtyChart(entries) {
+        var labels = entries.map(e => e[0]).reverse();
+        var values = entries.map(e => e[1]).reverse();
+        Plotly.react('chart-quantity', [{
+            type: 'bar', y: labels, x: values, orientation: 'h',
+            text: values.map(v => (v / 1000).toFixed(0) + 'K'),
             textposition: 'outside',
             marker: {
-                color: qtyProcesses.map(p => p === 'REPLENISHMENT' ? COLOR_GREEN : COLOR_PINK),
+                color: labels.map(p => p === 'REPLENISHMENT' ? COLOR_GREEN : COLOR_PINK),
                 line: { width: 0 }
             },
             hovertemplate: '%{y}: %{x:,.0f}<extra></extra>'
@@ -390,23 +404,19 @@
             margin: { t: 5, b: 30, l: 110, r: 50 },
             xaxis: { title: '', gridcolor: GRID_COLOR },
             yaxis: { automargin: true },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent'
+            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
         }, { responsive: true, displayModeBar: false });
+    }
 
-        // --- UPH vs Target by Process ---
-        var uphData = {{ data.uph_vs_target_by_process|safe }};
-        var uphProcesses = Object.keys(uphData).reverse();
-        var uphValues = Object.values(uphData).reverse();
-        Plotly.newPlot('chart-uph-target', [{
-            type: 'bar',
-            y: uphProcesses,
-            x: uphValues,
-            orientation: 'h',
-            text: uphValues.map(v => v + '%'),
+    function renderTargetChart(entries) {
+        var labels = entries.map(e => e[0]).reverse();
+        var values = entries.map(e => e[1]).reverse();
+        Plotly.react('chart-uph-target', [{
+            type: 'bar', y: labels, x: values, orientation: 'h',
+            text: values.map(v => v + '%'),
             textposition: 'outside',
             marker: {
-                color: uphValues.map(v => {
+                color: values.map(v => {
                     if (v >= 100) return COLOR_GREEN;
                     if (v >= 80) return COLOR_YELLOW;
                     return COLOR_PINK;
@@ -416,31 +426,23 @@
             hovertemplate: '%{y}: %{x}%<extra></extra>'
         }], {
             margin: { t: 5, b: 30, l: 120, r: 55 },
-            xaxis: {
-                title: '',
-                range: [0, Math.max(...uphValues, 0) * 1.15],
-                gridcolor: GRID_COLOR
-            },
+            xaxis: { title: '', range: [0, Math.max(...values, 0) * 1.15], gridcolor: GRID_COLOR },
             yaxis: { automargin: true },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent'
+            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
         }, { responsive: true, displayModeBar: false });
+    }
 
-        // --- Productivity by Process ---
-        var prodData = {{ data.productivity_by_process|safe }};
-        var prodProcesses = Object.keys(prodData).reverse();
-        var prodValues = Object.values(prodData).reverse();
-        var prodMin = Math.min(...prodValues, 0);
-        var prodMax = Math.max(...prodValues, 0);
-        Plotly.newPlot('chart-productivity', [{
-            type: 'bar',
-            y: prodProcesses,
-            x: prodValues,
-            orientation: 'h',
-            text: prodValues.map(v => v + '%'),
+    function renderProdChart(entries) {
+        var labels = entries.map(e => e[0]).reverse();
+        var values = entries.map(e => e[1]).reverse();
+        var mn = Math.min(...values, 0);
+        var mx = Math.max(...values, 0);
+        Plotly.react('chart-productivity', [{
+            type: 'bar', y: labels, x: values, orientation: 'h',
+            text: values.map(v => v + '%'),
             textposition: 'auto',
             marker: {
-                color: prodValues.map(v => {
+                color: values.map(v => {
                     if (v < 0) return COLOR_GREEN;
                     if (v <= 20) return COLOR_YELLOW;
                     return COLOR_PINK;
@@ -451,15 +453,61 @@
         }], {
             margin: { t: 5, b: 30, l: 120, r: 55 },
             yaxis: { automargin: true },
-            xaxis: {
-                range: [prodMin * 1.15, prodMax * 1.15],
-                gridcolor: GRID_COLOR,
-                zeroline: true,
-                zerolinecolor: '#94a3b8'
-            },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent'
+            xaxis: { range: [mn * 1.15, mx * 1.15], gridcolor: GRID_COLOR, zeroline: true, zerolinecolor: '#94a3b8' },
+            paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
         }, { responsive: true, displayModeBar: false });
+    }
+
+    // ================================================================
+    // MASTER RENDER — called on page load and on filter change
+    // ================================================================
+
+    function renderAll() {
+        var supervisor = document.getElementById('filter-supervisor').value;
+        var shift = document.getElementById('filter-shift').value;
+
+        var filtered = filterCube(supervisor, shift);
+        var data = computeAll(filtered);
+
+        renderGauge(data.uph, data.targetUph);
+        renderKPIs(data);
+        renderQtyChart(data.qtyByProcess);
+        renderTargetChart(data.targetByProcess);
+        renderProdChart(data.prodByProcess);
+    }
+
+    // ================================================================
+    // FILTER EVENT HANDLERS
+    // ================================================================
+
+    // Supervisor & Shift = CLIENT-SIDE instant (no server call)
+    document.getElementById('filter-supervisor').addEventListener('change', renderAll);
+    document.getElementById('filter-shift').addEventListener('change', renderAll);
+
+    // Date & Week = SERVER reload (different dataset)
+    function reloadWithParams() {
+        var params = new URLSearchParams();
+        var sup = document.getElementById('filter-supervisor').value;
+        var week = document.getElementById('filter-week').value;
+        var shift = document.getElementById('filter-shift').value;
+        var dateVal = document.getElementById('filter-date').value;
+
+        if (sup !== 'All') params.set('supervisor', sup);
+        if (week !== 'All') params.set('week', week);
+        if (shift !== 'All') params.set('shift', shift);
+        if (dateVal) params.set('date', dateVal);
+
+        window.location.href = '/' + (params.toString() ? '?' + params.toString() : '');
+    }
+
+    document.getElementById('filter-date').addEventListener('change', reloadWithParams);
+    document.getElementById('filter-week').addEventListener('change', reloadWithParams);
+
+    // ================================================================
+    // INITIAL RENDER
+    // ================================================================
+    renderAll();
+
     </script>
 </body>
 </html>

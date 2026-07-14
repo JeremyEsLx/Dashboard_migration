@@ -6,7 +6,12 @@ Headcount Table: [Business_Intelligence].[dbo].[MX03_Roster] (same server, cross
 
 Power BI relationship: LMS[User Name] → Headcount[User]
 Employee Type filter: Headcount[Estacion_de_Trabajo] IN (DIRECT roles)
+
+Architecture: "Hybrid Cube" — one SQL query per date loads a small aggregated
+cube (~200 rows). Supervisor/Shift filtering happens client-side in JavaScript
+for instant responsiveness. Only Date/Week changes trigger a server round-trip.
 """
+import json
 import pyodbc
 import pandas as pd
 from django.conf import settings
@@ -16,7 +21,7 @@ import time
 
 
 # ============================================================
-# DATABASE CONNECTION (single connection — both DBs on same server)
+# DATABASE CONNECTION
 # ============================================================
 
 def get_connection():
@@ -63,22 +68,17 @@ DIRECT_ROLES = (
 
 @lru_cache(maxsize=1)
 def get_direct_users() -> set:
-    """
-    Fetch DIRECT employee usernames from BI Roster (cached).
-    Cross-database query to [Business_Intelligence].[dbo].[MX03_Roster].
-    """
+    """Fetch DIRECT employee usernames from BI Roster (cached)."""
     print("[LMS] ─── Loading DIRECT users from Headcount ───")
     start = time.time()
 
     roles_str = ", ".join(f"'{r}'" for r in DIRECT_ROLES)
-
     query = f"""
         SELECT ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50))) AS [User]
         FROM [Business_Intelligence].[dbo].[MX03_Roster]
         WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
           AND [Estacion_de_Trabajo] IN ({roles_str})
     """
-
     df = run_query(query)
     users = set(df['User'].dropna().str.strip().tolist())
 
@@ -99,29 +99,6 @@ BASE_FILTERS = """
 """
 
 
-def _build_where_clause(date_filter=None, supervisor=None, shift=None,
-                         week=None, direct_users=None):
-    """Build WHERE clause with all Power BI filters."""
-    where = BASE_FILTERS
-
-    if date_filter:
-        where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
-
-    if week and week != 'All':
-        where += f"  AND [Fiscal Week] = '{week}'\n"
-
-    if direct_users:
-        users_str = ", ".join(f"'{u}'" for u in direct_users)
-        where += f"  AND [User Name] IN ({users_str})\n"
-
-    if supervisor and supervisor != 'All':
-        where += f"  AND [Supervisor Full Name] = '{supervisor}'\n"
-    if shift and shift != 'All':
-        where += f"  AND [SHIFT2] = '{shift}'\n"
-
-    return where
-
-
 def _base_subquery():
     """Base SELECT with SHIFT2 computed column."""
     return """
@@ -138,21 +115,18 @@ def _base_subquery():
 
 
 # ============================================================
-# FILTER OPTIONS (populate dropdowns from DB)
+# FILTER OPTIONS (populate dropdowns — cached)
 # ============================================================
 
 @lru_cache(maxsize=1)
 def get_filter_options():
-    """
-    Fetch distinct Supervisor and Week values for filter dropdowns (cached).
-    """
+    """Fetch distinct Supervisor and Week values for filter dropdowns."""
     print("[LMS] ─── Loading filter options ───")
     start = time.time()
 
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    # Supervisors: distinct values from LMS with base filters + DIRECT users
     sup_query = f"""
         SELECT DISTINCT [Supervisor Full Name]
         FROM ({_base_subquery()}) AS LMS
@@ -162,8 +136,6 @@ def get_filter_options():
           AND [Supervisor Full Name] != ''
         ORDER BY [Supervisor Full Name]
     """
-
-    # Weeks: distinct Fiscal Week values
     week_query = f"""
         SELECT DISTINCT [Fiscal Week]
         FROM ({_base_subquery()}) AS LMS
@@ -182,42 +154,59 @@ def get_filter_options():
 
     elapsed = time.time() - start
     print(f"[LMS]   ✓ {len(supervisors)-1} supervisors, {len(weeks)-1} weeks ({elapsed:.2f}s)")
-    print(f"[LMS]   (cached — won't query again until server restart)")
-
     return {'supervisors': supervisors, 'weeks': weeks}
 
 
 # ============================================================
-# TOTAL UPH (Gauge widget)
+# DAY CUBE — one query, all the data for the selected date
+# ============================================================
+# Returns rows grouped by (Movement, Supervisor, Shift) with
+# three aggregate columns that are enough to compute every KPI:
+#   sum_qty, sum_line_day, sum_target_time
+#
+# From these 3 values you can derive:
+#   UPH = sum_qty / (sum_line_day / 60)
+#   Target_UPH = sum_qty / sum_target_time
+#   UPH% = UPH / Target_UPH
+#   Actual Time = sum_line_day / 60
+#   Standard Time = sum_target_time
+#   Productivity = Actual / Standard - 1
+#   Quantity by Movement = SUM(sum_qty) per movement
+#   Target% by Movement = group-level calculation
 # ============================================================
 
-def get_total_uph(date_filter=None, supervisor=None, shift=None, week=None):
-    """Returns dict with 'uph' and 'target_uph'."""
-    print(f"[LMS] ─── Gauge: Total UPH ───")
-    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}, week={week}")
+def get_day_cube(date_filter=None, week=None):
+    """
+    One SQL query that returns all aggregated data for the date/week.
+    Returns a list of dicts, each with:
+      movement, supervisor, shift, sum_qty, sum_line_day, sum_target_time
+    """
+    print(f"[LMS] ─── Loading Day Cube ───")
+    print(f"[LMS]   date={date_filter}, week={week}")
     start = time.time()
 
     direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    # Build WHERE
+    where = BASE_FILTERS
+    if date_filter:
+        where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+    if week and week != 'All':
+        where += f"  AND [Fiscal Week] = '{week}'\n"
+    where += f"  AND [User Name] IN ({users_str})\n"
 
     query = f"""
         SELECT
-            CASE
-                WHEN SUM([Line Day Activity]) = 0 THEN 0
-                ELSE ROUND(
-                    SUM(CAST([Quantity] AS FLOAT)) / SUM(CAST([Line Day Activity] AS FLOAT)) * 60,
-                    0
-                )
-            END AS uph,
-            CASE
-                WHEN SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) = 0 THEN 0
-                ELSE ROUND(
-                    SUM(CAST([Quantity] AS FLOAT)) / SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)),
-                    0
-                )
-            END AS target_uph
+            [Movement],
+            [Supervisor Full Name] AS supervisor,
+            [SHIFT2] AS shift,
+            SUM(CAST([Quantity] AS FLOAT)) AS sum_qty,
+            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day,
+            SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) AS sum_target_time
         FROM ({_base_subquery()}) AS LMS
         {where}
+        GROUP BY [Movement], [Supervisor Full Name], [SHIFT2]
     """
 
     df = run_query(query)
@@ -225,206 +214,108 @@ def get_total_uph(date_filter=None, supervisor=None, shift=None, week=None):
 
     if df.empty:
         print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
-        return {'uph': 0, 'target_uph': 0}
+        return []
 
-    result = {
-        'uph': int(df['uph'].iloc[0] or 0),
-        'target_uph': int(df['target_uph'].iloc[0] or 0),
-    }
-    print(f"[LMS]   ✓ UPH={result['uph']}, Target={result['target_uph']} ({elapsed:.2f}s)")
-    return result
+    # Convert to list of dicts for JSON serialization
+    cube = []
+    for _, row in df.iterrows():
+        cube.append({
+            'm': row['Movement'] or '',
+            's': row['supervisor'] or '',
+            'sh': row['shift'] or '',
+            'q': round(float(row['sum_qty'] or 0), 2),
+            'ld': round(float(row['sum_line_day'] or 0), 4),
+            'tt': round(float(row['sum_target_time'] or 0), 4),
+        })
+
+    print(f"[LMS]   ✓ {len(cube)} rows in cube ({elapsed:.2f}s)")
+    return cube
 
 
 # ============================================================
-# KPI CARDS (UPH %, Actual Time, Standard Time, Productivity)
+# COMPUTE KPIs FROM CUBE (Python — for initial server render)
 # ============================================================
 
-def get_kpi_data(date_filter=None, supervisor=None, shift=None, week=None):
+def compute_from_cube(cube, supervisor='All', shift='All'):
     """
-    Returns dict with uph_percent, actual_time, standard_time, productivity.
+    Filter the cube and compute all KPIs + chart data.
+    Same logic as the JavaScript will do client-side.
     """
-    print(f"[LMS] ─── KPI Cards ───")
-    print(f"[LMS]   Filters: date={date_filter}, supervisor={supervisor}, shift={shift}, week={week}")
-    start = time.time()
+    # Filter
+    filtered = cube
+    if supervisor and supervisor != 'All':
+        filtered = [r for r in filtered if r['s'] == supervisor]
+    if shift and shift != 'All':
+        filtered = [r for r in filtered if r['sh'] == shift]
 
-    direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
+    # Totals
+    total_qty = sum(r['q'] for r in filtered)
+    total_ld = sum(r['ld'] for r in filtered)
+    total_tt = sum(r['tt'] for r in filtered)
 
-    query = f"""
-        SELECT
-            CASE
-                WHEN SUM(CAST([Line Day Activity] AS FLOAT)) = 0 THEN 0
-                WHEN SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) = 0 THEN 0
-                ELSE
-                    (SUM(CAST([Quantity] AS FLOAT)) / (SUM(CAST([Line Day Activity] AS FLOAT)) / 60.0))
-                    /
-                    (SUM(CAST([Quantity] AS FLOAT)) / SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)))
-            END AS uph_percent,
-            ROUND(SUM(CAST([Line Day Activity] AS FLOAT)) / 60.0, 2) AS actual_time,
-            ROUND(SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)), 2) AS standard_time
-        FROM ({_base_subquery()}) AS LMS
-        {where}
-    """
+    # KPIs
+    uph = round(total_qty / (total_ld / 60)) if total_ld > 0 else 0
+    target_uph = round(total_qty / total_tt) if total_tt > 0 else 0
+    uph_percent = round((uph / target_uph) * 100) if target_uph > 0 else 0
+    actual_time = round(total_ld / 60, 2)
+    standard_time = round(total_tt, 2)
+    productivity = round((actual_time / standard_time - 1) * 100) if standard_time > 0 else 0
 
-    df = run_query(query)
-    elapsed = time.time() - start
+    # Charts — group by movement
+    by_movement = {}
+    for r in filtered:
+        m = r['m']
+        if m not in by_movement:
+            by_movement[m] = {'q': 0, 'ld': 0, 'tt': 0}
+        by_movement[m]['q'] += r['q']
+        by_movement[m]['ld'] += r['ld']
+        by_movement[m]['tt'] += r['tt']
 
-    if df.empty:
-        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
-        return {'uph_percent': 0, 'actual_time': 0, 'standard_time': 0, 'productivity': 0}
+    # Quantity by Process (sorted DESC)
+    qty_by_process = dict(sorted(
+        {m: int(v['q']) for m, v in by_movement.items()}.items(),
+        key=lambda x: x[1], reverse=True
+    ))
 
-    uph_percent = round((df['uph_percent'].iloc[0] or 0) * 100)
-    actual_time = round(float(df['actual_time'].iloc[0] or 0), 2)
-    standard_time = round(float(df['standard_time'].iloc[0] or 0), 2)
+    # UPH vs Target by Process (Target% = sum_tt * 60 / sum_ld * 100)
+    uph_vs_target = {}
+    for m, v in by_movement.items():
+        if v['ld'] > 0:
+            uph_vs_target[m] = round(v['tt'] * 60 / v['ld'] * 100)
+        else:
+            uph_vs_target[m] = 0
+    uph_vs_target = dict(sorted(uph_vs_target.items(), key=lambda x: x[1], reverse=True))
 
-    if standard_time > 0:
-        productivity = round((actual_time / standard_time - 1) * 100)
-    else:
-        productivity = 0
+    # Productivity by Process
+    prod_by_process = {}
+    for m, v in by_movement.items():
+        if v['tt'] > 0:
+            prod_by_process[m] = round(((v['ld'] / 60) / v['tt'] - 1) * 100)
+        else:
+            prod_by_process[m] = 0
+    prod_by_process = dict(sorted(prod_by_process.items(), key=lambda x: x[1]))
 
-    print(f"[LMS]   ✓ UPH%={uph_percent}%, Actual={actual_time}h, Standard={standard_time}h, Productivity={productivity}% ({elapsed:.2f}s)")
     return {
+        'total_uph': uph,
+        'uph_target': target_uph,
         'uph_percent': uph_percent,
         'actual_time': actual_time,
         'standard_time': standard_time,
         'productivity': productivity,
+        'quantity_by_process': qty_by_process,
+        'uph_vs_target_by_process': uph_vs_target,
+        'productivity_by_process': prod_by_process,
     }
 
 
 # ============================================================
-# CHART: Quantity by Process
-# ============================================================
-
-def get_quantity_by_process(date_filter=None, supervisor=None, shift=None, week=None):
-    """
-    Returns dict of {movement_name: total_quantity} sorted by quantity DESC.
-    """
-    print(f"[LMS] ─── Chart: Quantity by Process ───")
-    start = time.time()
-
-    direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
-
-    query = f"""
-        SELECT
-            [Movement],
-            SUM(CAST([Quantity] AS INT)) AS total_quantity
-        FROM ({_base_subquery()}) AS LMS
-        {where}
-        GROUP BY [Movement]
-        ORDER BY total_quantity DESC
-    """
-
-    df = run_query(query)
-    elapsed = time.time() - start
-
-    if df.empty:
-        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
-        return {}
-
-    result = dict(zip(df['Movement'], df['total_quantity']))
-    print(f"[LMS]   ✓ {len(result)} movements: {result} ({elapsed:.2f}s)")
-    return result
-
-
-# ============================================================
-# CHART: Actual UPH vs Target UPH by Process
-# ============================================================
-
-def get_uph_vs_target_by_process(date_filter=None, supervisor=None, shift=None, week=None):
-    """
-    Returns dict of {movement_name: target_percent} sorted by target_percent DESC.
-    """
-    print(f"[LMS] ─── Chart: UPH vs Target by Process ───")
-    start = time.time()
-
-    direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
-
-    query = f"""
-        SELECT
-            [Movement],
-            CASE
-                WHEN SUM(CAST([Line Day Activity] AS FLOAT)) = 0 THEN 0
-                ELSE ROUND(
-                    SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0))
-                    * 60.0
-                    / SUM(CAST([Line Day Activity] AS FLOAT))
-                    * 100, 0
-                )
-            END AS target_percent
-        FROM ({_base_subquery()}) AS LMS
-        {where}
-        GROUP BY [Movement]
-        HAVING SUM(CAST([Line Day Activity] AS FLOAT)) > 0
-        ORDER BY target_percent DESC
-    """
-
-    df = run_query(query)
-    elapsed = time.time() - start
-
-    if df.empty:
-        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
-        return {}
-
-    result = {row['Movement']: int(row['target_percent']) for _, row in df.iterrows()}
-    print(f"[LMS]   ✓ {len(result)} movements: {result} ({elapsed:.2f}s)")
-    return result
-
-
-# ============================================================
-# CHART: Productivity by Process
-# ============================================================
-
-def get_productivity_by_process(date_filter=None, supervisor=None, shift=None, week=None):
-    """
-    Returns dict of {movement_name: productivity_percent} sorted by productivity ASC.
-    """
-    print(f"[LMS] ─── Chart: Productivity by Process ───")
-    start = time.time()
-
-    direct_users = get_direct_users()
-    where = _build_where_clause(date_filter, supervisor, shift, week, direct_users)
-
-    query = f"""
-        SELECT
-            [Movement],
-            CASE
-                WHEN SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) = 0 THEN 0
-                ELSE ROUND(
-                    (
-                        (SUM(CAST([Line Day Activity] AS FLOAT)) / 60.0)
-                        / SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0))
-                        - 1
-                    ) * 100, 0
-                )
-            END AS productivity
-        FROM ({_base_subquery()}) AS LMS
-        {where}
-        GROUP BY [Movement]
-        HAVING SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) > 0
-        ORDER BY productivity ASC
-    """
-
-    df = run_query(query)
-    elapsed = time.time() - start
-
-    if df.empty:
-        print(f"[LMS]   ✗ No data returned ({elapsed:.2f}s)")
-        return {}
-
-    result = {row['Movement']: int(row['productivity']) for _, row in df.iterrows()}
-    print(f"[LMS]   ✓ {len(result)} movements: {result} ({elapsed:.2f}s)")
-    return result
-
-
-# ============================================================
-# MAIN SUMMARY (aggregates all widgets)
+# MAIN SUMMARY
 # ============================================================
 
 def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None):
     """
-    Returns a dict with all data needed for the Summary dashboard.
+    Returns all data for the Summary dashboard.
+    Includes the cube JSON so the frontend can re-filter instantly.
     """
     if not date_filter:
         date_filter = date.today().strftime('%Y-%m-%d')
@@ -434,70 +325,30 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
     print(f"[LMS]   Supervisor: {supervisor} | Shift: {shift} | Week: {week}")
     print(f"{'='*60}")
 
-    # --- Filter options (cached) ---
+    # Filter options (cached)
     try:
         filter_options = get_filter_options()
     except Exception as e:
         print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
         filter_options = {'supervisors': ['All'], 'weeks': ['All']}
 
-    # --- LIVE DATA: Total UPH ---
+    # Day cube (ONE query for all data)
     try:
-        uph_data = get_total_uph(date_filter, supervisor, shift, week)
-        total_uph = uph_data['uph']
-        uph_target = uph_data['target_uph']
+        cube = get_day_cube(date_filter, week)
     except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (UPH): {e}")
-        total_uph = 0
-        uph_target = 0
+        print(f"[LMS]   ✗ SQL Server error (Cube): {e}")
+        cube = []
 
-    # --- LIVE DATA: KPI Cards ---
-    try:
-        kpi = get_kpi_data(date_filter, supervisor, shift, week)
-        uph_percent = kpi['uph_percent']
-        actual_time = kpi['actual_time']
-        standard_time = kpi['standard_time']
-        productivity = kpi['productivity']
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (KPI): {e}")
-        uph_percent = 0
-        actual_time = 0
-        standard_time = 0
-        productivity = 0
+    # Compute KPIs from cube for initial server-side render
+    computed = compute_from_cube(cube, supervisor, shift)
 
-    # --- LIVE DATA: Quantity by Process chart ---
-    try:
-        quantity_by_process = get_quantity_by_process(date_filter, supervisor, shift, week)
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (Qty by Process): {e}")
-        quantity_by_process = {}
-
-    # --- LIVE DATA: UPH vs Target by Process chart ---
-    try:
-        uph_vs_target_by_process = get_uph_vs_target_by_process(date_filter, supervisor, shift, week)
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (UPH vs Target): {e}")
-        uph_vs_target_by_process = {}
-
-    # --- LIVE DATA: Productivity by Process chart ---
-    try:
-        productivity_by_process = get_productivity_by_process(date_filter, supervisor, shift, week)
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (Productivity by Process): {e}")
-        productivity_by_process = {}
-
+    print(f"[LMS]   ✓ UPH={computed['total_uph']}, Target={computed['uph_target']}, "
+          f"UPH%={computed['uph_percent']}%, Productivity={computed['productivity']}%")
     print(f"{'='*60}\n")
 
     data = {
-        'total_uph': total_uph,
-        'uph_target': uph_target,
-        'uph_percent': uph_percent,
-        'actual_time': actual_time,
-        'standard_time': standard_time,
-        'productivity': productivity,
-        'quantity_by_process': quantity_by_process,
-        'uph_vs_target_by_process': uph_vs_target_by_process,
-        'productivity_by_process': productivity_by_process,
+        **computed,
+        'cube_json': json.dumps(cube),  # For client-side JS filtering
         'filters': {
             'supervisors': filter_options['supervisors'],
             'weeks': filter_options['weeks'],
