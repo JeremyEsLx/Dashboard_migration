@@ -381,16 +381,11 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
 # ============================================================
 # PERFORMANCE BY USER — Process hierarchy cube
 # ============================================================
-# Groups by Process × Flow_Type_Map × Cart Type
-# Supports DATE RANGE (date_from + date_to) OR week filter
-# Supervisor + Process filtering done client-side via cube keys
-# ============================================================
 
 def get_performance_cube(date_from=None, date_to=None, week=None):
     """
     Query grouped by Process, Flow_Type_Map, Cart_Type, Supervisor, Shift.
     Supports date RANGE (from/to) or single week.
-    Returns list of dicts for hierarchical table rendering.
     """
     print(f"[LMS] ─── Loading Performance Cube ───")
     start = time.time()
@@ -450,20 +445,72 @@ def get_performance_cube(date_from=None, date_to=None, week=None):
     return cube
 
 
+# ============================================================
+# PERFORMANCE BY USER — User-level cube
+# ============================================================
+
+def get_user_cube(date_from=None, date_to=None, week=None):
+    """
+    Query grouped by User Name (+ Supervisor, Shift for client-side filtering).
+    Returns list of dicts for the user performance table.
+    """
+    print(f"[LMS] ─── Loading User Cube ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    where = _build_date_range_where(date_from, date_to, week)
+    where += f"  AND [User Name] IN ({users_str})\n"
+
+    query = f"""
+        SELECT
+            [User Name] AS [user_name],
+            [Supervisor Full Name] AS supervisor,
+            [SHIFT2] AS shift,
+            SUM(CAST([Quantity] AS FLOAT)) AS sum_qty,
+            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day,
+            SUM(CAST([Quantity] AS FLOAT) / NULLIF(CAST([Target] AS FLOAT), 0)) AS sum_target_time
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        GROUP BY [User Name], [Supervisor Full Name], [SHIFT2]
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   ✗ No user data returned ({elapsed:.2f}s)")
+        return []
+
+    cube = []
+    for _, row in df.iterrows():
+        cube.append({
+            'u': row['user_name'] or '',
+            's': row['supervisor'] or '',
+            'sh': row['shift'] or '',
+            'q': round(float(row['sum_qty'] or 0), 2),
+            'ld': round(float(row['sum_line_day'] or 0), 4),
+            'tt': round(float(row['sum_target_time'] or 0), 4),
+        })
+
+    print(f"[LMS]   ✓ {len(cube)} rows in user cube ({elapsed:.2f}s)")
+    return cube
+
+
+# ============================================================
+# PERFORMANCE PAGE — Main data function
+# ============================================================
+
 def get_performance_data(supervisor='All', week='All', process='All',
                          shift='All', date_from=None, date_to=None):
     """
     Returns all data for the Performance by User page.
-    Uses DATE RANGE (date_from + date_to) instead of single date.
-    If no dates provided and no week, defaults to current fiscal week.
+    Includes BOTH the process cube and the user cube.
     """
-    # Date range vs Week logic:
-    #   - If either date_from or date_to provided → use date range, ignore week
-    #   - If week provided (no dates) → use week
-    #   - If neither → default to last 7 days
+    # Date range vs Week logic
     if date_from or date_to:
         effective_week = 'All'
-        # Fill in missing end if only start given (or vice versa)
         if not date_to:
             date_to = date.today().strftime('%Y-%m-%d')
         if not date_from:
@@ -473,7 +520,6 @@ def get_performance_data(supervisor='All', week='All', process='All',
         date_from = None
         date_to = None
     else:
-        # Default: last 7 days
         today = date.today()
         date_from = (today - timedelta(days=6)).strftime('%Y-%m-%d')
         date_to = today.strftime('%Y-%m-%d')
@@ -498,10 +544,17 @@ def get_performance_data(supervisor='All', week='All', process='All',
         print(f"[LMS]   ✗ SQL Server error (Performance Cube): {e}")
         cube = []
 
+    try:
+        user_cube = get_user_cube(date_from, date_to, effective_week)
+    except Exception as e:
+        print(f"[LMS]   ✗ SQL Server error (User Cube): {e}")
+        user_cube = []
+
     print(f"{'='*60}\n")
 
     return {
         'cube_json': json.dumps(cube),
+        'user_cube_json': json.dumps(user_cube),
         'filters': {
             'supervisors': filter_options['supervisors'],
             'weeks': filter_options['weeks'],

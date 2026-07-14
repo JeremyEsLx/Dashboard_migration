@@ -1,15 +1,15 @@
 /**
  * Performance by User — Client-side Logic
  *
- * Renders a hierarchical table: Process → Flow_Type_Map → Cart Type
- * with expand/collapse and computed KPIs per row.
+ * Two tables:
+ *   1. Process hierarchy (Process → Flow_Type_Map → Cart Type) from CUBE
+ *   2. User performance (flat table per user) from USER_CUBE
  *
- * Cube rows: { p: process, f: flow_type, c: cart_type, s: supervisor, sh: shift,
- *              q: qty, ld: lineDay, tt: targetTime }
+ * Cube rows: { p, f, c, s, sh, q, ld, tt }
+ * User cube rows: { u, s, sh, q, ld, tt }
  *
- * Filters:
- *   - Supervisor, Process, Shift → client-side (instant)
- *   - Date Range, Week → server-side reload
+ * Client-side filters: Supervisor, Process, Shift (instant)
+ * Server-side filters: Date Range, Week (reload)
  */
 
 // ================================================================
@@ -26,45 +26,92 @@ function getProductivityClass(pct) {
 
 function getUphPctClass(pct) {
     if (pct >= 100) return 'cell-green';
-    if (pct >= 80)  return 'cell-amber';
-    if (pct >= 60)  return 'cell-orange';
+    if (pct >= 80)  return 'cell-lime';
+    if (pct >= 60)  return 'cell-amber';
     return 'cell-red';
 }
 
 
 // ================================================================
-// CUBE FILTERING (client-side — Supervisor, Process, Shift)
+// CUBE FILTERING (client-side)
 // ================================================================
 
-function filterCube() {
-    var supervisor = document.getElementById('filter-supervisor').value;
-    var process = document.getElementById('filter-process').value;
-    var shift = document.getElementById('filter-shift').value;
+function getFilters() {
+    return {
+        supervisor: document.getElementById('filter-supervisor').value,
+        process: document.getElementById('filter-process').value,
+        shift: document.getElementById('filter-shift').value
+    };
+}
 
+function filterProcessCube() {
+    var f = getFilters();
     var rows = CUBE;
-    if (supervisor && supervisor !== 'All') {
-        rows = rows.filter(function(r) { return r.s === supervisor; });
+    if (f.supervisor && f.supervisor !== 'All') {
+        rows = rows.filter(function(r) { return r.s === f.supervisor; });
     }
-    if (process && process !== 'All') {
-        rows = rows.filter(function(r) { return r.p === process; });
+    if (f.process && f.process !== 'All') {
+        rows = rows.filter(function(r) { return r.p === f.process; });
     }
-    if (shift && shift !== 'All') {
-        rows = rows.filter(function(r) { return r.sh === shift; });
+    if (f.shift && f.shift !== 'All') {
+        rows = rows.filter(function(r) { return r.sh === f.shift; });
+    }
+    return rows;
+}
+
+function filterUserCube() {
+    var f = getFilters();
+    var rows = USER_CUBE;
+    if (f.supervisor && f.supervisor !== 'All') {
+        rows = rows.filter(function(r) { return r.s === f.supervisor; });
+    }
+    if (f.shift && f.shift !== 'All') {
+        rows = rows.filter(function(r) { return r.sh === f.shift; });
     }
     return rows;
 }
 
 
 // ================================================================
-// HIERARCHY BUILDER
-// Aggregates cube data into a 3-level tree:
-//   Level 0: Process
-//   Level 1: Flow_Type_Map
-//   Level 2: Cart Type
+// METRICS COMPUTATION
+// ================================================================
+
+function computeMetrics(q, ld, tt) {
+    var actualTime = ld / 60;
+    var standardTime = tt;
+    var uph = actualTime > 0 ? Math.round(q / actualTime) : 0;
+    var targetUph = standardTime > 0 ? Math.round(q / standardTime) : 0;
+    var uphPct = targetUph > 0 ? Math.round((uph / targetUph) * 100) : 0;
+    var productivity = standardTime > 0 ? Math.round((actualTime / standardTime - 1) * 100 * 10) / 10 : 0;
+
+    return {
+        qty: Math.round(q),
+        actualTime: Math.round(actualTime * 100) / 100,
+        standardTime: Math.round(standardTime * 100) / 100,
+        productivity: productivity,
+        uph: uph,
+        targetUph: targetUph,
+        uphPct: uphPct
+    };
+}
+
+function numCells(m) {
+    return '<td class="col-num">' + m.qty.toLocaleString() + '</td>'
+         + '<td class="col-num">' + m.actualTime.toFixed(2) + '</td>'
+         + '<td class="col-num">' + m.standardTime.toFixed(2) + '</td>'
+         + '<td class="col-num ' + getProductivityClass(m.productivity) + '">' + m.productivity.toFixed(1) + '%</td>'
+         + '<td class="col-num">' + m.uph + '</td>'
+         + '<td class="col-num">' + m.targetUph + '</td>'
+         + '<td class="col-num ' + getUphPctClass(m.uphPct) + '">' + m.uphPct + '%</td>';
+}
+
+
+// ================================================================
+// PROCESS HIERARCHY TABLE
 // ================================================================
 
 function buildHierarchy(filteredCube) {
-    var tree = {}; // { process: { flow: { cart: {q, ld, tt} } } }
+    var tree = {};
     for (var i = 0; i < filteredCube.length; i++) {
         var r = filteredCube[i];
         var p = r.p || '(blank)';
@@ -82,47 +129,17 @@ function buildHierarchy(filteredCube) {
     return tree;
 }
 
-function computeMetrics(q, ld, tt) {
-    var actualTime = ld / 60;
-    var standardTime = tt;
-    var uph = actualTime > 0 ? Math.round(q / actualTime) : 0;
-    var targetUph = standardTime > 0 ? Math.round(q / standardTime) : 0;
-    var uphPct = targetUph > 0 ? Math.round((uph / targetUph) * 100) : 0;
-    var productivity = standardTime > 0 ? Math.round((actualTime / standardTime - 1) * 100) : 0;
-
-    return {
-        qty: Math.round(q),
-        actualTime: Math.round(actualTime * 100) / 100,
-        standardTime: Math.round(standardTime * 100) / 100,
-        productivity: productivity,
-        uph: uph,
-        targetUph: targetUph,
-        uphPct: uphPct
-    };
-}
-
-
-// ================================================================
-// TABLE RENDERING
-// ================================================================
-
-function renderTable() {
-    var filtered = filterCube();
+function renderProcessTable() {
+    var filtered = filterProcessCube();
     var tree = buildHierarchy(filtered);
     var tbody = document.getElementById('perf-tbody');
     var html = '';
-
-    // Grand totals
     var grandQ = 0, grandLd = 0, grandTt = 0;
-
-    // Sort processes alphabetically
     var processes = Object.keys(tree).sort();
 
     for (var pi = 0; pi < processes.length; pi++) {
         var p = processes[pi];
         var flows = tree[p];
-
-        // Process-level aggregates
         var pQ = 0, pLd = 0, pTt = 0;
         var flowKeys = Object.keys(flows).sort();
 
@@ -141,19 +158,17 @@ function renderTable() {
         var pMetrics = computeMetrics(pQ, pLd, pTt);
         var pId = 'p-' + pi;
 
-        // Process row (Level 0)
         html += '<tr class="row-level-0 row-toggle" data-target="' + pId + '">';
         html += '<td><span class="toggle-icon">&#9654;</span> ' + p + '</td>';
         html += numCells(pMetrics);
         html += '</tr>';
 
-        // Flow Type rows (Level 1)
         for (var fi = 0; fi < flowKeys.length; fi++) {
             var f = flowKeys[fi];
             var carts = flows[f];
             var cartKeys = Object.keys(carts).sort();
-
             var fQ = 0, fLd = 0, fTt = 0;
+
             for (var ci = 0; ci < cartKeys.length; ci++) {
                 fQ += carts[cartKeys[ci]].q;
                 fLd += carts[cartKeys[ci]].ld;
@@ -167,12 +182,9 @@ function renderTable() {
             html += numCells(fMetrics);
             html += '</tr>';
 
-            // Cart Type rows (Level 2)
             for (var ci = 0; ci < cartKeys.length; ci++) {
                 var c = cartKeys[ci];
-                var cData = carts[c];
-                var cMetrics = computeMetrics(cData.q, cData.ld, cData.tt);
-
+                var cMetrics = computeMetrics(carts[c].q, carts[c].ld, carts[c].tt);
                 html += '<tr class="row-level-2 row-hidden ' + fId + '">';
                 html += '<td>' + c + '</td>';
                 html += numCells(cMetrics);
@@ -181,7 +193,6 @@ function renderTable() {
         }
     }
 
-    // Grand total row
     var grandMetrics = computeMetrics(grandQ, grandLd, grandTt);
     html += '<tr class="row-total">';
     html += '<td>TOTAL</td>';
@@ -192,14 +203,52 @@ function renderTable() {
     attachToggleListeners();
 }
 
-function numCells(m) {
-    return '<td class="col-num">' + m.qty.toLocaleString() + '</td>'
-         + '<td class="col-num">' + m.actualTime + '</td>'
-         + '<td class="col-num">' + m.standardTime + '</td>'
-         + '<td class="col-num ' + getProductivityClass(m.productivity) + '">' + m.productivity + '%</td>'
-         + '<td class="col-num">' + m.uph + '</td>'
-         + '<td class="col-num">' + m.targetUph + '</td>'
-         + '<td class="col-num ' + getUphPctClass(m.uphPct) + '">' + m.uphPct + '%</td>';
+
+// ================================================================
+// USER PERFORMANCE TABLE
+// ================================================================
+
+function renderUserTable() {
+    var filtered = filterUserCube();
+    var tbody = document.getElementById('user-tbody');
+
+    // Aggregate by user name (user may have multiple shifts/supervisors)
+    var byUser = {};
+    for (var i = 0; i < filtered.length; i++) {
+        var r = filtered[i];
+        var u = r.u || '(blank)';
+        if (!byUser[u]) byUser[u] = {q: 0, ld: 0, tt: 0};
+        byUser[u].q += r.q;
+        byUser[u].ld += r.ld;
+        byUser[u].tt += r.tt;
+    }
+
+    // Sort by Quantity DESC (busiest users first)
+    var users = Object.keys(byUser).sort(function(a, b) {
+        return byUser[b].q - byUser[a].q;
+    });
+
+    var html = '';
+    for (var i = 0; i < users.length; i++) {
+        var u = users[i];
+        var m = computeMetrics(byUser[u].q, byUser[u].ld, byUser[u].tt);
+        html += '<tr>';
+        html += '<td>' + u + '</td>';
+        html += numCells(m);
+        html += '</tr>';
+    }
+
+    tbody.innerHTML = html;
+}
+
+
+// ================================================================
+// RENDER ALL
+// ================================================================
+
+function renderAll() {
+    renderProcessTable();
+    renderUserTable();
 }
 
 
@@ -245,12 +294,12 @@ function collapseRecursive(parentClass) {
 // FILTER HANDLERS
 // ================================================================
 
-// Supervisor, Process, Shift = CLIENT-SIDE instant re-render
-document.getElementById('filter-supervisor').addEventListener('change', renderTable);
-document.getElementById('filter-process').addEventListener('change', renderTable);
-document.getElementById('filter-shift').addEventListener('change', renderTable);
+// Client-side filters → instant re-render
+document.getElementById('filter-supervisor').addEventListener('change', renderAll);
+document.getElementById('filter-process').addEventListener('change', renderAll);
+document.getElementById('filter-shift').addEventListener('change', renderAll);
 
-// Date Range & Week = SERVER reload
+// Server-side filters → page reload
 function buildServerUrl() {
     var params = new URLSearchParams();
     var sup = document.getElementById('filter-supervisor').value;
@@ -275,7 +324,6 @@ function reloadForDate() {
 }
 
 function reloadForWeek() {
-    // Clear date inputs when selecting week (mutually exclusive)
     document.getElementById('filter-date-from').value = '';
     document.getElementById('filter-date-to').value = '';
     window.location.href = buildServerUrl();
@@ -320,4 +368,4 @@ setInterval(updateTimer, 1000);
 // ================================================================
 // INIT
 // ================================================================
-renderTable();
+renderAll();

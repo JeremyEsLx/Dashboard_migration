@@ -90,11 +90,36 @@
         </table>
     </div>
 </div>
+
+<!-- USER PERFORMANCE TABLE -->
+<div class="table-card" style="margin-top: 16px;">
+    <h3>Performance by User</h3>
+    <div class="table-scroll">
+        <table class="perf-table" id="user-table">
+            <thead>
+                <tr>
+                    <th class="col-process">User Name</th>
+                    <th class="col-num">Quantity</th>
+                    <th class="col-num">Actual Time</th>
+                    <th class="col-num">Standard Time</th>
+                    <th class="col-num">Productivity</th>
+                    <th class="col-num">UPH</th>
+                    <th class="col-num">Target UPH</th>
+                    <th class="col-num">% UPH</th>
+                </tr>
+            </thead>
+            <tbody id="user-tbody">
+                <!-- Rendered by JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     var CUBE = {{ data.cube_json|safe }};
+    var USER_CUBE = {{ data.user_cube_json|safe }};
 </script>
 <script src="{% static 'dashboard/performance/performance.js' %}"></script>
 {% endblock %}
