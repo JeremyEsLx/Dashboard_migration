@@ -6,7 +6,7 @@
 {% block nav_summary %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/summary/summary.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'dashboard/summary/summary.css' %}?v=5">
 {% endblock %}
 
 {% block page_title %}
@@ -14,12 +14,6 @@
 {% endblock %}
 
 {% block content %}
-<!-- LOADING OVERLAY — shown during data fetches -->
-<div class="loading-overlay" id="loading-overlay">
-    <div class="loading-spinner"></div>
-    <span class="loading-text">Loading data...</span>
-</div>
-
 <!-- FILTERS — dropdowns start with just "All"; JS populates from API response -->
 <div class="filters-bar">
     <div class="filter-group">
@@ -57,7 +51,7 @@
 
 <!-- ACTIVE FILTERS BANNER — shows what data is currently displayed -->
 <div class="active-filters-banner" id="active-filters-banner">
-    <span class="banner-icon">
+    <span class="banner-icon" id="banner-icon">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="3" width="12" height="11" rx="1.5"/>
             <path d="M2 6.5h12"/>
@@ -127,5 +121,5 @@
     // No cube data on initial load — JS fetches via AJAX (skeleton loading)
     var CUBE = null;
 </script>
-<script src="{% static 'dashboard/summary/summary.js' %}?v=4"></script>
+<script src="{% static 'dashboard/summary/summary.js' %}?v=5"></script>
 {% endblock %}

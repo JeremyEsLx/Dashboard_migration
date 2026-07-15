@@ -96,51 +96,6 @@ body {
 }
 
 /* ============================================================
-   LOADING OVERLAY — Shown during server-side data fetches
-   ============================================================ */
-
-.loading-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(248, 249, 251, 0.85);
-    z-index: 9999;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    backdrop-filter: blur(2px);
-}
-
-.loading-overlay.active {
-    display: flex;
-}
-
-@keyframes spin {
-    0%   { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.loading-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid #e5e7eb;
-    border-top-color: #10b981;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-.loading-text {
-    font-size: 13px;
-    font-weight: 500;
-    color: #6b7280;
-    letter-spacing: 0.2px;
-}
-
-/* ============================================================
    ACTIVE FILTERS BANNER — Shows what data is currently displayed
    ============================================================ */
 
@@ -156,6 +111,18 @@ body {
     font-size: 13px;
     color: #065f46;
     flex-wrap: wrap;
+    transition: background 0.3s, border-color 0.3s;
+}
+
+/* Loading state — subtle pulsing banner */
+.active-filters-banner.is-loading {
+    background: linear-gradient(135deg, #fef9c3 0%, #fefce8 100%);
+    border-color: #fde68a;
+    color: #92400e;
+}
+
+.active-filters-banner.is-loading .banner-icon {
+    color: #d97706;
 }
 
 .banner-icon {
@@ -163,16 +130,31 @@ body {
     display: flex;
     align-items: center;
     color: #059669;
+    transition: color 0.3s;
+}
+
+/* Inline spinner — shown inside banner during loading */
+.banner-icon .inline-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fde68a;
+    border-top-color: #d97706;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .banner-date-range {
     font-size: 13px;
-    color: #065f46;
+    color: inherit;
     white-space: nowrap;
 }
 .banner-date-range strong {
     font-weight: 600;
-    color: #064e3b;
 }
 
 .banner-chips {

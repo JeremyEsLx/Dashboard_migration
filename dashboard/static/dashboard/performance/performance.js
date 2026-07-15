@@ -33,17 +33,28 @@ function getUphPctClass(pct) {
 
 
 // ================================================================
-// LOADING OVERLAY
+// INLINE LOADING (banner-based, non-blocking)
 // ================================================================
 
+var CALENDAR_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
+
 function showLoading() {
-    var el = document.getElementById('loading-overlay');
-    if (el) el.classList.add('active');
+    var banner = document.getElementById('active-filters-banner');
+    var bannerDate = document.getElementById('banner-date-range');
+    var bannerIcon = document.getElementById('banner-icon');
+    var bannerChips = document.getElementById('banner-chips');
+    if (banner) banner.classList.add('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = '<div class="inline-spinner"></div>';
+    if (bannerDate) bannerDate.innerHTML = 'Loading new data...';
+    if (bannerChips) bannerChips.innerHTML = '';
 }
 
 function hideLoading() {
-    var el = document.getElementById('loading-overlay');
-    if (el) el.classList.remove('active');
+    var banner = document.getElementById('active-filters-banner');
+    var bannerIcon = document.getElementById('banner-icon');
+    if (banner) banner.classList.remove('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = CALENDAR_SVG;
+    // Banner text gets updated by updateFiltersBanner() on next renderAll()
 }
 
 
@@ -382,7 +393,7 @@ document.getElementById('filter-supervisor').addEventListener('change', renderAl
 document.getElementById('filter-process').addEventListener('change', renderAll);
 document.getElementById('filter-shift').addEventListener('change', renderAll);
 
-// Server-side filters -> page reload with loading overlay
+// Server-side filters -> page reload with inline loading indicator
 function buildServerUrl() {
     var params = new URLSearchParams();
     var sup = document.getElementById('filter-supervisor').value;
@@ -505,9 +516,7 @@ function loadData(skip) {
             if (cached.filters) populateFilters(cached.filters, cached.selected || {});
             SELECTED_STATE = cached.selected || {};
             renderAll();
-            // Don't show overlay if we have cache — fetch silently in background
         } else {
-            // No cache — show loading overlay
             showLoading();
             try { var f = sessionStorage.getItem(FILTER_CACHE_KEY); if (f) populateFilters(JSON.parse(f), {}); } catch(e) {}
         }
@@ -521,8 +530,8 @@ function loadData(skip) {
             CUBE = c; USER_CUBE = u;
             SELECTED_STATE = d.selected || {};
             if (d.filters) populateFilters(d.filters, d.selected||{});
-            renderAll();
             hideLoading();
+            renderAll();
         })
         .catch(function(e) {
             console.error('[LMS] Load failed:', e);

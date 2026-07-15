@@ -13,8 +13,7 @@
  *   4. Filter Event Handlers
  *   5. Auto-Refresh Timer (15 min, sessionStorage-persisted)
  *   6. Reset & Refresh Buttons
- *   7. Active Filters Banner
- *   8. Loading Overlay
+ *   7. Active Filters Banner + Inline Loading
  */
 
 // ================================================================
@@ -30,17 +29,28 @@ const REFRESH_INTERVAL = 15 * 60; // seconds
 
 
 // ================================================================
-// LOADING OVERLAY
+// INLINE LOADING (banner-based, non-blocking)
 // ================================================================
 
+var CALENDAR_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
+
 function showLoading() {
-    var el = document.getElementById('loading-overlay');
-    if (el) el.classList.add('active');
+    var banner = document.getElementById('active-filters-banner');
+    var bannerDate = document.getElementById('banner-date-range');
+    var bannerIcon = document.getElementById('banner-icon');
+    var bannerChips = document.getElementById('banner-chips');
+    if (banner) banner.classList.add('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = '<div class="inline-spinner"></div>';
+    if (bannerDate) bannerDate.innerHTML = 'Loading new data...';
+    if (bannerChips) bannerChips.innerHTML = '';
 }
 
 function hideLoading() {
-    var el = document.getElementById('loading-overlay');
-    if (el) el.classList.remove('active');
+    var banner = document.getElementById('active-filters-banner');
+    var bannerIcon = document.getElementById('banner-icon');
+    if (banner) banner.classList.remove('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = CALENDAR_SVG;
+    // Banner text gets updated by updateFiltersBanner() on next renderAll()
 }
 
 
@@ -108,27 +118,22 @@ function updateFiltersBanner() {
 
 // ================================================================
 // KPI COLOR HELPER
-// Determines text color based on the value and metric type.
 // ================================================================
 
 function getUphPctColor(pct) {
-    // UPH%: higher is better (above target = good)
-    if (pct >= 100) return '#059669';  // green -- at/above target
-    if (pct >= 80)  return '#f59e0b';  // amber -- close
-    if (pct >= 60)  return '#f97316';  // orange -- needs attention
-    return '#dc2626';                   // red -- critical
+    if (pct >= 100) return '#059669';
+    if (pct >= 80)  return '#f59e0b';
+    if (pct >= 60)  return '#f97316';
+    return '#dc2626';
 }
 
 function getProductivityColor(pct) {
-    // Productivity = (Actual/Standard - 1) * 100
-    // Negative = efficient (actual < standard = good)
-    // Positive = over time (bad) -- more gradual scale
-    if (pct <= 0)    return '#059669';  // green -- beating standard
-    if (pct <= 15)   return '#65a30d';  // lime -- nearly on target
-    if (pct <= 30)   return '#f59e0b';  // amber -- slightly over
-    if (pct <= 50)   return '#f97316';  // orange -- moderately over
-    if (pct <= 80)   return '#ef4444';  // coral -- significantly over
-    return '#dc2626';                    // deep red -- critical (>80%)
+    if (pct <= 0)    return '#059669';
+    if (pct <= 15)   return '#65a30d';
+    if (pct <= 30)   return '#f59e0b';
+    if (pct <= 50)   return '#f97316';
+    if (pct <= 80)   return '#ef4444';
+    return '#dc2626';
 }
 
 
@@ -148,7 +153,6 @@ function filterCube(supervisor, shift) {
 }
 
 function computeAll(filtered) {
-    // Totals
     var totalQty = 0, totalLd = 0, totalTt = 0;
     for (var i = 0; i < filtered.length; i++) {
         totalQty += filtered[i].q;
@@ -156,7 +160,6 @@ function computeAll(filtered) {
         totalTt += filtered[i].tt;
     }
 
-    // KPIs
     var uph = totalLd > 0 ? Math.round(totalQty / (totalLd / 60)) : 0;
     var targetUph = totalTt > 0 ? Math.round(totalQty / totalTt) : 0;
     var uphPct = targetUph > 0 ? Math.round((uph / targetUph) * 100) : 0;
@@ -164,7 +167,6 @@ function computeAll(filtered) {
     var standardTime = Math.round(totalTt * 100) / 100;
     var productivity = standardTime > 0 ? Math.round((actualTime / standardTime - 1) * 100) : 0;
 
-    // Group by movement
     var byMovement = {};
     for (var i = 0; i < filtered.length; i++) {
         var r = filtered[i];
@@ -174,18 +176,15 @@ function computeAll(filtered) {
         byMovement[r.m].tt += r.tt;
     }
 
-    // Quantity by Process (sorted DESC)
     var qtyEntries = Object.entries(byMovement).map(([m, v]) => [m, Math.round(v.q)]);
     qtyEntries.sort((a, b) => b[1] - a[1]);
 
-    // Target% by Process (sorted DESC)
     var targetEntries = Object.entries(byMovement).map(([m, v]) => {
         var pct = v.ld > 0 ? Math.round(v.tt * 60 / v.ld * 100) : 0;
         return [m, pct];
     });
     targetEntries.sort((a, b) => b[1] - a[1]);
 
-    // Productivity by Process (sorted ASC)
     var prodEntries = Object.entries(byMovement).map(([m, v]) => {
         var p = v.tt > 0 ? Math.round(((v.ld / 60) / v.tt - 1) * 100) : 0;
         return [m, p];
@@ -254,18 +253,13 @@ function renderGauge(uph, target) {
 }
 
 function renderKPIs(data) {
-    // UPH% -- dynamic color
     var uphEl = document.getElementById('kpi-uph-pct');
     uphEl.textContent = data.uphPct + '%';
     uphEl.style.color = getUphPctColor(data.uphPct);
 
-    // Actual Time -- neutral
     document.getElementById('kpi-actual').textContent = data.actualTime;
-
-    // Standard Time -- neutral
     document.getElementById('kpi-standard').textContent = data.standardTime;
 
-    // Productivity -- dynamic color
     var prodEl = document.getElementById('kpi-productivity');
     prodEl.textContent = data.productivity + '%';
     prodEl.style.color = getProductivityColor(data.productivity);
@@ -348,7 +342,7 @@ function renderProdChart(entries) {
 // ================================================================
 
 function renderAll() {
-    if (!CUBE) return; // Not loaded yet (AJAX pending)
+    if (!CUBE) return;
     var supervisor = document.getElementById('filter-supervisor').value;
     var shift = document.getElementById('filter-shift').value;
     var filtered = filterCube(supervisor, shift);
@@ -366,11 +360,9 @@ function renderAll() {
 // 4. FILTER EVENT HANDLERS
 // ================================================================
 
-// Supervisor & Shift = CLIENT-SIDE instant (no server call)
 document.getElementById('filter-supervisor').addEventListener('change', renderAll);
 document.getElementById('filter-shift').addEventListener('change', renderAll);
 
-// Date & Week = SERVER reload (mutually exclusive) — show loading overlay
 function reloadForDate() {
     showLoading();
     var params = new URLSearchParams();
@@ -403,8 +395,6 @@ document.getElementById('filter-week').addEventListener('change', reloadForWeek)
 
 // ================================================================
 // 5. AUTO-REFRESH TIMER (15 min)
-//    Persists across filter/reset navigation via sessionStorage.
-//    Only "Refresh" button resets it.
 // ================================================================
 
 var timerEl = document.getElementById('refresh-timer');
@@ -462,14 +452,12 @@ setInterval(tickTimer, 1000);
 
 document.getElementById('btn-reset').addEventListener('click', function() {
     showLoading();
-    // Reset filters but KEEP timer running
     preserveTimer();
     window.location.href = '/';
 });
 
 document.getElementById('btn-refresh').addEventListener('click', function() {
     showLoading();
-    // Clear cache + reset timer -> force fresh fetch
     sessionStorage.removeItem('lms_timer_start');
     sessionStorage.removeItem(CACHE_KEY);
     sessionStorage.removeItem(FILTER_CACHE_KEY);
@@ -479,20 +467,11 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 
 // ================================================================
 // INIT — Stale-While-Revalidate with sessionStorage Cache
-//
-// Flow:
-//   1. Page shell renders in <50ms (zero SQL in Django view)
-//   2. If cached data exists in sessionStorage -> render INSTANTLY
-//   3. Fetch fresh data from /api/summary/ in background
-//   4. When fresh data arrives -> re-render + update cache
-//   5. "Refresh" button clears cache and fetches fresh
-//
-// Result: switching pages feels instant (cached), data auto-updates.
 // ================================================================
 
 var CACHE_KEY = 'lms_summary_cache';
 var FILTER_CACHE_KEY = 'lms_filters_cache';
-var CACHE_MAX_AGE = 15 * 60 * 1000; // 15 minutes in ms
+var CACHE_MAX_AGE = 15 * 60 * 1000;
 
 function removeSkeleton() {
     var skels = document.querySelectorAll('.skeleton');
@@ -524,7 +503,6 @@ function populateFilters(filters, selected) {
     populateDropdown('filter-supervisor', filters.supervisors, selected.supervisor);
     populateDropdown('filter-week', filters.weeks, selected.week);
     populateDropdown('filter-shift', filters.shifts, selected.shift);
-    // Cache filters for other pages (Performance shares same filter options)
     try { sessionStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(filters)); } catch(e) {}
 }
 
@@ -533,7 +511,6 @@ function getCachedData() {
         var raw = sessionStorage.getItem(CACHE_KEY);
         if (!raw) return null;
         var cached = JSON.parse(raw);
-        // Check age
         if (Date.now() - cached.timestamp > CACHE_MAX_AGE) {
             sessionStorage.removeItem(CACHE_KEY);
             return null;
@@ -559,42 +536,32 @@ function buildApiUrl() {
 }
 
 function hydrateFromData(data) {
-    // Parse cube
     if (typeof data.cube_json === 'string') {
         CUBE = JSON.parse(data.cube_json);
     } else if (Array.isArray(data.cube_json)) {
         CUBE = data.cube_json;
     } else if (Array.isArray(data.cube)) {
-        CUBE = data.cube; // from cache
+        CUBE = data.cube;
     } else {
         CUBE = [];
     }
-    // Track selected state
     SELECTED_STATE = data.selected || {};
-    // Populate filter dropdowns
     if (data.filters) {
         populateFilters(data.filters, data.selected || {});
     }
-    // Remove skeletons and render
     removeSkeleton();
     renderAll();
 }
 
 function loadData(skipCache) {
-    // Step 1: Try cache first (instant render)
     if (!skipCache) {
         var cached = getCachedData();
         if (cached) {
             console.log('[LMS] Rendering from cache (age: ' +
                 Math.round((Date.now() - cached.timestamp)/1000) + 's)');
             hydrateFromData(cached);
-            // Still fetch fresh data in background (silent update, no overlay)
         } else {
-            // No cache — show loading overlay
             showLoading();
-        }
-        // Also try to restore filters from shared cache
-        if (!cached) {
             try {
                 var f = sessionStorage.getItem(FILTER_CACHE_KEY);
                 if (f) populateFilters(JSON.parse(f), {});
@@ -602,28 +569,24 @@ function loadData(skipCache) {
         }
     }
 
-    // Step 2: Fetch fresh data from API
     fetch(buildApiUrl())
         .then(function(resp) {
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             return resp.json();
         })
         .then(function(data) {
-            // Cache the response
             var cube = (typeof data.cube_json === 'string') ? JSON.parse(data.cube_json) : (data.cube_json || []);
             setCacheData(cube, data.filters, data.selected);
-            // Render (or re-render if cache was used)
             CUBE = cube;
             SELECTED_STATE = data.selected || {};
             if (data.filters) populateFilters(data.filters, data.selected || {});
             removeSkeleton();
-            renderAll();
             hideLoading();
+            renderAll();
         })
         .catch(function(err) {
             console.error('[LMS] Failed to load summary data:', err);
             hideLoading();
-            // Only show error if no cached data was rendered
             if (!CUBE || CUBE.length === 0) {
                 removeSkeleton();
                 document.getElementById('kpi-uph-pct').textContent = '--';
@@ -634,5 +597,4 @@ function loadData(skipCache) {
         });
 }
 
-// Start immediately
 loadData(false);
