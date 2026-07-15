@@ -82,8 +82,12 @@ function updateFiltersBanner() {
     var chips = [];
     var shift = document.getElementById('filter-shift').value;
     var supervisor = document.getElementById('filter-supervisor').value;
+    var dateFilter = document.getElementById('filter-date').value;
+    var employee = document.getElementById('filter-employee').value.trim();
     if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
     if (supervisor && supervisor !== 'All') chips.push({ label: 'Supervisor', value: supervisor });
+    if (dateFilter && dateFilter !== 'All') chips.push({ label: 'Date', value: dateFilter });
+    if (employee) chips.push({ label: 'Employee', value: employee });
 
     if (chips.length === 0) {
         bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">All Filters</span>';
@@ -102,12 +106,23 @@ function updateFiltersBanner() {
 function filterCube() {
     var shift = document.getElementById('filter-shift').value;
     var supervisor = document.getElementById('filter-supervisor').value;
+    var dateFilter = document.getElementById('filter-date').value;
+    var employee = document.getElementById('filter-employee').value.trim().toLowerCase();
     var rows = CUBE;
     if (shift && shift !== 'All') {
         rows = rows.filter(function(r) { return r.sh === shift; });
     }
     if (supervisor && supervisor !== 'All') {
         rows = rows.filter(function(r) { return r.s === supervisor; });
+    }
+    if (dateFilter && dateFilter !== 'All') {
+        rows = rows.filter(function(r) { return r.d === dateFilter; });
+    }
+    if (employee) {
+        rows = rows.filter(function(r) {
+            return (r.u && r.u.toLowerCase().indexOf(employee) !== -1) ||
+                   (r.fn && r.fn.toLowerCase().indexOf(employee) !== -1);
+        });
     }
     return rows;
 }
@@ -227,7 +242,7 @@ function renderDateChart(filtered) {
 function renderTable(filtered) {
     var tbody = document.getElementById('detail-tbody');
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;color:#6b7280;">No data for current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;color:#6b7280;">No data for current filters.</td></tr>';
         return;
     }
 
@@ -238,6 +253,7 @@ function renderTable(filtered) {
         html += '<tr>';
         html += '<td>' + r.d + '</td>';
         html += '<td>' + r.u + '</td>';
+        html += '<td>' + (r.fn || '') + '</td>';
         html += '<td>' + r.s + '</td>';
         html += '<td>' + r.p + '</td>';
         html += '<td>' + r.sh + '</td>';
@@ -254,6 +270,7 @@ function renderTable(filtered) {
 
 function renderAll() {
     if (!CUBE) return;
+    populateDateDropdown();
     var filtered = filterCube();
     renderKPI(filtered);
     renderShiftChart(filtered);
@@ -276,6 +293,32 @@ function renderWithLoading() {
 }
 document.getElementById('filter-shift').addEventListener('change', renderWithLoading);
 document.getElementById('filter-supervisor').addEventListener('change', renderWithLoading);
+document.getElementById('filter-date').addEventListener('change', renderWithLoading);
+
+// Employee search — debounce to avoid re-render on every keystroke
+var employeeTimeout = null;
+document.getElementById('filter-employee').addEventListener('input', function() {
+    clearTimeout(employeeTimeout);
+    employeeTimeout = setTimeout(function() { renderWithLoading(); }, 300);
+});
+
+function populateDateDropdown() {
+    if (!CUBE) return;
+    var dates = {};
+    for (var i = 0; i < CUBE.length; i++) {
+        if (CUBE[i].d) dates[CUBE[i].d] = true;
+    }
+    var sorted = Object.keys(dates).sort().reverse();
+    var el = document.getElementById('filter-date');
+    var cur = el.value || 'All';
+    el.innerHTML = '<option value="All">All Dates</option>';
+    for (var i = 0; i < sorted.length; i++) {
+        var o = document.createElement('option');
+        o.value = sorted[i]; o.textContent = sorted[i];
+        if (sorted[i] === cur) o.selected = true;
+        el.appendChild(o);
+    }
+}
 
 function reloadForDate() {
     showLoading();
@@ -300,10 +343,10 @@ document.getElementById('filter-date-to').addEventListener('change', reloadForDa
 
 function exportData() {
     var filtered = filterCube();
-    var rows = [['Date', 'User Name', 'Supervisor', 'Process', 'Shift', 'Duration (hrs)']];
+    var rows = [['Date', 'User Name', 'Full Name', 'Supervisor', 'Process', 'Shift', 'Duration (hrs)']];
     for (var i = 0; i < filtered.length; i++) {
         var r = filtered[i];
-        rows.push([r.d, r.u, r.s, r.p, r.sh, Math.round((r.ld / 60) * 100) / 100]);
+        rows.push([r.d, r.u, r.fn || '', r.s, r.p, r.sh, Math.round((r.ld / 60) * 100) / 100]);
     }
 
     var dateFrom = SELECTED_STATE.date_from || '';

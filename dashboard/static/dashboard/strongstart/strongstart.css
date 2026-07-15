@@ -40,6 +40,13 @@
     border-color: #10b981;
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
 }
+.filter-group input[type="text"] {
+    min-width: 150px;
+}
+.filter-group input[type="text"]::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+}
 .filter-actions {
     display: flex;
     gap: 6px;

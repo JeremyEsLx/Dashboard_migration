@@ -29,6 +29,16 @@
         </select>
     </div>
     <div class="filter-group">
+        <label>Date</label>
+        <select id="filter-date">
+            <option value="All" selected>All Dates</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Employee</label>
+        <input type="text" id="filter-employee" placeholder="Search name..." autocomplete="off">
+    </div>
+    <div class="filter-group">
         <label>Date From</label>
         <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
     </div>
@@ -99,6 +109,7 @@
                 <tr>
                     <th>Date</th>
                     <th>User Name</th>
+                    <th>Full Name</th>
                     <th>Supervisor</th>
                     <th>Process</th>
                     <th>Shift</th>
@@ -106,14 +117,14 @@
                 </tr>
             </thead>
             <tbody id="detail-tbody">
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="6"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="7"><div class="skeleton skeleton-row"></div></td></tr>
             </tbody>
         </table>
     </div>

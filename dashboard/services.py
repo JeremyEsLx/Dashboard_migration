@@ -676,6 +676,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
         SELECT
             CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23) AS [date],
             [User Name] AS [user_name],
+            ISNULL([Full Name], [User Name]) AS [full_name],
             [Supervisor Full Name] AS [supervisor],
             ISNULL([Process], '') AS [process],
             [SHIFT2] AS [shift],
@@ -683,7 +684,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
         FROM ({_base_subquery()}) AS LMS
         {where}
         GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
-                 [User Name], [Supervisor Full Name], [Process], [SHIFT2]
+                 [User Name], [Full Name], [Supervisor Full Name], [Process], [SHIFT2]
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
@@ -699,6 +700,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
         cube.append({
             'd': row['date'] or '',
             'u': row['user_name'] or '',
+            'fn': row['full_name'] or '',
             's': row['supervisor'] or '',
             'p': row['process'] or '',
             'sh': row['shift'] or '',
