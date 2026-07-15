@@ -2,7 +2,7 @@
  * Performance by User — Client-side Logic
  *
  * Two tables:
- *   1. Process hierarchy (Process → Flow_Type_Map → Cart Type) from CUBE
+ *   1. Process hierarchy (Process -> Flow_Type_Map -> Cart Type) from CUBE
  *   2. User performance (flat table per user) from USER_CUBE
  *
  * Cube rows: { p, f, c, s, sh, q, ld, tt }
@@ -29,6 +29,21 @@ function getUphPctClass(pct) {
     if (pct >= 80)  return 'cell-lime';
     if (pct >= 60)  return 'cell-amber';
     return 'cell-red';
+}
+
+
+// ================================================================
+// LOADING OVERLAY
+// ================================================================
+
+function showLoading() {
+    var el = document.getElementById('loading-overlay');
+    if (el) el.classList.add('active');
+}
+
+function hideLoading() {
+    var el = document.getElementById('loading-overlay');
+    if (el) el.classList.remove('active');
 }
 
 
@@ -362,12 +377,12 @@ function collapseRecursive(parentClass) {
 // FILTER HANDLERS
 // ================================================================
 
-// Client-side filters → instant re-render
+// Client-side filters -> instant re-render
 document.getElementById('filter-supervisor').addEventListener('change', renderAll);
 document.getElementById('filter-process').addEventListener('change', renderAll);
 document.getElementById('filter-shift').addEventListener('change', renderAll);
 
-// Server-side filters → page reload
+// Server-side filters -> page reload with loading overlay
 function buildServerUrl() {
     var params = new URLSearchParams();
     var sup = document.getElementById('filter-supervisor').value;
@@ -388,10 +403,12 @@ function buildServerUrl() {
 }
 
 function reloadForDate() {
+    showLoading();
     window.location.href = buildServerUrl();
 }
 
 function reloadForWeek() {
+    showLoading();
     document.getElementById('filter-date-from').value = '';
     document.getElementById('filter-date-to').value = '';
     window.location.href = buildServerUrl();
@@ -407,10 +424,12 @@ document.getElementById('filter-week').addEventListener('change', reloadForWeek)
 // ================================================================
 
 document.getElementById('btn-reset').addEventListener('click', function() {
+    showLoading();
     window.location.href = '/performance/';
 });
 
 document.getElementById('btn-refresh').addEventListener('click', function() {
+    showLoading();
     // Clear cache + force fresh fetch
     try {
         sessionStorage.removeItem('lms_performance_cache');
@@ -486,7 +505,10 @@ function loadData(skip) {
             if (cached.filters) populateFilters(cached.filters, cached.selected || {});
             SELECTED_STATE = cached.selected || {};
             renderAll();
+            // Don't show overlay if we have cache — fetch silently in background
         } else {
+            // No cache — show loading overlay
+            showLoading();
             try { var f = sessionStorage.getItem(FILTER_CACHE_KEY); if (f) populateFilters(JSON.parse(f), {}); } catch(e) {}
         }
     }
@@ -500,9 +522,11 @@ function loadData(skip) {
             SELECTED_STATE = d.selected || {};
             if (d.filters) populateFilters(d.filters, d.selected||{});
             renderAll();
+            hideLoading();
         })
         .catch(function(e) {
             console.error('[LMS] Load failed:', e);
+            hideLoading();
             if (!CUBE || !CUBE.length) {
                 document.getElementById('perf-tbody').innerHTML = '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load. Try refreshing.</td></tr>';
                 document.getElementById('user-tbody').innerHTML = '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load. Try refreshing.</td></tr>';

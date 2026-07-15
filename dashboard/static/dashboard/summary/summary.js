@@ -2,7 +2,7 @@
  * Summary Dashboard — Client-side Logic
  *
  * Architecture: "Hybrid Cube"
- *   - Server sends a pre-aggregated cube (Movement × Supervisor × Shift)
+ *   - Server sends a pre-aggregated cube (Movement x Supervisor x Shift)
  *   - Supervisor/Shift filtering is instant (JavaScript, no server call)
  *   - Date/Week changes trigger a server reload (new dataset)
  *
@@ -14,6 +14,7 @@
  *   5. Auto-Refresh Timer (15 min, sessionStorage-persisted)
  *   6. Reset & Refresh Buttons
  *   7. Active Filters Banner
+ *   8. Loading Overlay
  */
 
 // ================================================================
@@ -26,6 +27,21 @@ const COLOR_PINK = '#f87171';
 const COLOR_RED = '#dc2626';
 const GRID_COLOR = '#f3f4f6';
 const REFRESH_INTERVAL = 15 * 60; // seconds
+
+
+// ================================================================
+// LOADING OVERLAY
+// ================================================================
+
+function showLoading() {
+    var el = document.getElementById('loading-overlay');
+    if (el) el.classList.add('active');
+}
+
+function hideLoading() {
+    var el = document.getElementById('loading-overlay');
+    if (el) el.classList.remove('active');
+}
 
 
 // ================================================================
@@ -97,22 +113,22 @@ function updateFiltersBanner() {
 
 function getUphPctColor(pct) {
     // UPH%: higher is better (above target = good)
-    if (pct >= 100) return '#059669';  // green — at/above target
-    if (pct >= 80)  return '#f59e0b';  // amber — close
-    if (pct >= 60)  return '#f97316';  // orange — needs attention
-    return '#dc2626';                   // red — critical
+    if (pct >= 100) return '#059669';  // green -- at/above target
+    if (pct >= 80)  return '#f59e0b';  // amber -- close
+    if (pct >= 60)  return '#f97316';  // orange -- needs attention
+    return '#dc2626';                   // red -- critical
 }
 
 function getProductivityColor(pct) {
     // Productivity = (Actual/Standard - 1) * 100
     // Negative = efficient (actual < standard = good)
-    // Positive = over time (bad) — more gradual scale
-    if (pct <= 0)    return '#059669';  // green — beating standard
-    if (pct <= 15)   return '#65a30d';  // lime — nearly on target
-    if (pct <= 30)   return '#f59e0b';  // amber — slightly over
-    if (pct <= 50)   return '#f97316';  // orange — moderately over
-    if (pct <= 80)   return '#ef4444';  // coral — significantly over
-    return '#dc2626';                    // deep red — critical (>80%)
+    // Positive = over time (bad) -- more gradual scale
+    if (pct <= 0)    return '#059669';  // green -- beating standard
+    if (pct <= 15)   return '#65a30d';  // lime -- nearly on target
+    if (pct <= 30)   return '#f59e0b';  // amber -- slightly over
+    if (pct <= 50)   return '#f97316';  // orange -- moderately over
+    if (pct <= 80)   return '#ef4444';  // coral -- significantly over
+    return '#dc2626';                    // deep red -- critical (>80%)
 }
 
 
@@ -238,18 +254,18 @@ function renderGauge(uph, target) {
 }
 
 function renderKPIs(data) {
-    // UPH% — dynamic color
+    // UPH% -- dynamic color
     var uphEl = document.getElementById('kpi-uph-pct');
     uphEl.textContent = data.uphPct + '%';
     uphEl.style.color = getUphPctColor(data.uphPct);
 
-    // Actual Time — neutral
+    // Actual Time -- neutral
     document.getElementById('kpi-actual').textContent = data.actualTime;
 
-    // Standard Time — neutral
+    // Standard Time -- neutral
     document.getElementById('kpi-standard').textContent = data.standardTime;
 
-    // Productivity — dynamic color
+    // Productivity -- dynamic color
     var prodEl = document.getElementById('kpi-productivity');
     prodEl.textContent = data.productivity + '%';
     prodEl.style.color = getProductivityColor(data.productivity);
@@ -354,8 +370,9 @@ function renderAll() {
 document.getElementById('filter-supervisor').addEventListener('change', renderAll);
 document.getElementById('filter-shift').addEventListener('change', renderAll);
 
-// Date & Week = SERVER reload (mutually exclusive)
+// Date & Week = SERVER reload (mutually exclusive) — show loading overlay
 function reloadForDate() {
+    showLoading();
     var params = new URLSearchParams();
     var sup = document.getElementById('filter-supervisor').value;
     var shift = document.getElementById('filter-shift').value;
@@ -368,6 +385,7 @@ function reloadForDate() {
 }
 
 function reloadForWeek() {
+    showLoading();
     var params = new URLSearchParams();
     var sup = document.getElementById('filter-supervisor').value;
     var shift = document.getElementById('filter-shift').value;
@@ -443,13 +461,15 @@ setInterval(tickTimer, 1000);
 // ================================================================
 
 document.getElementById('btn-reset').addEventListener('click', function() {
+    showLoading();
     // Reset filters but KEEP timer running
     preserveTimer();
     window.location.href = '/';
 });
 
 document.getElementById('btn-refresh').addEventListener('click', function() {
-    // Clear cache + reset timer → force fresh fetch
+    showLoading();
+    // Clear cache + reset timer -> force fresh fetch
     sessionStorage.removeItem('lms_timer_start');
     sessionStorage.removeItem(CACHE_KEY);
     sessionStorage.removeItem(FILTER_CACHE_KEY);
@@ -462,9 +482,9 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 //
 // Flow:
 //   1. Page shell renders in <50ms (zero SQL in Django view)
-//   2. If cached data exists in sessionStorage → render INSTANTLY
+//   2. If cached data exists in sessionStorage -> render INSTANTLY
 //   3. Fetch fresh data from /api/summary/ in background
-//   4. When fresh data arrives → re-render + update cache
+//   4. When fresh data arrives -> re-render + update cache
 //   5. "Refresh" button clears cache and fetches fresh
 //
 // Result: switching pages feels instant (cached), data auto-updates.
@@ -568,7 +588,10 @@ function loadData(skipCache) {
             console.log('[LMS] Rendering from cache (age: ' +
                 Math.round((Date.now() - cached.timestamp)/1000) + 's)');
             hydrateFromData(cached);
-            // Still fetch fresh data in background (silent update)
+            // Still fetch fresh data in background (silent update, no overlay)
+        } else {
+            // No cache — show loading overlay
+            showLoading();
         }
         // Also try to restore filters from shared cache
         if (!cached) {
@@ -595,13 +618,15 @@ function loadData(skipCache) {
             if (data.filters) populateFilters(data.filters, data.selected || {});
             removeSkeleton();
             renderAll();
+            hideLoading();
         })
         .catch(function(err) {
             console.error('[LMS] Failed to load summary data:', err);
+            hideLoading();
             // Only show error if no cached data was rendered
             if (!CUBE || CUBE.length === 0) {
                 removeSkeleton();
-                document.getElementById('kpi-uph-pct').textContent = '—';
+                document.getElementById('kpi-uph-pct').textContent = '--';
                 document.getElementById('kpi-actual').textContent = 'Load failed';
                 document.getElementById('kpi-standard').textContent = '';
                 document.getElementById('kpi-productivity').textContent = '';
