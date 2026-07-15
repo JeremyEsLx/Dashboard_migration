@@ -73,20 +73,21 @@
 /* === TOP ROW: KPI + 2 Charts === */
 .top-row {
     display: grid;
-    grid-template-columns: 180px 1.2fr 1fr;
+    grid-template-columns: 160px 1fr 1.5fr;
     gap: 16px;
     margin-bottom: 16px;
 }
 
 .ss-kpi {
-    background: white;
+    background: #f8f9fb;
     border: 1px solid #e5e7eb;
-    border-radius: 3px;
+    border-radius: 6px;
     padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .ss-kpi h3 {
     font-size: 11px;
@@ -105,20 +106,22 @@
 
 .ss-chart-shift,
 .ss-chart-date {
-    background: white;
+    background: #f8f9fb;
     border: 1px solid #e5e7eb;
-    border-radius: 3px;
-    padding: 14px 18px;
+    border-radius: 6px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .ss-chart-shift h3,
 .ss-chart-date h3 {
     font-size: 12px;
     font-weight: 600;
     color: #374151;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    letter-spacing: -0.2px;
 }
 .chart-container {
-    height: 220px;
+    height: 200px;
 }
 
 /* === DETAIL TABLE === */

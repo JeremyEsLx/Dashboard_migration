@@ -125,7 +125,7 @@ function renderKPI(filtered) {
     var hours = (totalLd / 60);
     var el = document.getElementById('kpi-hours');
     var skel = document.getElementById('kpi-skel');
-    el.textContent = hours.toFixed(1);
+    el.textContent = Math.round(hours);
     el.style.display = '';
     if (skel) skel.style.display = 'none';
 }
@@ -162,17 +162,20 @@ function renderShiftChart(filtered) {
         x: values,
         type: 'bar',
         orientation: 'h',
-        marker: { color: '#e8a0a0', cornerradius: 3 },
+        marker: { color: '#e8a0a0', cornerradius: 4 },
         text: values.map(function(v) { return Math.round(v); }),
-        textposition: 'outside',
-        textfont: { size: 11, color: '#374151' }
+        textposition: 'inside',
+        insidetextanchor: 'end',
+        textfont: { size: 12, color: '#4a2020', family: 'Inter' },
+        cliponaxis: false
     }], {
-        margin: { t: 10, b: 30, l: 35, r: 50 },
-        xaxis: { title: '', gridcolor: '#f3f4f6' },
-        yaxis: { title: '', automargin: true },
+        margin: { t: 5, b: 25, l: 25, r: 15 },
+        xaxis: { title: '', gridcolor: '#eee', showgrid: true, zeroline: false },
+        yaxis: { title: '', automargin: true, tickfont: { size: 12 } },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        font: { family: 'Inter', size: 11 }
+        font: { family: 'Inter', size: 11 },
+        bargap: 0.3
     }, { responsive: true, displayModeBar: false });
 }
 
@@ -191,17 +194,20 @@ function renderDateChart(filtered) {
         x: dates,
         y: values,
         type: 'bar',
-        marker: { color: '#e8a0a0', cornerradius: 3 },
-        text: values.map(function(v) { return v.toFixed(1); }),
-        textposition: 'outside',
-        textfont: { size: 10 }
+        marker: { color: '#e8a0a0', cornerradius: 4 },
+        text: values.map(function(v) { return Math.round(v); }),
+        textposition: 'inside',
+        insidetextanchor: 'end',
+        textfont: { size: 11, color: '#4a2020', family: 'Inter' },
+        cliponaxis: false
     }], {
-        margin: { t: 25, b: 30, l: 45, r: 10 },
-        yaxis: { title: '', gridcolor: '#f3f4f6', automargin: true },
-        xaxis: { title: '', type: 'category' },
+        margin: { t: 10, b: 35, l: 40, r: 10 },
+        yaxis: { title: '', gridcolor: '#eee', showgrid: true, zeroline: false },
+        xaxis: { title: '', type: 'category', tickangle: 0, tickfont: { size: 10 } },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        font: { family: 'Inter', size: 11 }
+        font: { family: 'Inter', size: 11 },
+        bargap: 0.25
     }, { responsive: true, displayModeBar: false });
 }
 
