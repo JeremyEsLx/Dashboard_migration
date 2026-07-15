@@ -450,6 +450,101 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 });
 
 
+
+
+// ================================================================
+// EXCEL EXPORT (client-side via SheetJS)
+// ================================================================
+
+function getExportFilename(suffix) {
+    var dateFrom = SELECTED_STATE.date_from || '';
+    var dateTo = SELECTED_STATE.date_to || '';
+    var base = 'LMS_Performance';
+    if (suffix) base += '_' + suffix;
+    if (dateFrom && dateTo) {
+        base += '_' + dateFrom + '_to_' + dateTo;
+    } else if (dateFrom) {
+        base += '_from_' + dateFrom;
+    }
+    return base + '.xlsx';
+}
+
+function buildProcessSheetData() {
+    var filtered = filterProcessCube();
+    var tree = buildHierarchy(filtered);
+    var rows = [['Process', 'Flow Type', 'Cart Type', 'Quantity', 'Actual Time (hrs)', 'Standard Time (hrs)', 'Productivity %', 'UPH', 'Target UPH', 'UPH %']];
+
+    var processes = Object.keys(tree).sort();
+    for (var pi = 0; pi < processes.length; pi++) {
+        var p = processes[pi];
+        var flows = tree[p];
+        var flowKeys = Object.keys(flows).sort();
+        for (var fi = 0; fi < flowKeys.length; fi++) {
+            var f = flowKeys[fi];
+            var carts = flows[f];
+            var cartKeys = Object.keys(carts).sort();
+            for (var ci = 0; ci < cartKeys.length; ci++) {
+                var c = cartKeys[ci];
+                var m = computeMetrics(carts[c].q, carts[c].ld, carts[c].tt);
+                rows.push([p, f, c, m.qty, m.actualTime, m.standardTime, m.productivity, m.uph, m.targetUph, m.uphPct]);
+            }
+        }
+    }
+    return rows;
+}
+
+function buildUserSheetData() {
+    var filtered = filterUserCube();
+    var byUser = {};
+    for (var i = 0; i < filtered.length; i++) {
+        var r = filtered[i];
+        var u = r.u || '(blank)';
+        if (!byUser[u]) byUser[u] = {q: 0, ld: 0, tt: 0};
+        byUser[u].q += r.q;
+        byUser[u].ld += r.ld;
+        byUser[u].tt += r.tt;
+    }
+    var users = Object.keys(byUser).sort(function(a, b) { return byUser[b].q - byUser[a].q; });
+    var rows = [['User Name', 'Quantity', 'Actual Time (hrs)', 'Standard Time (hrs)', 'Productivity %', 'UPH', 'Target UPH', 'UPH %']];
+    for (var i = 0; i < users.length; i++) {
+        var u = users[i];
+        var m = computeMetrics(byUser[u].q, byUser[u].ld, byUser[u].tt);
+        rows.push([u, m.qty, m.actualTime, m.standardTime, m.productivity, m.uph, m.targetUph, m.uphPct]);
+    }
+    return rows;
+}
+
+function exportProcessTable() {
+    var data = buildProcessSheetData();
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'By Process');
+    XLSX.writeFile(wb, getExportFilename('Process'));
+}
+
+function exportUserTable() {
+    var data = buildUserSheetData();
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'By User');
+    XLSX.writeFile(wb, getExportFilename('Users'));
+}
+
+function exportAll() {
+    var wb = XLSX.utils.book_new();
+    var processData = buildProcessSheetData();
+    var userData = buildUserSheetData();
+    var ws1 = XLSX.utils.aoa_to_sheet(processData);
+    var ws2 = XLSX.utils.aoa_to_sheet(userData);
+    XLSX.utils.book_append_sheet(wb, ws1, 'By Process');
+    XLSX.utils.book_append_sheet(wb, ws2, 'By User');
+    XLSX.writeFile(wb, getExportFilename('All'));
+}
+
+document.getElementById('btn-export-all').addEventListener('click', exportAll);
+document.getElementById('btn-export-process').addEventListener('click', exportProcessTable);
+document.getElementById('btn-export-users').addEventListener('click', exportUserTable);
+
 // ================================================================
 // AUTO-REFRESH (15 min)
 // ================================================================

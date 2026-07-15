@@ -465,6 +465,59 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 });
 
 
+
+
+// ================================================================
+// EXCEL EXPORT (client-side via SheetJS)
+// ================================================================
+
+function exportSummary() {
+    if (!CUBE) return;
+
+    var supervisor = document.getElementById('filter-supervisor').value;
+    var shift = document.getElementById('filter-shift').value;
+    var filtered = filterCube(supervisor, shift);
+
+    // Group by movement and compute metrics
+    var byMovement = {};
+    for (var i = 0; i < filtered.length; i++) {
+        var r = filtered[i];
+        if (!byMovement[r.m]) byMovement[r.m] = {q: 0, ld: 0, tt: 0};
+        byMovement[r.m].q += r.q;
+        byMovement[r.m].ld += r.ld;
+        byMovement[r.m].tt += r.tt;
+    }
+
+    var rows = [['Movement', 'Quantity', 'Actual Time (hrs)', 'Standard Time (hrs)', 'Productivity %', 'UPH', 'Target UPH', 'UPH %']];
+    var movements = Object.keys(byMovement).sort();
+    for (var i = 0; i < movements.length; i++) {
+        var m = movements[i];
+        var v = byMovement[m];
+        var actualTime = v.ld / 60;
+        var standardTime = v.tt;
+        var uph = actualTime > 0 ? Math.round(v.q / actualTime) : 0;
+        var targetUph = standardTime > 0 ? Math.round(v.q / standardTime) : 0;
+        var uphPct = targetUph > 0 ? Math.round((uph / targetUph) * 100) : 0;
+        var productivity = standardTime > 0 ? Math.round((actualTime / standardTime - 1) * 100) : 0;
+        rows.push([m, Math.round(v.q), Math.round(actualTime * 100) / 100, Math.round(standardTime * 100) / 100, productivity, uph, targetUph, uphPct]);
+    }
+
+    // Build filename
+    var dateVal = SELECTED_STATE.date || '';
+    var week = SELECTED_STATE.week || '';
+    var filename = 'LMS_Summary';
+    if (dateVal) filename += '_' + dateVal;
+    else if (week && week !== 'All') filename += '_Week_' + week;
+    filename += '.xlsx';
+
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Summary');
+    XLSX.writeFile(wb, filename);
+}
+
+document.getElementById('btn-export').addEventListener('click', exportSummary);
+
 // ================================================================
 // INIT — Stale-While-Revalidate with sessionStorage Cache
 // ================================================================

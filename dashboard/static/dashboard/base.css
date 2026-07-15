@@ -95,6 +95,62 @@ body {
     letter-spacing: -0.3px;
 }
 
+
+/* ============================================================
+   EXPORT BUTTONS
+   ============================================================ */
+
+.btn-export {
+    background: #065f46;
+    color: white;
+    border-color: #065f46;
+}
+.btn-export:hover {
+    background: #047857;
+    border-color: #047857;
+}
+.btn-export svg {
+    flex-shrink: 0;
+}
+
+/* Small export button (per-widget) */
+.btn-export-small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.btn-export-small:hover {
+    background: #f0fdf4;
+    border-color: #10b981;
+    color: #065f46;
+}
+
+/* Table card header layout (title + export button) */
+.table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
+.table-card-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+}
+
 /* ============================================================
    ACTIVE FILTERS BANNER — Shows what data is currently displayed
    ============================================================ */

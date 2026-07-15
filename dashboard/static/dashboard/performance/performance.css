@@ -96,6 +96,10 @@
     margin-bottom: 10px;
     flex-shrink: 0;
 }
+/* When using table-card-header, h3 margin is handled by the flex container */
+.table-card-header + .table-scroll {
+    /* header already has margin-bottom via .table-card-header */
+}
 
 /* Process table: compact, doesn't scroll unless expanded */
 .table-card.process-card {

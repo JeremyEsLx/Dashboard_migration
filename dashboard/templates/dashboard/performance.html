@@ -6,7 +6,7 @@
 {% block nav_performance %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/performance/performance.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'dashboard/performance/performance.css' %}?v=6">
 {% endblock %}
 
 {% block page_title %}
@@ -49,6 +49,10 @@
         <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
     </div>
     <div class="filter-actions">
+        <button class="btn-filter btn-export" id="btn-export-all" title="Export all filtered data to Excel">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            Export All
+        </button>
         <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">
             &#8634; Reset Filters
         </button>
@@ -77,7 +81,13 @@
 <div class="tables-container">
     <!-- PROCESS HIERARCHY TABLE -->
     <div class="table-card process-card">
-        <h3>Performance by Process</h3>
+        <div class="table-card-header">
+            <h3>Performance by Process</h3>
+            <button class="btn-export-small" id="btn-export-process" title="Export this table">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+                Export
+            </button>
+        </div>
         <div class="table-scroll">
             <table class="perf-table" id="perf-table">
                 <thead>
@@ -106,7 +116,13 @@
 
     <!-- USER PERFORMANCE TABLE -->
     <div class="table-card user-card">
-        <h3>Performance by User</h3>
+        <div class="table-card-header">
+            <h3>Performance by User</h3>
+            <button class="btn-export-small" id="btn-export-users" title="Export this table">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+                Export
+            </button>
+        </div>
         <div class="table-scroll">
             <table class="perf-table" id="user-table">
                 <thead>
@@ -144,5 +160,5 @@
     var CUBE = null;
     var USER_CUBE = null;
 </script>
-<script src="{% static 'dashboard/performance/performance.js' %}?v=5"></script>
+<script src="{% static 'dashboard/performance/performance.js' %}?v=6"></script>
 {% endblock %}
