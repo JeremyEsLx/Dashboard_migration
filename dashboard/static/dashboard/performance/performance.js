@@ -342,7 +342,11 @@ function renderAll() {
     if (!CUBE || !USER_CUBE) return; // Not loaded yet (AJAX pending)
     renderProcessTable();
     renderUserTable();
-    updateFiltersBanner();
+    // Wait for browser to paint tables before announcing "ready"
+    requestAnimationFrame(function() {
+        hideLoading();
+        updateFiltersBanner();
+    });
 }
 
 
@@ -625,7 +629,6 @@ function loadData(skip) {
             CUBE = c; USER_CUBE = u;
             SELECTED_STATE = d.selected || {};
             if (d.filters) populateFilters(d.filters, d.selected||{});
-            hideLoading();
             renderAll();
         })
         .catch(function(e) {

@@ -352,7 +352,11 @@ function renderAll() {
     renderQtyChart(data.qtyByProcess);
     renderTargetChart(data.targetByProcess);
     renderProdChart(data.prodByProcess);
-    updateFiltersBanner();
+    // Wait for browser to paint charts before announcing "ready"
+    requestAnimationFrame(function() {
+        hideLoading();
+        updateFiltersBanner();
+    });
 }
 
 
@@ -634,7 +638,6 @@ function loadData(skipCache) {
             SELECTED_STATE = data.selected || {};
             if (data.filters) populateFilters(data.filters, data.selected || {});
             removeSkeleton();
-            hideLoading();
             renderAll();
         })
         .catch(function(err) {
