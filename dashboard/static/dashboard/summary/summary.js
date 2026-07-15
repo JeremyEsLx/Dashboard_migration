@@ -269,6 +269,7 @@ function renderProdChart(entries) {
 // ================================================================
 
 function renderAll() {
+    if (!CUBE) return; // Not loaded yet (AJAX pending)
     var supervisor = document.getElementById('filter-supervisor').value;
     var shift = document.getElementById('filter-shift').value;
     var filtered = filterCube(supervisor, shift);
@@ -419,19 +420,31 @@ function buildApiUrl() {
 
 function loadData() {
     fetch(buildApiUrl())
-        .then(function(resp) { return resp.json(); })
+        .then(function(resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.json();
+        })
         .then(function(data) {
-            // Store cube globally
-            CUBE = JSON.parse(data.cube_json);
+            // cube_json is a JSON string inside the JSON response — parse it
+            if (typeof data.cube_json === 'string') {
+                CUBE = JSON.parse(data.cube_json);
+            } else {
+                CUBE = data.cube_json || [];
+            }
             // Remove skeletons and render
             removeSkeleton();
             renderAll();
         })
         .catch(function(err) {
-            console.error('[LMS] Failed to load data:', err);
+            console.error('[LMS] Failed to load summary data:', err);
             removeSkeleton();
-            // Show error state
-            document.getElementById('kpi-uph-pct').textContent = 'Error';
+            // Show visible error state
+            var uphEl = document.getElementById('kpi-uph-pct');
+            uphEl.textContent = '—';
+            uphEl.style.color = '#dc2626';
+            document.getElementById('kpi-actual').textContent = 'Load failed';
+            document.getElementById('kpi-standard').textContent = '';
+            document.getElementById('kpi-productivity').textContent = '';
         });
 }
 

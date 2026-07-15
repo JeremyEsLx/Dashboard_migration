@@ -64,23 +64,29 @@ def performance(request):
 
 def summary_data(request):
     """API: returns full summary data (cube + KPIs) as JSON."""
-    data = get_summary_data(
-        supervisor=request.GET.get('supervisor', 'All'),
-        week=request.GET.get('week', 'All'),
-        shift=request.GET.get('shift', 'All'),
-        date_filter=request.GET.get('date'),
-    )
-    return JsonResponse(data)
+    try:
+        data = get_summary_data(
+            supervisor=request.GET.get('supervisor', 'All'),
+            week=request.GET.get('week', 'All'),
+            shift=request.GET.get('shift', 'All'),
+            date_filter=request.GET.get('date'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'cube_json': '[]'}, status=200)
 
 
 def performance_data(request):
     """API: returns performance cubes (process + user) as JSON."""
-    data = get_performance_data(
-        supervisor=request.GET.get('supervisor', 'All'),
-        week=request.GET.get('week', 'All'),
-        process=request.GET.get('process', 'All'),
-        shift=request.GET.get('shift', 'All'),
-        date_from=request.GET.get('date_from'),
-        date_to=request.GET.get('date_to'),
-    )
-    return JsonResponse(data)
+    try:
+        data = get_performance_data(
+            supervisor=request.GET.get('supervisor', 'All'),
+            week=request.GET.get('week', 'All'),
+            process=request.GET.get('process', 'All'),
+            shift=request.GET.get('shift', 'All'),
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'cube_json': '[]', 'user_cube_json': '[]'}, status=200)

@@ -6,7 +6,7 @@
 {% block nav_summary %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/summary/summary.css' %}">
+<link rel="stylesheet" href="{% static 'dashboard/summary/summary.css' %}?v=2">
 {% endblock %}
 
 {% block page_title %}
@@ -113,5 +113,5 @@
     // Cube data injected by Django (server-side)
     var CUBE = {{ data.cube_json|safe }};
 </script>
-<script src="{% static 'dashboard/summary/summary.js' %}"></script>
+<script src="{% static 'dashboard/summary/summary.js' %}?v=2"></script>
 {% endblock %}

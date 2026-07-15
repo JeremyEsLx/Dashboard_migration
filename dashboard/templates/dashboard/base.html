@@ -10,8 +10,8 @@
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Shared Styles -->
-    <link rel="stylesheet" href="{% static 'dashboard/base.css' %}">
+    <!-- Shared Styles (v2 = cache bust for skeleton loading) -->
+    <link rel="stylesheet" href="{% static 'dashboard/base.css' %}?v=2">
 
     <!-- Page-specific Styles -->
     {% block styles %}{% endblock %}

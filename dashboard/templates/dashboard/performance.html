@@ -134,8 +134,9 @@
 
 {% block scripts %}
 <script>
-    var CUBE = {{ data.cube_json|safe }};
-    var USER_CUBE = {{ data.user_cube_json|safe }};
+    // No cube data on initial load — JS fetches via AJAX (skeleton loading)
+    var CUBE = null;
+    var USER_CUBE = null;
 </script>
 <script src="{% static 'dashboard/performance/performance.js' %}"></script>
 {% endblock %}

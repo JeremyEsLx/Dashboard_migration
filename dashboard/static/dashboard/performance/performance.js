@@ -250,6 +250,7 @@ function renderUserTable() {
 // ================================================================
 
 function renderAll() {
+    if (!CUBE || !USER_CUBE) return; // Not loaded yet (AJAX pending)
     renderProcessTable();
     renderUserTable();
 }
@@ -381,11 +382,14 @@ function buildApiUrl() {
 
 function loadData() {
     fetch(buildApiUrl())
-        .then(function(resp) { return resp.json(); })
+        .then(function(resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.json();
+        })
         .then(function(data) {
-            // Store cubes globally
-            CUBE = JSON.parse(data.cube_json);
-            USER_CUBE = JSON.parse(data.user_cube_json);
+            // cube_json/user_cube_json are JSON strings inside the JSON response
+            CUBE = (typeof data.cube_json === 'string') ? JSON.parse(data.cube_json) : (data.cube_json || []);
+            USER_CUBE = (typeof data.user_cube_json === 'string') ? JSON.parse(data.user_cube_json) : (data.user_cube_json || []);
             // Render both tables (replaces skeleton rows)
             renderAll();
         })
