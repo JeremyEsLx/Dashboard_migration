@@ -17,18 +17,22 @@
 // ================================================================
 
 function getProductivityClass(pct) {
-    if (pct <= 0)   return 'cell-green';
-    if (pct <= 15)  return 'cell-lime';
-    if (pct <= 30)  return 'cell-amber';
-    if (pct <= 50)  return 'cell-orange';
-    return 'cell-red';
+    // Negative = good (under target time), positive = bad (over target)
+    if (pct <= -30)  return 'bg-green-strong';
+    if (pct <= -10)  return 'bg-green-light';
+    if (pct <= 15)   return '';
+    if (pct <= 50)   return 'bg-red-light';
+    if (pct <= 150)  return 'bg-red-medium';
+    return 'bg-red-strong';
 }
 
 function getUphPctClass(pct) {
-    if (pct >= 100) return 'cell-green';
-    if (pct >= 80)  return 'cell-lime';
-    if (pct >= 60)  return 'cell-amber';
-    return 'cell-red';
+    // Higher = better (meeting/exceeding target)
+    if (pct >= 130) return 'bg-green-strong';
+    if (pct >= 100) return 'bg-green-light';
+    if (pct >= 80)  return 'bg-yellow';
+    if (pct >= 50)  return 'bg-red-light';
+    return 'bg-red-medium';
 }
 
 

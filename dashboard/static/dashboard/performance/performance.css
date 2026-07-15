@@ -219,11 +219,13 @@
 }
 
 /* === COLOR CODING === */
-.cell-green { color: #059669; font-weight: 600; }
-.cell-lime { color: #65a30d; font-weight: 500; }
-.cell-amber { color: #f59e0b; font-weight: 500; }
-.cell-orange { color: #f97316; font-weight: 500; }
-.cell-red { color: #dc2626; font-weight: 600; }
+/* Cell background colors — Power BI-style conditional formatting */
+.bg-green-strong { background-color: #c6efce; color: #1e6b35; font-weight: 600; }
+.bg-green-light { background-color: #e2f0d9; color: #2d7a3e; font-weight: 500; }
+.bg-yellow { background-color: #fff2cc; color: #7c6a12; font-weight: 500; }
+.bg-red-light { background-color: #fce4ec; color: #a3383e; font-weight: 500; }
+.bg-red-medium { background-color: #f8c4c8; color: #8b1a20; font-weight: 600; }
+.bg-red-strong { background-color: #f4a8ae; color: #6e1015; font-weight: 600; }
 
 /* === TOTALS ROW === */
 .row-total {
