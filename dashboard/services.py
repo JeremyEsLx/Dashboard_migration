@@ -636,7 +636,14 @@ def get_process_data(week='All', process='All', shift='All',
 
 def get_strongstart_cube(date_from=None, date_to=None, week=None):
     """Query at user/date/process granularity for Strong Start page.
-    Returns row-level detail needed for KPI, charts, and detail table.
+    
+    Power BI filters for this page:
+      - Activity Type = 'DIRECT'
+      - Employee Type = DIRECT (via roster join)
+      - Previous Process = 'CLOCK IN' (first activity after clock-in)
+      - Process NOT IN ('CLOCK IN', 'CLOCK OUT')
+    
+    NOTE: Does NOT use BASE_FILTERS (no Movement exclusion needed here).
     """
     print(f"[LMS] ─── Loading Strong Start Cube ───")
     start = time.time()
@@ -644,15 +651,26 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    where = _build_date_range_where(date_from, date_to, week)
-    where += f"  AND [User Name] IN ({users_str})\n"
-
+    # Custom WHERE clause matching Power BI's Strong Start filters
+    where = """
+    WHERE [Activity Type] = 'DIRECT'
+      AND [Previous Process] = 'CLOCK IN'
+      AND [Process] NOT IN ('CLOCK IN', 'CLOCK OUT')
+"""
     if date_from and date_to:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
         print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
-    elif week and week != 'All':
-        print(f"[LMS]   Mode: WEEK = {week}")
+    elif date_from:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        print(f"[LMS]   Mode: DATE FROM = {date_from}")
+    elif date_to:
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        print(f"[LMS]   Mode: DATE TO = {date_to}")
     else:
         print(f"[LMS]   Mode: NO DATE FILTER")
+
+    where += f"  AND [User Name] IN ({users_str})\n"
 
     query = f"""
         SELECT
