@@ -1,0 +1,113 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Performance by Process — Tijuana LMS{% endblock %}
+
+{% block nav_process %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/process/process.css' %}?v=1">
+{% endblock %}
+
+{% block page_title %}
+<h1 class="page-title">Performance by Process</h1>
+{% endblock %}
+
+{% block content %}
+<!-- FILTERS -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label>Week</label>
+        <select id="filter-week">
+            <option value="All" selected>All</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Process</label>
+        <select id="filter-process">
+            <option value="All" selected>All</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Shift</label>
+        <select id="filter-shift">
+            <option value="All" selected>All</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Date From</label>
+        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
+    </div>
+    <div class="filter-group">
+        <label>Date To</label>
+        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-export" id="btn-export" title="Export filtered data to Excel">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            Export
+        </button>
+        <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">
+            &#8634; Reset Filters
+        </button>
+        <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data">
+            &#8635; Refresh
+        </button>
+        <span class="refresh-timer" id="refresh-timer"></span>
+    </div>
+</div>
+
+<!-- ACTIVE FILTERS BANNER -->
+<div class="active-filters-banner" id="active-filters-banner">
+    <span class="banner-icon" id="banner-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="12" height="11" rx="1.5"/>
+            <path d="M2 6.5h12"/>
+            <path d="M5.5 1.5v3"/>
+            <path d="M10.5 1.5v3"/>
+        </svg>
+    </span>
+    <span class="banner-date-range" id="banner-date-range">Loading...</span>
+    <div class="banner-chips" id="banner-chips"></div>
+</div>
+
+<!-- PROCESS TABLE — fills remaining viewport -->
+<div class="table-card process-full-card">
+    <div class="table-scroll">
+        <table class="perf-table" id="process-table">
+            <thead>
+                <tr>
+                    <th class="col-process">Process / Flow Type / Cart Type</th>
+                    <th class="col-num">Quantity</th>
+                    <th class="col-num">Actual Time</th>
+                    <th class="col-num">Standard Time</th>
+                    <th class="col-num">Productivity</th>
+                    <th class="col-num">UPH</th>
+                    <th class="col-num">Target UPH</th>
+                    <th class="col-num">% UPH</th>
+                </tr>
+            </thead>
+            <tbody id="process-tbody">
+                <!-- Skeleton rows -->
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+                <tr><td colspan="8"><div class="skeleton skeleton-row"></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var CUBE = null;
+</script>
+<script src="{% static 'dashboard/process/process.js' %}?v=1"></script>
+{% endblock %}

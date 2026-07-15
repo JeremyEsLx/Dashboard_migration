@@ -564,3 +564,67 @@ def get_performance_data(supervisor='All', week='All', process='All',
             'date_to': date_to or '',
         },
     }
+
+
+# ============================================================
+# PERFORMANCE BY PROCESS PAGE — Main data function
+# ============================================================
+
+def get_process_data(week='All', process='All', shift='All',
+                     date_from=None, date_to=None):
+    """Returns process cube data for the Performance by Process page.
+    Same cube as Performance by User but skips the user cube query (faster).
+    """
+    if date_from or date_to:
+        effective_week = 'All'
+        if not date_to:
+            date_to = date.today().strftime('%Y-%m-%d')
+        if not date_from:
+            date_from = date_to
+    elif week and week != 'All':
+        effective_week = week
+        date_from = None
+        date_to = None
+    else:
+        # Default: current week (Monday -> today)
+        today = date.today()
+        monday = today - timedelta(days=today.weekday())
+        date_from = monday.strftime('%Y-%m-%d')
+        date_to = today.strftime('%Y-%m-%d')
+        effective_week = 'All'
+
+    print(f"\n{'='*60}")
+    print(f"[LMS] PROCESS PERFORMANCE REQUEST")
+    print(f"[LMS]   Date Range: {date_from or '(none)'} -> {date_to or '(none)'} | "
+          f"Week: {effective_week} | Process: {process} | Shift: {shift}")
+    print(f"{'='*60}")
+
+    try:
+        filter_options = get_filter_options()
+    except Exception as e:
+        print(f"[LMS]   x SQL Server error (Filters): {e}")
+        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+
+    try:
+        cube = get_performance_cube(date_from, date_to, effective_week)
+    except Exception as e:
+        print(f"[LMS]   x SQL Server error (Process Cube): {e}")
+        cube = []
+
+    print(f"{'='*60}\n")
+
+    return {
+        'cube_json': json.dumps(cube),
+        'filters': {
+            'weeks': filter_options['weeks'],
+            'processes': filter_options['processes'],
+            'shifts': ['All', 'A', 'B', 'C', 'D'],
+        },
+        'selected': {
+            'week': effective_week,
+            'process': process,
+            'shift': shift,
+            'date_from': date_from or '',
+            'date_to': date_to or '',
+        },
+    }

@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .services import get_summary_data, get_performance_data
+from .services import get_summary_data, get_performance_data, get_process_data
 
 
 # ============================================================
@@ -69,3 +69,32 @@ def performance_data(request):
         return JsonResponse(data)
     except Exception as e:
         return JsonResponse({'error': str(e), 'cube_json': '[]', 'user_cube_json': '[]'}, status=200)
+
+
+def process_performance(request):
+    """Render Performance by Process shell (instant, no SQL) — JS hydrates via /api/process/."""
+    data = {
+        'selected': {
+            'week': request.GET.get('week', 'All'),
+            'process': request.GET.get('process', 'All'),
+            'shift': request.GET.get('shift', 'All'),
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/process.html', {'data': data})
+
+
+def process_performance_data(request):
+    """API: returns process cube as JSON (no user cube — faster)."""
+    try:
+        data = get_process_data(
+            week=request.GET.get('week', 'All'),
+            process=request.GET.get('process', 'All'),
+            shift=request.GET.get('shift', 'All'),
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'cube_json': '[]'}, status=200)
