@@ -20,16 +20,16 @@ function getProductivityClass(pct) {
     // Negative = good (under target time), positive = bad (over target)
     if (pct <= -30)  return 'bg-green-strong';
     if (pct <= -10)  return 'bg-green-light';
-    if (pct <= 15)   return '';
-    if (pct <= 50)   return 'bg-red-light';
+    if (pct <= 20)   return '';
+    if (pct <= 60)   return 'bg-red-light';
     if (pct <= 150)  return 'bg-red-medium';
     return 'bg-red-strong';
 }
 
 function getUphPctClass(pct) {
     // Higher = better (meeting/exceeding target)
-    if (pct >= 130) return 'bg-green-strong';
-    if (pct >= 100) return 'bg-green-light';
+    if (pct >= 140) return 'bg-green-strong';
+    if (pct >= 105) return 'bg-green-light';
     if (pct >= 80)  return 'bg-yellow';
     if (pct >= 50)  return 'bg-red-light';
     return 'bg-red-medium';
