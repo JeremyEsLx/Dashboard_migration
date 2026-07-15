@@ -700,11 +700,10 @@ def get_strongstart_data(supervisor='All', shift='All',
         if not date_from:
             date_from = date_to
     else:
-        # Default: current week (Monday -> today)
-        today = date.today()
-        monday = today - timedelta(days=today.weekday())
-        date_from = monday.strftime('%Y-%m-%d')
-        date_to = today.strftime('%Y-%m-%d')
+        # Default: yesterday back 6 days (7-day window ending yesterday)
+        yesterday = date.today() - timedelta(days=1)
+        date_from = (yesterday - timedelta(days=6)).strftime('%Y-%m-%d')
+        date_to = yesterday.strftime('%Y-%m-%d')
 
     print(f"\n{'='*60}")
     print(f"[LMS] STRONG START REQUEST")
