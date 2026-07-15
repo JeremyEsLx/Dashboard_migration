@@ -391,6 +391,49 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 
 
 // ================================================================
-// INIT
+// INIT — AJAX Skeleton Loading Pattern
+// Page renders instantly with skeleton placeholders.
+// JS fetches cube data from /api/summary/, then hydrates.
 // ================================================================
-renderAll();
+
+function removeSkeleton() {
+    // Hide skeletons, show real values
+    var skels = document.querySelectorAll('.skeleton');
+    for (var i = 0; i < skels.length; i++) skels[i].style.display = 'none';
+
+    // Show KPI values
+    document.getElementById('kpi-uph-pct').style.display = '';
+    document.getElementById('kpi-actual').style.display = '';
+    document.getElementById('kpi-standard').style.display = '';
+    document.getElementById('kpi-productivity').style.display = '';
+
+    // Remove loading class
+    var section = document.getElementById('kpi-section');
+    if (section) section.classList.remove('loading');
+}
+
+function buildApiUrl() {
+    var params = new URLSearchParams(window.location.search);
+    return '/api/summary/' + (params.toString() ? '?' + params.toString() : '');
+}
+
+function loadData() {
+    fetch(buildApiUrl())
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            // Store cube globally
+            CUBE = JSON.parse(data.cube_json);
+            // Remove skeletons and render
+            removeSkeleton();
+            renderAll();
+        })
+        .catch(function(err) {
+            console.error('[LMS] Failed to load data:', err);
+            removeSkeleton();
+            // Show error state
+            document.getElementById('kpi-uph-pct').textContent = 'Error';
+        });
+}
+
+// Start loading immediately
+loadData();

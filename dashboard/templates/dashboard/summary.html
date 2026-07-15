@@ -55,43 +55,55 @@
     </div>
 </div>
 
-<!-- KPI CARDS -->
-<div class="kpi-row">
+<!-- KPI CARDS (skeleton placeholders shown until JS hydrates) -->
+<div class="kpi-row loading" id="kpi-section">
     <div class="kpi-card gauge-card">
         <h3>Total UPH</h3>
-        <div id="gauge-container"></div>
+        <div id="gauge-container">
+            <div class="skeleton skeleton-gauge"></div>
+        </div>
     </div>
     <div class="kpi-card">
         <h3>UPH %</h3>
-        <div class="kpi-value" id="kpi-uph-pct">{{ data.uph_percent }}%</div>
+        <div class="skeleton skeleton-value" id="kpi-uph-pct-skel"></div>
+        <div class="kpi-value" id="kpi-uph-pct" style="display:none;"></div>
     </div>
     <div class="kpi-card">
         <h3>Actual Time</h3>
-        <div class="kpi-value" id="kpi-actual">{{ data.actual_time }}</div>
+        <div class="skeleton skeleton-value" id="kpi-actual-skel"></div>
+        <div class="kpi-value" id="kpi-actual" style="display:none;"></div>
     </div>
     <div class="kpi-card">
         <h3>Standard Time</h3>
-        <div class="kpi-value" id="kpi-standard">{{ data.standard_time }}</div>
+        <div class="skeleton skeleton-value" id="kpi-standard-skel"></div>
+        <div class="kpi-value" id="kpi-standard" style="display:none;"></div>
     </div>
     <div class="kpi-card">
         <h3>Productivity</h3>
-        <div class="kpi-value" id="kpi-productivity">{{ data.productivity }}%</div>
+        <div class="skeleton skeleton-value" id="kpi-productivity-skel"></div>
+        <div class="kpi-value" id="kpi-productivity" style="display:none;"></div>
     </div>
 </div>
 
-<!-- CHARTS -->
-<div class="charts-row">
+<!-- CHARTS (skeleton until data loads) -->
+<div class="charts-row" id="charts-section">
     <div class="chart-card">
         <h3>Quantity by Process</h3>
-        <div id="chart-quantity" class="chart-container"></div>
+        <div id="chart-quantity" class="chart-container">
+            <div class="skeleton skeleton-chart"></div>
+        </div>
     </div>
     <div class="chart-card">
         <h3>Actual UPH vs Target UPH by Process</h3>
-        <div id="chart-uph-target" class="chart-container"></div>
+        <div id="chart-uph-target" class="chart-container">
+            <div class="skeleton skeleton-chart"></div>
+        </div>
     </div>
     <div class="chart-card">
         <h3>Productivity by Process</h3>
-        <div id="chart-productivity" class="chart-container"></div>
+        <div id="chart-productivity" class="chart-container">
+            <div class="skeleton skeleton-chart"></div>
+        </div>
     </div>
 </div>
 {% endblock %}

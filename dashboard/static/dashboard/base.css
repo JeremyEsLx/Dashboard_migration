@@ -95,6 +95,79 @@ body {
     letter-spacing: -0.3px;
 }
 
+/* ============================================================
+   SKELETON LOADING — Shimmer placeholders (Facebook-style)
+   Applied via .skeleton class. Removed by JS after data loads.
+   ============================================================ */
+
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.5s infinite ease-in-out;
+    border-radius: 4px;
+    color: transparent !important;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Skeleton variants */
+.skeleton-text {
+    height: 14px;
+    width: 60%;
+    margin: 4px 0;
+}
+.skeleton-value {
+    height: 36px;
+    width: 80px;
+    margin: 8px 0;
+}
+.skeleton-chart {
+    height: 100%;
+    width: 100%;
+    min-height: 200px;
+}
+.skeleton-gauge {
+    height: 160px;
+    width: 100%;
+    border-radius: 50%;
+}
+.skeleton-row {
+    height: 32px;
+    width: 100%;
+    margin: 4px 0;
+}
+
+/* Hide real content while loading */
+.loading .kpi-value,
+.loading .chart-container,
+.loading #gauge-container,
+.loading #perf-tbody,
+.loading #user-tbody {
+    visibility: hidden;
+}
+
+/* Show skeleton placeholders during loading */
+.loading .skeleton-overlay {
+    display: block;
+}
+.skeleton-overlay {
+    display: none;
+}
+
+/* Fade-in transition when data arrives */
+.hydrated {
+    animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0.6; }
+    to   { opacity: 1; }
+}
+
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
     .sidebar { display: none; }

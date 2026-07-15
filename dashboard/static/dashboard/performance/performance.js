@@ -369,6 +369,34 @@ setInterval(updateTimer, 1000);
 
 
 // ================================================================
-// INIT
+// INIT — AJAX Skeleton Loading Pattern
+// Page shell renders instantly with shimmer placeholders.
+// JS fetches data from /api/performance/, then hydrates both tables.
 // ================================================================
-renderAll();
+
+function buildApiUrl() {
+    var params = new URLSearchParams(window.location.search);
+    return '/api/performance/' + (params.toString() ? '?' + params.toString() : '');
+}
+
+function loadData() {
+    fetch(buildApiUrl())
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            // Store cubes globally
+            CUBE = JSON.parse(data.cube_json);
+            USER_CUBE = JSON.parse(data.user_cube_json);
+            // Render both tables (replaces skeleton rows)
+            renderAll();
+        })
+        .catch(function(err) {
+            console.error('[LMS] Failed to load performance data:', err);
+            document.getElementById('perf-tbody').innerHTML =
+                '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load data. Try refreshing.</td></tr>';
+            document.getElementById('user-tbody').innerHTML =
+                '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load data. Try refreshing.</td></tr>';
+        });
+}
+
+// Start loading immediately
+loadData();
