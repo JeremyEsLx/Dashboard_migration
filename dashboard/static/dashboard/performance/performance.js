@@ -392,10 +392,17 @@ function collapseRecursive(parentClass) {
 // FILTER HANDLERS
 // ================================================================
 
-// Client-side filters -> instant re-render
-document.getElementById('filter-supervisor').addEventListener('change', renderAll);
-document.getElementById('filter-process').addEventListener('change', renderAll);
-document.getElementById('filter-shift').addEventListener('change', renderAll);
+// Client-side filters -> show loading, then re-render after paint
+function renderWithLoading() {
+    showLoading();
+    // Let browser paint loading state before heavy table re-render
+    requestAnimationFrame(function() {
+        renderAll();
+    });
+}
+document.getElementById('filter-supervisor').addEventListener('change', renderWithLoading);
+document.getElementById('filter-process').addEventListener('change', renderWithLoading);
+document.getElementById('filter-shift').addEventListener('change', renderWithLoading);
 
 // Server-side filters -> page reload with inline loading indicator
 function buildServerUrl() {

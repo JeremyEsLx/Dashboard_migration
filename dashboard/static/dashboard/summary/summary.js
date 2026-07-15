@@ -364,8 +364,15 @@ function renderAll() {
 // 4. FILTER EVENT HANDLERS
 // ================================================================
 
-document.getElementById('filter-supervisor').addEventListener('change', renderAll);
-document.getElementById('filter-shift').addEventListener('change', renderAll);
+// Client-side filters -> show loading, then re-render after paint
+function renderWithLoading() {
+    showLoading();
+    requestAnimationFrame(function() {
+        renderAll();
+    });
+}
+document.getElementById('filter-supervisor').addEventListener('change', renderWithLoading);
+document.getElementById('filter-shift').addEventListener('change', renderWithLoading);
 
 function reloadForDate() {
     showLoading();
