@@ -1,27 +1,17 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .services import get_summary_data, get_performance_data, get_filter_options
+from .services import get_summary_data, get_performance_data
 
 
 # ============================================================
-# SHELL VIEWS — Render page instantly with skeleton placeholders
-# No SQL queries for cube data. Filters are @lru_cache (instant after 1st).
-# JS fetches actual data via /api/ endpoints after page loads.
+# SHELL VIEWS — ZERO SQL queries. Page renders in <50ms.
+# Only passes URL params for selected state. Dropdowns start with
+# just "All"; JS populates full options from the API response.
 # ============================================================
 
 def summary(request):
-    """Render Summary shell (instant) — JS hydrates via /api/summary/."""
-    try:
-        filter_options = get_filter_options()
-    except Exception:
-        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
-
+    """Render Summary shell (instant, no SQL) — JS hydrates via /api/summary/."""
     data = {
-        'filters': {
-            'supervisors': filter_options['supervisors'],
-            'weeks': filter_options['weeks'],
-            'shifts': ['All', 'A', 'B', 'C', 'D'],
-        },
         'selected': {
             'supervisor': request.GET.get('supervisor', 'All'),
             'week': request.GET.get('week', 'All'),
@@ -33,19 +23,8 @@ def summary(request):
 
 
 def performance(request):
-    """Render Performance shell (instant) — JS hydrates via /api/performance/."""
-    try:
-        filter_options = get_filter_options()
-    except Exception:
-        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
-
+    """Render Performance shell (instant, no SQL) — JS hydrates via /api/performance/."""
     data = {
-        'filters': {
-            'supervisors': filter_options['supervisors'],
-            'weeks': filter_options['weeks'],
-            'processes': filter_options['processes'],
-            'shifts': ['All', 'A', 'B', 'C', 'D'],
-        },
         'selected': {
             'supervisor': request.GET.get('supervisor', 'All'),
             'week': request.GET.get('week', 'All'),

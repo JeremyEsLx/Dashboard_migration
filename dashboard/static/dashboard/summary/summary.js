@@ -385,32 +385,88 @@ document.getElementById('btn-reset').addEventListener('click', function() {
 });
 
 document.getElementById('btn-refresh').addEventListener('click', function() {
-    // Refresh data + RESET timer
+    // Clear cache + reset timer → force fresh fetch
     sessionStorage.removeItem('lms_timer_start');
+    sessionStorage.removeItem(CACHE_KEY);
+    sessionStorage.removeItem(FILTER_CACHE_KEY);
     window.location.reload();
 });
 
 
 // ================================================================
-// INIT — AJAX Skeleton Loading Pattern
-// Page renders instantly with skeleton placeholders.
-// JS fetches cube data from /api/summary/, then hydrates.
+// INIT — Stale-While-Revalidate with sessionStorage Cache
+//
+// Flow:
+//   1. Page shell renders in <50ms (zero SQL in Django view)
+//   2. If cached data exists in sessionStorage → render INSTANTLY
+//   3. Fetch fresh data from /api/summary/ in background
+//   4. When fresh data arrives → re-render + update cache
+//   5. "Refresh" button clears cache and fetches fresh
+//
+// Result: switching pages feels instant (cached), data auto-updates.
 // ================================================================
 
+var CACHE_KEY = 'lms_summary_cache';
+var FILTER_CACHE_KEY = 'lms_filters_cache';
+var CACHE_MAX_AGE = 15 * 60 * 1000; // 15 minutes in ms
+
 function removeSkeleton() {
-    // Hide skeletons, show real values
     var skels = document.querySelectorAll('.skeleton');
     for (var i = 0; i < skels.length; i++) skels[i].style.display = 'none';
-
-    // Show KPI values
     document.getElementById('kpi-uph-pct').style.display = '';
     document.getElementById('kpi-actual').style.display = '';
     document.getElementById('kpi-standard').style.display = '';
     document.getElementById('kpi-productivity').style.display = '';
-
-    // Remove loading class
     var section = document.getElementById('kpi-section');
     if (section) section.classList.remove('loading');
+}
+
+function populateDropdown(selectId, options, selected) {
+    var el = document.getElementById(selectId);
+    if (!el || !options) return;
+    var current = selected || el.value || 'All';
+    el.innerHTML = '';
+    for (var i = 0; i < options.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = options[i];
+        opt.textContent = options[i];
+        if (options[i] === current) opt.selected = true;
+        el.appendChild(opt);
+    }
+}
+
+function populateFilters(filters, selected) {
+    if (!filters) return;
+    populateDropdown('filter-supervisor', filters.supervisors, selected.supervisor);
+    populateDropdown('filter-week', filters.weeks, selected.week);
+    populateDropdown('filter-shift', filters.shifts, selected.shift);
+    // Cache filters for other pages (Performance shares same filter options)
+    try { sessionStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(filters)); } catch(e) {}
+}
+
+function getCachedData() {
+    try {
+        var raw = sessionStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        var cached = JSON.parse(raw);
+        // Check age
+        if (Date.now() - cached.timestamp > CACHE_MAX_AGE) {
+            sessionStorage.removeItem(CACHE_KEY);
+            return null;
+        }
+        return cached;
+    } catch(e) { return null; }
+}
+
+function setCacheData(cube, filters, selected) {
+    try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+            cube: cube,
+            filters: filters,
+            selected: selected,
+            timestamp: Date.now()
+        }));
+    } catch(e) {}
 }
 
 function buildApiUrl() {
@@ -418,35 +474,73 @@ function buildApiUrl() {
     return '/api/summary/' + (params.toString() ? '?' + params.toString() : '');
 }
 
-function loadData() {
+function hydrateFromData(data) {
+    // Parse cube
+    if (typeof data.cube_json === 'string') {
+        CUBE = JSON.parse(data.cube_json);
+    } else if (Array.isArray(data.cube_json)) {
+        CUBE = data.cube_json;
+    } else if (Array.isArray(data.cube)) {
+        CUBE = data.cube; // from cache
+    } else {
+        CUBE = [];
+    }
+    // Populate filter dropdowns
+    if (data.filters) {
+        populateFilters(data.filters, data.selected || {});
+    }
+    // Remove skeletons and render
+    removeSkeleton();
+    renderAll();
+}
+
+function loadData(skipCache) {
+    // Step 1: Try cache first (instant render)
+    if (!skipCache) {
+        var cached = getCachedData();
+        if (cached) {
+            console.log('[LMS] Rendering from cache (age: ' +
+                Math.round((Date.now() - cached.timestamp)/1000) + 's)');
+            hydrateFromData(cached);
+            // Still fetch fresh data in background (silent update)
+        }
+        // Also try to restore filters from shared cache
+        if (!cached) {
+            try {
+                var f = sessionStorage.getItem(FILTER_CACHE_KEY);
+                if (f) populateFilters(JSON.parse(f), {});
+            } catch(e) {}
+        }
+    }
+
+    // Step 2: Fetch fresh data from API
     fetch(buildApiUrl())
         .then(function(resp) {
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             return resp.json();
         })
         .then(function(data) {
-            // cube_json is a JSON string inside the JSON response — parse it
-            if (typeof data.cube_json === 'string') {
-                CUBE = JSON.parse(data.cube_json);
-            } else {
-                CUBE = data.cube_json || [];
-            }
-            // Remove skeletons and render
+            // Cache the response
+            var cube = (typeof data.cube_json === 'string') ? JSON.parse(data.cube_json) : (data.cube_json || []);
+            setCacheData(cube, data.filters, data.selected);
+            // Render (or re-render if cache was used)
+            CUBE = cube;
+            if (data.filters) populateFilters(data.filters, data.selected || {});
             removeSkeleton();
             renderAll();
         })
         .catch(function(err) {
             console.error('[LMS] Failed to load summary data:', err);
-            removeSkeleton();
-            // Show visible error state
-            var uphEl = document.getElementById('kpi-uph-pct');
-            uphEl.textContent = '—';
-            uphEl.style.color = '#dc2626';
-            document.getElementById('kpi-actual').textContent = 'Load failed';
-            document.getElementById('kpi-standard').textContent = '';
-            document.getElementById('kpi-productivity').textContent = '';
+            // Only show error if no cached data was rendered
+            if (!CUBE || CUBE.length === 0) {
+                removeSkeleton();
+                document.getElementById('kpi-uph-pct').textContent = '—';
+                document.getElementById('kpi-actual').textContent = 'Load failed';
+                document.getElementById('kpi-standard').textContent = '';
+                document.getElementById('kpi-productivity').textContent = '';
+            }
         });
 }
 
-// Start loading immediately
-loadData();
+// Start immediately
+loadData(false);

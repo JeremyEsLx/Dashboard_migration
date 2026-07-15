@@ -14,30 +14,24 @@
 {% endblock %}
 
 {% block content %}
-<!-- FILTERS -->
+<!-- FILTERS — dropdowns start with just "All"; JS populates from API response -->
 <div class="filters-bar">
     <div class="filter-group">
         <label>Supervisor</label>
         <select id="filter-supervisor">
-            {% for s in data.filters.supervisors %}
-            <option value="{{ s }}" {% if s == data.selected.supervisor %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
+            <option value="All" selected>All</option>
         </select>
     </div>
     <div class="filter-group">
         <label>Week</label>
         <select id="filter-week">
-            {% for w in data.filters.weeks %}
-            <option value="{{ w }}" {% if w == data.selected.week %}selected{% endif %}>{{ w }}</option>
-            {% endfor %}
+            <option value="All" selected>All</option>
         </select>
     </div>
     <div class="filter-group">
         <label>Shift</label>
         <select id="filter-shift">
-            {% for sh in data.filters.shifts %}
-            <option value="{{ sh }}" {% if sh == data.selected.shift %}selected{% endif %}>{{ sh }}</option>
-            {% endfor %}
+            <option value="All" selected>All</option>
         </select>
     </div>
     <div class="filter-group">
@@ -110,8 +104,8 @@
 
 {% block scripts %}
 <script>
-    // Cube data injected by Django (server-side)
-    var CUBE = {{ data.cube_json|safe }};
+    // No cube data on initial load — JS fetches via AJAX (skeleton loading)
+    var CUBE = null;
 </script>
-<script src="{% static 'dashboard/summary/summary.js' %}?v=2"></script>
+<script src="{% static 'dashboard/summary/summary.js' %}"></script>
 {% endblock %}

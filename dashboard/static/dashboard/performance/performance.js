@@ -347,6 +347,11 @@ document.getElementById('btn-reset').addEventListener('click', function() {
 });
 
 document.getElementById('btn-refresh').addEventListener('click', function() {
+    // Clear cache + force fresh fetch
+    try {
+        sessionStorage.removeItem('lms_performance_cache');
+        sessionStorage.removeItem('lms_filters_cache');
+    } catch(e) {}
     window.location.reload();
 });
 
@@ -370,37 +375,72 @@ setInterval(updateTimer, 1000);
 
 
 // ================================================================
-// INIT — AJAX Skeleton Loading Pattern
-// Page shell renders instantly with shimmer placeholders.
-// JS fetches data from /api/performance/, then hydrates both tables.
+// INIT — Stale-While-Revalidate with sessionStorage Cache
 // ================================================================
+var CACHE_KEY = 'lms_performance_cache';
+var FILTER_CACHE_KEY = 'lms_filters_cache';
+var CACHE_MAX_AGE = 15 * 60 * 1000;
 
+function populateDropdown(id, opts, sel) {
+    var el = document.getElementById(id);
+    if (!el || !opts) return;
+    var cur = sel || el.value || 'All';
+    el.innerHTML = '';
+    for (var i = 0; i < opts.length; i++) {
+        var o = document.createElement('option');
+        o.value = opts[i]; o.textContent = opts[i];
+        if (opts[i] === cur) o.selected = true;
+        el.appendChild(o);
+    }
+}
+function populateFilters(f, s) {
+    if (!f) return;
+    populateDropdown('filter-supervisor', f.supervisors, s.supervisor);
+    populateDropdown('filter-week', f.weeks, s.week);
+    populateDropdown('filter-process', f.processes, s.process);
+    populateDropdown('filter-shift', f.shifts, s.shift);
+    try { sessionStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(f)); } catch(e) {}
+}
+function getCachedData() {
+    try {
+        var r = sessionStorage.getItem(CACHE_KEY);
+        if (!r) return null;
+        var c = JSON.parse(r);
+        if (Date.now() - c.timestamp > CACHE_MAX_AGE) return null;
+        return c;
+    } catch(e) { return null; }
+}
 function buildApiUrl() {
     var params = new URLSearchParams(window.location.search);
     return '/api/performance/' + (params.toString() ? '?' + params.toString() : '');
 }
-
-function loadData() {
+function loadData(skip) {
+    if (!skip) {
+        var cached = getCachedData();
+        if (cached) {
+            CUBE = cached.cube || []; USER_CUBE = cached.userCube || [];
+            if (cached.filters) populateFilters(cached.filters, cached.selected || {});
+            renderAll();
+        } else {
+            try { var f = sessionStorage.getItem(FILTER_CACHE_KEY); if (f) populateFilters(JSON.parse(f), {}); } catch(e) {}
+        }
+    }
     fetch(buildApiUrl())
-        .then(function(resp) {
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            return resp.json();
-        })
-        .then(function(data) {
-            // cube_json/user_cube_json are JSON strings inside the JSON response
-            CUBE = (typeof data.cube_json === 'string') ? JSON.parse(data.cube_json) : (data.cube_json || []);
-            USER_CUBE = (typeof data.user_cube_json === 'string') ? JSON.parse(data.user_cube_json) : (data.user_cube_json || []);
-            // Render both tables (replaces skeleton rows)
+        .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(d) {
+            var c = (typeof d.cube_json==='string') ? JSON.parse(d.cube_json) : (d.cube_json||[]);
+            var u = (typeof d.user_cube_json==='string') ? JSON.parse(d.user_cube_json) : (d.user_cube_json||[]);
+            try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({cube:c,userCube:u,filters:d.filters,selected:d.selected,timestamp:Date.now()})); } catch(e) {}
+            CUBE = c; USER_CUBE = u;
+            if (d.filters) populateFilters(d.filters, d.selected||{});
             renderAll();
         })
-        .catch(function(err) {
-            console.error('[LMS] Failed to load performance data:', err);
-            document.getElementById('perf-tbody').innerHTML =
-                '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load data. Try refreshing.</td></tr>';
-            document.getElementById('user-tbody').innerHTML =
-                '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load data. Try refreshing.</td></tr>';
+        .catch(function(e) {
+            console.error('[LMS] Load failed:', e);
+            if (!CUBE || !CUBE.length) {
+                document.getElementById('perf-tbody').innerHTML = '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load. Try refreshing.</td></tr>';
+                document.getElementById('user-tbody').innerHTML = '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load. Try refreshing.</td></tr>';
+            }
         });
 }
-
-// Start loading immediately
-loadData();
+loadData(false);

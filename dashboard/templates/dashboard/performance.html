@@ -14,38 +14,30 @@
 {% endblock %}
 
 {% block content %}
-<!-- FILTERS -->
+<!-- FILTERS — dropdowns start with just "All"; JS populates from API response -->
 <div class="filters-bar">
     <div class="filter-group">
         <label>Supervisor</label>
         <select id="filter-supervisor">
-            {% for s in data.filters.supervisors %}
-            <option value="{{ s }}" {% if s == data.selected.supervisor %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
+            <option value="All" selected>All</option>
         </select>
     </div>
     <div class="filter-group">
         <label>Week</label>
         <select id="filter-week">
-            {% for w in data.filters.weeks %}
-            <option value="{{ w }}" {% if w == data.selected.week %}selected{% endif %}>{{ w }}</option>
-            {% endfor %}
+            <option value="All" selected>All</option>
         </select>
     </div>
     <div class="filter-group">
         <label>Process</label>
         <select id="filter-process">
-            {% for p in data.filters.processes %}
-            <option value="{{ p }}" {% if p == data.selected.process %}selected{% endif %}>{{ p }}</option>
-            {% endfor %}
+            <option value="All" selected>All</option>
         </select>
     </div>
     <div class="filter-group">
         <label>Shift</label>
         <select id="filter-shift">
-            {% for sh in data.filters.shifts %}
-            <option value="{{ sh }}" {% if sh == data.selected.shift %}selected{% endif %}>{{ sh }}</option>
-            {% endfor %}
+            <option value="All" selected>All</option>
         </select>
     </div>
     <div class="filter-group">
