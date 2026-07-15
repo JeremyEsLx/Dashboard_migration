@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .services import get_summary_data, get_performance_data, get_process_data
+from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data
 
 
 # ============================================================
@@ -91,6 +91,33 @@ def process_performance_data(request):
         data = get_process_data(
             week=request.GET.get('week', 'All'),
             process=request.GET.get('process', 'All'),
+            shift=request.GET.get('shift', 'All'),
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'cube_json': '[]'}, status=200)
+
+
+def strongstart(request):
+    """Render Strong Start shell (instant, no SQL) — JS hydrates via /api/strongstart/."""
+    data = {
+        'selected': {
+            'supervisor': request.GET.get('supervisor', 'All'),
+            'shift': request.GET.get('shift', 'All'),
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/strongstart.html', {'data': data})
+
+
+def strongstart_data(request):
+    """API: returns strong start cube as JSON."""
+    try:
+        data = get_strongstart_data(
+            supervisor=request.GET.get('supervisor', 'All'),
             shift=request.GET.get('shift', 'All'),
             date_from=request.GET.get('date_from'),
             date_to=request.GET.get('date_to'),

@@ -1,0 +1,183 @@
+/* ============================================================
+   STRONG START — Page Styles
+   ============================================================ */
+
+/* === FILTERS BAR === */
+.filters-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    padding: 14px 16px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+}
+.filter-group { display: flex; flex-direction: column; gap: 3px; }
+.filter-group label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.filter-group select,
+.filter-group input {
+    padding: 7px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: inherit;
+    min-width: 130px;
+    background: #fafbfc;
+    color: #1f2937;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+.filter-actions {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+}
+.btn-filter {
+    padding: 7px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.btn-reset { background: white; color: #6b7280; }
+.btn-reset:hover { background: #f3f4f6; color: #374151; border-color: #9ca3af; }
+.btn-refresh { background: #0f172a; color: white; border-color: #0f172a; }
+.btn-refresh:hover { background: #1e293b; }
+.refresh-timer {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-left: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* === TOP ROW: KPI + 2 Charts === */
+.top-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.ss-kpi {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.ss-kpi h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+.ss-kpi .kpi-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #111827;
+    font-variant-numeric: tabular-nums;
+}
+
+.ss-chart-shift,
+.ss-chart-date {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 14px 18px;
+}
+.ss-chart-shift h3,
+.ss-chart-date h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+.chart-container {
+    height: 180px;
+}
+
+/* === DETAIL TABLE === */
+.ss-table-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 480px);
+    min-height: 200px;
+}
+.ss-table-card .table-scroll {
+    overflow-y: auto;
+    overflow-x: auto;
+    flex: 1;
+}
+
+.perf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+}
+.perf-table thead th {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.perf-table thead th.col-num { text-align: right; }
+.perf-table tbody td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    white-space: nowrap;
+    font-size: 12px;
+}
+.perf-table tbody td.col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.perf-table tbody tr:hover {
+    background: #f0fdf4;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .top-row {
+        grid-template-columns: 1fr;
+    }
+}

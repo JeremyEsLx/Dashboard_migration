@@ -628,3 +628,114 @@ def get_process_data(week='All', process='All', shift='All',
             'date_to': date_to or '',
         },
     }
+
+
+# ============================================================
+# STRONG START PAGE — Detail-level cube (Date, User, Process, Shift, Supervisor)
+# ============================================================
+
+def get_strongstart_cube(date_from=None, date_to=None, week=None):
+    """Query at user/date/process granularity for Strong Start page.
+    Returns row-level detail needed for KPI, charts, and detail table.
+    """
+    print(f"[LMS] ─── Loading Strong Start Cube ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    where = _build_date_range_where(date_from, date_to, week)
+    where += f"  AND [User Name] IN ({users_str})\n"
+
+    if date_from and date_to:
+        print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
+    elif week and week != 'All':
+        print(f"[LMS]   Mode: WEEK = {week}")
+    else:
+        print(f"[LMS]   Mode: NO DATE FILTER")
+
+    query = f"""
+        SELECT
+            CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23) AS [date],
+            [User Name] AS [user_name],
+            [Supervisor Full Name] AS [supervisor],
+            ISNULL([Process], '') AS [process],
+            [SHIFT2] AS [shift],
+            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
+                 [User Name], [Supervisor Full Name], [Process], [SHIFT2]
+        ORDER BY CAST([Date] AS DATE) DESC, [User Name]
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   x No data returned ({elapsed:.2f}s)")
+        return []
+
+    cube = []
+    for _, row in df.iterrows():
+        cube.append({
+            'd': row['date'] or '',
+            'u': row['user_name'] or '',
+            's': row['supervisor'] or '',
+            'p': row['process'] or '',
+            'sh': row['shift'] or '',
+            'ld': round(float(row['sum_line_day'] or 0), 4),
+        })
+
+    print(f"[LMS]   Done {len(cube)} rows in strong start cube ({elapsed:.2f}s)")
+    return cube
+
+
+def get_strongstart_data(supervisor='All', shift='All',
+                         date_from=None, date_to=None):
+    """Returns data for the Strong Start page."""
+    if date_from or date_to:
+        if not date_to:
+            date_to = date.today().strftime('%Y-%m-%d')
+        if not date_from:
+            date_from = date_to
+    else:
+        # Default: current week (Monday -> today)
+        today = date.today()
+        monday = today - timedelta(days=today.weekday())
+        date_from = monday.strftime('%Y-%m-%d')
+        date_to = today.strftime('%Y-%m-%d')
+
+    print(f"\n{'='*60}")
+    print(f"[LMS] STRONG START REQUEST")
+    print(f"[LMS]   Date Range: {date_from or '(none)'} -> {date_to or '(none)'} | "
+          f"Supervisor: {supervisor} | Shift: {shift}")
+    print(f"{'='*60}")
+
+    try:
+        filter_options = get_filter_options()
+    except Exception as e:
+        print(f"[LMS]   x SQL Server error (Filters): {e}")
+        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+
+    try:
+        cube = get_strongstart_cube(date_from, date_to)
+    except Exception as e:
+        print(f"[LMS]   x SQL Server error (Strong Start Cube): {e}")
+        cube = []
+
+    print(f"{'='*60}\n")
+
+    return {
+        'cube_json': json.dumps(cube),
+        'filters': {
+            'supervisors': filter_options['supervisors'],
+            'shifts': ['All', 'A', 'B', 'C', 'D'],
+        },
+        'selected': {
+            'supervisor': supervisor,
+            'shift': shift,
+            'date_from': date_from or '',
+            'date_to': date_to or '',
+        },
+    }

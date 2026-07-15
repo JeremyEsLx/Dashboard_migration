@@ -8,4 +8,6 @@ urlpatterns = [
     path('api/performance/', views.performance_data, name='performance_data'),
     path('process/', views.process_performance, name='process_performance'),
     path('api/process/', views.process_performance_data, name='process_performance_data'),
+    path('strongstart/', views.strongstart, name='strongstart'),
+    path('api/strongstart/', views.strongstart_data, name='strongstart_data'),
 ]
