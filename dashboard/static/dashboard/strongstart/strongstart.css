@@ -73,66 +73,66 @@
 /* === TOP ROW: KPI + 2 Charts === */
 .top-row {
     display: grid;
-    grid-template-columns: 160px 1fr 1.5fr;
-    gap: 16px;
-    margin-bottom: 16px;
+    grid-template-columns: 150px 1fr 2fr;
+    gap: 14px;
+    margin-bottom: 14px;
 }
 
 .ss-kpi {
-    background: #f8f9fb;
+    background: white;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
-    padding: 20px;
+    padding: 20px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .ss-kpi h3 {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    color: #6b7280;
+    color: #9ca3af;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .ss-kpi .kpi-value {
-    font-size: 36px;
+    font-size: 38px;
     font-weight: 700;
     color: #111827;
     font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
 
 .ss-chart-shift,
 .ss-chart-date {
-    background: #f8f9fb;
+    background: white;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
-    padding: 16px 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 14px 16px;
+    overflow: hidden;
 }
 .ss-chart-shift h3,
 .ss-chart-date h3 {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    color: #374151;
-    margin-bottom: 6px;
-    letter-spacing: -0.2px;
+    color: #6b7280;
+    margin-bottom: 4px;
+    letter-spacing: -0.1px;
 }
 .chart-container {
-    height: 200px;
+    height: 180px;
 }
 
 /* === DETAIL TABLE === */
 .ss-table-card {
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 3px;
+    border-radius: 6px;
     padding: 14px 18px;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 480px);
+    height: calc(100vh - 450px);
     min-height: 200px;
 }
 .ss-table-card .table-scroll {
@@ -175,7 +175,7 @@
     font-variant-numeric: tabular-nums;
 }
 .perf-table tbody tr:hover {
-    background: #f0fdf4;
+    background: #fafbfc;
 }
 
 /* Responsive */

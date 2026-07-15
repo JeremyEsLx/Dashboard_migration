@@ -162,21 +162,22 @@ function renderShiftChart(filtered) {
         x: values,
         type: 'bar',
         orientation: 'h',
-        marker: { color: '#e8a0a0', cornerradius: 4 },
+        marker: { color: '#d4979a' },
         text: values.map(function(v) { return Math.round(v); }),
         textposition: 'inside',
         insidetextanchor: 'end',
-        textfont: { size: 12, color: '#4a2020', family: 'Inter' },
-        cliponaxis: false
+        textfont: { size: 12, color: '#fff', family: 'Inter' },
+        cliponaxis: false,
+        hoverinfo: 'x+y'
     }], {
-        margin: { t: 5, b: 25, l: 25, r: 15 },
-        xaxis: { title: '', gridcolor: '#eee', showgrid: true, zeroline: false },
-        yaxis: { title: '', automargin: true, tickfont: { size: 12 } },
-        paper_bgcolor: 'transparent',
-        plot_bgcolor: 'transparent',
+        margin: { t: 5, b: 20, l: 22, r: 10 },
+        xaxis: { title: '', showgrid: false, showticklabels: false, zeroline: false },
+        yaxis: { title: '', automargin: true, tickfont: { size: 12, color: '#374151' } },
+        paper_bgcolor: 'white',
+        plot_bgcolor: 'white',
         font: { family: 'Inter', size: 11 },
-        bargap: 0.3
-    }, { responsive: true, displayModeBar: false });
+        bargap: 0.35
+    }, { responsive: true, displayModeBar: false, staticPlot: false });
 }
 
 function renderDateChart(filtered) {
@@ -190,25 +191,32 @@ function renderDateChart(filtered) {
     var dates = Object.keys(byDate).sort();
     var values = dates.map(function(d) { return Math.round(byDate[d] * 100) / 100; });
 
+    // Format dates for display (MM/DD)
+    var shortDates = dates.map(function(d) {
+        var parts = d.split('-');
+        return parts[1] + '/' + parts[2];
+    });
+
     Plotly.react('chart-date', [{
-        x: dates,
+        x: shortDates,
         y: values,
         type: 'bar',
-        marker: { color: '#e8a0a0', cornerradius: 4 },
+        marker: { color: '#d4979a' },
         text: values.map(function(v) { return Math.round(v); }),
         textposition: 'inside',
         insidetextanchor: 'end',
-        textfont: { size: 11, color: '#4a2020', family: 'Inter' },
-        cliponaxis: false
+        textfont: { size: 11, color: '#fff', family: 'Inter' },
+        cliponaxis: false,
+        hoverinfo: 'x+y'
     }], {
-        margin: { t: 10, b: 35, l: 40, r: 10 },
-        yaxis: { title: '', gridcolor: '#eee', showgrid: true, zeroline: false },
-        xaxis: { title: '', type: 'category', tickangle: 0, tickfont: { size: 10 } },
-        paper_bgcolor: 'transparent',
-        plot_bgcolor: 'transparent',
+        margin: { t: 8, b: 28, l: 35, r: 8 },
+        yaxis: { title: '', gridcolor: '#f3f4f6', showgrid: true, zeroline: false, tickfont: { size: 10, color: '#9ca3af' } },
+        xaxis: { title: '', type: 'category', tickangle: 0, tickfont: { size: 10, color: '#6b7280' } },
+        paper_bgcolor: 'white',
+        plot_bgcolor: 'white',
         font: { family: 'Inter', size: 11 },
-        bargap: 0.25
-    }, { responsive: true, displayModeBar: false });
+        bargap: 0.3
+    }, { responsive: true, displayModeBar: false, staticPlot: false });
 }
 
 
