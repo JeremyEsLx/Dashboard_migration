@@ -512,8 +512,10 @@ def get_performance_data(supervisor='All', week='All', process='All',
         date_from = None
         date_to = None
     else:
+        # Default: current week (Monday → today)
         today = date.today()
-        date_from = (today - timedelta(days=6)).strftime('%Y-%m-%d')
+        monday = today - timedelta(days=today.weekday())  # weekday(): Mon=0
+        date_from = monday.strftime('%Y-%m-%d')
         date_to = today.strftime('%Y-%m-%d')
         effective_week = 'All'
 

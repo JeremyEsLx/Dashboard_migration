@@ -33,6 +33,70 @@ function getUphPctClass(pct) {
 
 
 // ================================================================
+// ACTIVE FILTERS BANNER
+// ================================================================
+
+var SELECTED_STATE = {}; // Populated after API response
+
+function formatDateNice(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr + 'T00:00:00');
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function updateFiltersBanner() {
+    var bannerDate = document.getElementById('banner-date-range');
+    var bannerChips = document.getElementById('banner-chips');
+    if (!bannerDate || !bannerChips) return;
+
+    // Date range display
+    var dateFrom = SELECTED_STATE.date_from || '';
+    var dateTo = SELECTED_STATE.date_to || '';
+    var week = SELECTED_STATE.week || 'All';
+
+    if (dateFrom && dateTo) {
+        if (dateFrom === dateTo) {
+            bannerDate.innerHTML = '<strong>Showing:</strong> ' + formatDateNice(dateFrom);
+        } else {
+            bannerDate.innerHTML = '<strong>Showing:</strong> ' + formatDateNice(dateFrom) + ' &mdash; ' + formatDateNice(dateTo);
+        }
+    } else if (dateFrom) {
+        bannerDate.innerHTML = '<strong>Showing:</strong> From ' + formatDateNice(dateFrom);
+    } else if (week && week !== 'All') {
+        bannerDate.innerHTML = '<strong>Showing:</strong> Week ' + week;
+    } else {
+        bannerDate.innerHTML = '<strong>Showing:</strong> Current Week';
+    }
+
+    // Also fill in the date inputs so the user can see
+    var dateFromInput = document.getElementById('filter-date-from');
+    var dateToInput = document.getElementById('filter-date-to');
+    if (dateFromInput && dateFrom && !dateFromInput.value) dateFromInput.value = dateFrom;
+    if (dateToInput && dateTo && !dateToInput.value) dateToInput.value = dateTo;
+
+    // Filter chips
+    var chips = [];
+    var sup = document.getElementById('filter-supervisor').value;
+    var proc = document.getElementById('filter-process').value;
+    var shift = document.getElementById('filter-shift').value;
+
+    if (sup && sup !== 'All') chips.push({ label: 'Supervisor', value: sup });
+    if (proc && proc !== 'All') chips.push({ label: 'Process', value: proc });
+    if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
+
+    if (chips.length === 0) {
+        bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">All Filters</span>';
+    } else {
+        bannerChips.innerHTML = chips.map(function(c) {
+            return '<span class="banner-chip"><strong>' + c.label + ':</strong> ' + c.value + '</span>';
+        }).join('');
+    }
+}
+
+
+// ================================================================
 // CUBE FILTERING (client-side)
 // ================================================================
 
@@ -240,7 +304,6 @@ function renderUserTable() {
         html += numCells(m);
         html += '</tr>';
     }
-
     tbody.innerHTML = html;
 }
 
@@ -253,6 +316,7 @@ function renderAll() {
     if (!CUBE || !USER_CUBE) return; // Not loaded yet (AJAX pending)
     renderProcessTable();
     renderUserTable();
+    updateFiltersBanner();
 }
 
 
@@ -420,6 +484,7 @@ function loadData(skip) {
         if (cached) {
             CUBE = cached.cube || []; USER_CUBE = cached.userCube || [];
             if (cached.filters) populateFilters(cached.filters, cached.selected || {});
+            SELECTED_STATE = cached.selected || {};
             renderAll();
         } else {
             try { var f = sessionStorage.getItem(FILTER_CACHE_KEY); if (f) populateFilters(JSON.parse(f), {}); } catch(e) {}
@@ -432,6 +497,7 @@ function loadData(skip) {
             var u = (typeof d.user_cube_json==='string') ? JSON.parse(d.user_cube_json) : (d.user_cube_json||[]);
             try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({cube:c,userCube:u,filters:d.filters,selected:d.selected,timestamp:Date.now()})); } catch(e) {}
             CUBE = c; USER_CUBE = u;
+            SELECTED_STATE = d.selected || {};
             if (d.filters) populateFilters(d.filters, d.selected||{});
             renderAll();
         })

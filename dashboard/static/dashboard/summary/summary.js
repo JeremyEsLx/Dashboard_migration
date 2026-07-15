@@ -13,6 +13,7 @@
  *   4. Filter Event Handlers
  *   5. Auto-Refresh Timer (15 min, sessionStorage-persisted)
  *   6. Reset & Refresh Buttons
+ *   7. Active Filters Banner
  */
 
 // ================================================================
@@ -25,6 +26,68 @@ const COLOR_PINK = '#f87171';
 const COLOR_RED = '#dc2626';
 const GRID_COLOR = '#f3f4f6';
 const REFRESH_INTERVAL = 15 * 60; // seconds
+
+
+// ================================================================
+// ACTIVE FILTERS BANNER
+// ================================================================
+
+var SELECTED_STATE = {}; // Populated after API response
+
+function formatDateNice(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr + 'T00:00:00');
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function isToday(dateStr) {
+    if (!dateStr) return false;
+    var today = new Date();
+    var y = today.getFullYear();
+    var m = String(today.getMonth() + 1).padStart(2, '0');
+    var day = String(today.getDate()).padStart(2, '0');
+    return dateStr === y + '-' + m + '-' + day;
+}
+
+function updateFiltersBanner() {
+    var bannerDate = document.getElementById('banner-date-range');
+    var bannerChips = document.getElementById('banner-chips');
+    if (!bannerDate || !bannerChips) return;
+
+    // Date display
+    var dateVal = SELECTED_STATE.date || '';
+    var week = SELECTED_STATE.week || 'All';
+
+    if (dateVal) {
+        if (isToday(dateVal)) {
+            bannerDate.innerHTML = '<strong>Showing:</strong> Today &mdash; ' + formatDateNice(dateVal);
+        } else {
+            bannerDate.innerHTML = '<strong>Showing:</strong> ' + formatDateNice(dateVal);
+        }
+    } else if (week && week !== 'All') {
+        bannerDate.innerHTML = '<strong>Showing:</strong> Week ' + week;
+    } else {
+        bannerDate.innerHTML = '<strong>Showing:</strong> Today';
+    }
+
+    // Filter chips
+    var chips = [];
+    var sup = document.getElementById('filter-supervisor').value;
+    var shift = document.getElementById('filter-shift').value;
+
+    if (sup && sup !== 'All') chips.push({ label: 'Supervisor', value: sup });
+    if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
+
+    if (chips.length === 0) {
+        bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">All Filters</span>';
+    } else {
+        bannerChips.innerHTML = chips.map(function(c) {
+            return '<span class="banner-chip"><strong>' + c.label + ':</strong> ' + c.value + '</span>';
+        }).join('');
+    }
+}
 
 
 // ================================================================
@@ -279,6 +342,7 @@ function renderAll() {
     renderQtyChart(data.qtyByProcess);
     renderTargetChart(data.targetByProcess);
     renderProdChart(data.prodByProcess);
+    updateFiltersBanner();
 }
 
 
@@ -485,6 +549,8 @@ function hydrateFromData(data) {
     } else {
         CUBE = [];
     }
+    // Track selected state
+    SELECTED_STATE = data.selected || {};
     // Populate filter dropdowns
     if (data.filters) {
         populateFilters(data.filters, data.selected || {});
@@ -525,6 +591,7 @@ function loadData(skipCache) {
             setCacheData(cube, data.filters, data.selected);
             // Render (or re-render if cache was used)
             CUBE = cube;
+            SELECTED_STATE = data.selected || {};
             if (data.filters) populateFilters(data.filters, data.selected || {});
             removeSkeleton();
             renderAll();

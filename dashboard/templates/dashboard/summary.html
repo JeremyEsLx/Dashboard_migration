@@ -6,7 +6,7 @@
 {% block nav_summary %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/summary/summary.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'dashboard/summary/summary.css' %}?v=3">
 {% endblock %}
 
 {% block page_title %}
@@ -47,6 +47,13 @@
         </button>
         <span class="refresh-timer" id="refresh-timer"></span>
     </div>
+</div>
+
+<!-- ACTIVE FILTERS BANNER — shows what data is currently displayed -->
+<div class="active-filters-banner" id="active-filters-banner">
+    <span class="banner-icon">&#128197;</span>
+    <span class="banner-date-range" id="banner-date-range">Loading...</span>
+    <div class="banner-chips" id="banner-chips"></div>
 </div>
 
 <!-- KPI CARDS (skeleton placeholders shown until JS hydrates) -->
@@ -107,5 +114,5 @@
     // No cube data on initial load — JS fetches via AJAX (skeleton loading)
     var CUBE = null;
 </script>
-<script src="{% static 'dashboard/summary/summary.js' %}"></script>
+<script src="{% static 'dashboard/summary/summary.js' %}?v=3"></script>
 {% endblock %}

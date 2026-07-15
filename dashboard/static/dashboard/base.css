@@ -96,6 +96,71 @@ body {
 }
 
 /* ============================================================
+   ACTIVE FILTERS BANNER — Shows what data is currently displayed
+   ============================================================ */
+
+.active-filters-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border: 1px solid #a7f3d0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #065f46;
+    flex-wrap: wrap;
+}
+
+.banner-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.banner-date-range {
+    font-size: 13px;
+    color: #065f46;
+    white-space: nowrap;
+}
+.banner-date-range strong {
+    font-weight: 600;
+    color: #064e3b;
+}
+
+.banner-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.banner-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: white;
+    border: 1px solid #d1fae5;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 400;
+    color: #065f46;
+    white-space: nowrap;
+}
+.banner-chip strong {
+    font-weight: 600;
+    color: #064e3b;
+}
+
+.banner-chip-all {
+    background: #d1fae5;
+    border-color: #a7f3d0;
+    color: #047857;
+    font-weight: 500;
+}
+
+/* ============================================================
    SKELETON LOADING — Shimmer placeholders (Facebook-style)
    Applied via .skeleton class. Removed by JS after data loads.
    ============================================================ */
@@ -171,4 +236,11 @@ body {
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
     .sidebar { display: none; }
+    .active-filters-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .banner-chips {
+        margin-left: 0;
+    }
 }
