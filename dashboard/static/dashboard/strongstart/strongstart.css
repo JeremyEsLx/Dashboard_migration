@@ -73,7 +73,7 @@
 /* === TOP ROW: KPI + 2 Charts === */
 .top-row {
     display: grid;
-    grid-template-columns: 180px 1fr 1fr;
+    grid-template-columns: 180px 1.2fr 1fr;
     gap: 16px;
     margin-bottom: 16px;
 }
@@ -118,7 +118,7 @@
     margin-bottom: 8px;
 }
 .chart-container {
-    height: 180px;
+    height: 220px;
 }
 
 /* === DETAIL TABLE === */

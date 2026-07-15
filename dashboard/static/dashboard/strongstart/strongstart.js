@@ -151,22 +151,25 @@ function renderShiftChart(filtered) {
         byShift[sh] += filtered[i].ld / 60;
     }
 
-    var shifts = Object.keys(byShift).sort();
-    var values = shifts.map(function(s) { return Math.round(byShift[s] * 100) / 100; });
-    var colors = shifts.map(function(s) { return CHART_COLORS[s] || '#6b7280'; });
+    // Sort by value ascending (so highest appears at top in horizontal bar)
+    var entries = Object.keys(byShift).map(function(s) { return { shift: s, val: byShift[s] }; });
+    entries.sort(function(a, b) { return a.val - b.val; });
+    var shifts = entries.map(function(e) { return e.shift; });
+    var values = entries.map(function(e) { return Math.round(e.val * 100) / 100; });
 
     Plotly.react('chart-shift', [{
-        x: shifts,
-        y: values,
+        y: shifts,
+        x: values,
         type: 'bar',
-        marker: { color: colors, cornerradius: 3 },
-        text: values.map(function(v) { return v.toFixed(1); }),
+        orientation: 'h',
+        marker: { color: '#e8a0a0', cornerradius: 3 },
+        text: values.map(function(v) { return Math.round(v); }),
         textposition: 'outside',
-        textfont: { size: 11 }
+        textfont: { size: 11, color: '#374151' }
     }], {
-        margin: { t: 10, b: 30, l: 45, r: 10 },
-        yaxis: { title: '', gridcolor: '#f3f4f6' },
-        xaxis: { title: '' },
+        margin: { t: 10, b: 30, l: 35, r: 50 },
+        xaxis: { title: '', gridcolor: '#f3f4f6' },
+        yaxis: { title: '', automargin: true },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
         font: { family: 'Inter', size: 11 }
@@ -188,13 +191,13 @@ function renderDateChart(filtered) {
         x: dates,
         y: values,
         type: 'bar',
-        marker: { color: '#6366f1', cornerradius: 3 },
+        marker: { color: '#e8a0a0', cornerradius: 3 },
         text: values.map(function(v) { return v.toFixed(1); }),
         textposition: 'outside',
         textfont: { size: 10 }
     }], {
-        margin: { t: 10, b: 30, l: 45, r: 10 },
-        yaxis: { title: '', gridcolor: '#f3f4f6' },
+        margin: { t: 25, b: 30, l: 45, r: 10 },
+        yaxis: { title: '', gridcolor: '#f3f4f6', automargin: true },
         xaxis: { title: '', type: 'category' },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
