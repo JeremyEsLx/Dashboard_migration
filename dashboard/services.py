@@ -749,7 +749,8 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
             [Supervisor Full Name] AS [supervisor],
             ISNULL([Process], '') AS [process],
             [SHIFT2] AS [shift],
-            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day
+            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day,
+            CONVERT(VARCHAR(8), MIN(CAST([Time] AS TIME)), 108) AS [first_scan_time]
         FROM ({_base_subquery()}) AS LMS
         {where}
         GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
@@ -772,6 +773,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
             'fn': row['full_name'] or '',
             's': row['supervisor'] or '',
             'p': row['process'] or '',
+            'fst': row['first_scan_time'] or '',
             'sh': row['shift'] or '',
             'ld': round(float(row['sum_line_day'] or 0), 4),
         })

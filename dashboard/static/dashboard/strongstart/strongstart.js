@@ -242,7 +242,7 @@ function renderDateChart(filtered) {
 function renderTable(filtered) {
     var tbody = document.getElementById('detail-tbody');
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="padding:20px;color:#6b7280;">No data for current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;color:#6b7280;">No data for current filters.</td></tr>';
         return;
     }
 
@@ -256,6 +256,7 @@ function renderTable(filtered) {
         html += '<td>' + (r.fn || '') + '</td>';
         html += '<td>' + r.s + '</td>';
         html += '<td>' + r.p + '</td>';
+        html += '<td>' + (r.fst || '') + '</td>';
         html += '<td>' + r.sh + '</td>';
         html += '<td class="col-num">' + duration.toFixed(2) + '</td>';
         html += '</tr>';
@@ -343,10 +344,10 @@ document.getElementById('filter-date-to').addEventListener('change', reloadForDa
 
 function exportData() {
     var filtered = filterCube();
-    var rows = [['Date', 'User Name', 'Full Name', 'Supervisor', 'Process', 'Shift', 'Duration (hrs)']];
+    var rows = [['Date', 'User Name', 'Full Name', 'Supervisor', 'Process', 'First Scan Time', 'Shift', 'Duration (hrs)']];
     for (var i = 0; i < filtered.length; i++) {
         var r = filtered[i];
-        rows.push([r.d, r.u, r.fn || '', r.s, r.p, r.sh, Math.round((r.ld / 60) * 100) / 100]);
+        rows.push([r.d, r.u, r.fn || '', r.s, r.p, r.fst || '', r.sh, Math.round((r.ld / 60) * 100) / 100]);
     }
 
     var dateFrom = SELECTED_STATE.date_from || '';
@@ -465,7 +466,7 @@ function loadData(skip) {
             console.error('[LMS] Load failed:', e);
             hideLoading();
             if (!CUBE || !CUBE.length) {
-                document.getElementById('detail-tbody').innerHTML = '<tr><td colspan="6" style="color:#dc2626;padding:20px;">Failed to load. Try refreshing.</td></tr>';
+                document.getElementById('detail-tbody').innerHTML = '<tr><td colspan="8" style="color:#dc2626;padding:20px;">Failed to load. Try refreshing.</td></tr>';
             }
         });
 }
