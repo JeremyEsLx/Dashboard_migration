@@ -3,14 +3,13 @@
  *
  * Widgets:
  *   1. KPI: Total Inactive Hours (sum of Duration)
- *   2. Bar chart: Inactive Hours by Shift (horizontal)
- *   3. Bar chart: Inactive Hours by Date (vertical)
- *   4. Detail table: Shift, User Name, Full Name, Supervisor, Previous Process,
- *      Previous Scan Time, Date, Time, Process, Duration
+ *   2. Bar chart: Inactive Hours by Shift
+ *   3. Bar chart: Inactive Hours by Date
+ *   4. Detail table: Date, User Name, Supervisor, Process, Shift, Duration
  *
  * Cube rows: { d, u, fn, s, pp, sh, pr, st, cot, ld }
  *   d=Date, u=User Name, fn=Full Name, s=Supervisor, pp=Previous Process,
- *   sh=Shift, pr=Process, st=Scan Time (Previous), cot=Clock Out Time, ld=Line Day Activity
+ *   sh=Shift, pr=Process, st=Scan Time, cot=Clock Out Time, ld=Line Day Activity
  *   Duration (hrs) = ld / 60
  *
  * Client-side filters: Shift, Supervisor, Date, Employee (instant)
@@ -152,6 +151,14 @@ function renderKPI(filtered) {
 // RENDER CHARTS
 // ================================================================
 
+var CHART_COLORS = {
+    'A': '#10b981',
+    'B': '#3b82f6',
+    'C': '#f59e0b',
+    'D': '#8b5cf6',
+    'NO SHIFT MAPPED': '#9ca3af'
+};
+
 function renderShiftChart(filtered) {
     var byShift = {};
     for (var i = 0; i < filtered.length; i++) {
@@ -160,6 +167,7 @@ function renderShiftChart(filtered) {
         byShift[sh] += filtered[i].ld / 60;
     }
 
+    // Sort by value ascending (so highest appears at top in horizontal bar)
     var entries = Object.keys(byShift).map(function(s) { return { shift: s, val: byShift[s] }; });
     entries.sort(function(a, b) { return a.val - b.val; });
     var shifts = entries.map(function(e) { return e.shift; });
@@ -199,6 +207,7 @@ function renderDateChart(filtered) {
     var dates = Object.keys(byDate).sort();
     var values = dates.map(function(d) { return Math.round(byDate[d] * 100) / 100; });
 
+    // Format dates for display (MM/DD)
     var shortDates = dates.map(function(d) {
         var parts = d.split('-');
         return parts[1] + '/' + parts[2];
@@ -291,6 +300,7 @@ document.getElementById('filter-shift').addEventListener('change', renderWithLoa
 document.getElementById('filter-supervisor').addEventListener('change', renderWithLoading);
 document.getElementById('filter-date').addEventListener('change', renderWithLoading);
 
+// Employee search — debounce to avoid re-render on every keystroke
 var employeeTimeout = null;
 document.getElementById('filter-employee').addEventListener('input', function() {
     clearTimeout(employeeTimeout);
@@ -316,22 +326,44 @@ function populateDateDropdown() {
 }
 
 function populateSupervisorFromCube() {
-    if (!CUBE || !CUBE.length) return;
-    var supEl = document.getElementById('filter-supervisor');
+    if (!CUBE) return;
+    var el = document.getElementById('filter-supervisor');
+    // Only populate from cube if server-side filters didn't load (just "All")
+    if (el.options.length > 1) return;
     var sups = {};
     for (var i = 0; i < CUBE.length; i++) {
         if (CUBE[i].s) sups[CUBE[i].s] = true;
     }
     var sorted = Object.keys(sups).sort();
     if (sorted.length === 0) return;
-    if (supEl.options.length <= 1 || sorted.length > supEl.options.length - 1) {
-        var cur = supEl.value || 'All';
-        supEl.innerHTML = '<option value="All">All</option>';
+    var cur = el.value || 'All';
+    el.innerHTML = '<option value="All">All</option>';
+    for (var i = 0; i < sorted.length; i++) {
+        var o = document.createElement('option');
+        o.value = sorted[i]; o.textContent = sorted[i];
+        if (sorted[i] === cur) o.selected = true;
+        el.appendChild(o);
+    }
+}
+
+function populateSupervisorFromCube() {
+    if (!CUBE) return;
+    var sups = {};
+    for (var i = 0; i < CUBE.length; i++) {
+        if (CUBE[i].s) sups[CUBE[i].s] = true;
+    }
+    var sorted = Object.keys(sups).sort();
+    var el = document.getElementById('filter-supervisor');
+    var cur = el.value || 'All';
+    // Only repopulate if dropdown has just "All" (server filters failed)
+    // or if cube has more supervisors than the dropdown
+    if (el.options.length <= 1 || sorted.length > el.options.length - 1) {
+        el.innerHTML = '<option value="All">All</option>';
         for (var i = 0; i < sorted.length; i++) {
             var o = document.createElement('option');
             o.value = sorted[i]; o.textContent = sorted[i];
             if (sorted[i] === cur) o.selected = true;
-            supEl.appendChild(o);
+            el.appendChild(o);
         }
     }
 }
@@ -400,12 +432,13 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 
 
 // ================================================================
-// AUTO-REFRESH (15 min) — persists across page navigations
+// AUTO-REFRESH (15 min)
 // ================================================================
 var REFRESH_INTERVAL = 15 * 60;
 var timerEl = document.getElementById('refresh-timer');
 var TIMER_KEY = 'lms_timer_strongfinish';
 
+// Persist timer across page navigations — only resets on explicit Refresh
 function getTimerStart() {
     try {
         var stored = sessionStorage.getItem(TIMER_KEY);
@@ -413,6 +446,7 @@ function getTimerStart() {
             var ts = parseInt(stored, 10);
             var elapsed = Math.floor((Date.now() - ts) / 1000);
             if (elapsed >= REFRESH_INTERVAL) {
+                // Timer expired while away — refresh now
                 sessionStorage.setItem(TIMER_KEY, String(Date.now()));
                 window.location.reload();
                 return Date.now();
@@ -420,6 +454,7 @@ function getTimerStart() {
             return ts;
         }
     } catch(e) {}
+    // First visit or storage cleared — start fresh
     var now = Date.now();
     try { sessionStorage.setItem(TIMER_KEY, String(now)); } catch(e) {}
     return now;
@@ -444,9 +479,9 @@ setInterval(updateTimer, 1000);
 // ================================================================
 // INIT — Stale-While-Revalidate
 // ================================================================
-var CACHE_KEY = 'lms_strongfinish_cache_v2';
+var CACHE_KEY = 'lms_strongfinish_cache';
 var FILTER_CACHE_KEY = 'lms_filters_cache';
-var CACHE_MAX_AGE = 30 * 60 * 1000; // 30min
+var CACHE_MAX_AGE = 30 * 60 * 1000; // 30min (historical data, rarely changes)
 
 function populateDropdown(id, opts, sel) {
     var el = document.getElementById(id);

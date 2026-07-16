@@ -1000,3 +1000,154 @@ def get_strongfinish_data(supervisor='All', shift='All',
             'date_to': date_to or '',
         },
     }
+
+# ============================================================
+# STRONG FINISH CUBE
+# ============================================================
+
+
+# ============================================================
+# STRONG FINISH CUBE
+# ============================================================
+
+def get_strongfinish_cube(date_from=None, date_to=None):
+    """Query at user/date granularity for Strong Finish page.
+
+    Power BI filters for this page:
+      - Activity Type = 'DIRECT'
+      - Employee Type = DIRECT (via roster join)
+      - Previous Process NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
+      - Process = 'CLOCK OUT' (last activity before clocking out)
+
+    NOTE: Does NOT use BASE_FILTERS (different filter logic).
+    """
+    print(f"[LMS] ─── Loading Strong Finish Cube ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    where = """
+    WHERE [Activity Type] = 'DIRECT'
+      AND [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
+      AND [Process] = 'CLOCK OUT'
+"""
+    if date_from and date_to:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
+    elif date_from:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        print(f"[LMS]   Mode: DATE FROM = {date_from}")
+    elif date_to:
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        print(f"[LMS]   Mode: DATE TO = {date_to}")
+    else:
+        print(f"[LMS]   Mode: NO DATE FILTER")
+
+    where += f"  AND [User Name] IN ({users_str})\n"
+
+    query = f"""
+        SELECT
+            CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23) AS [date],
+            [User Name] AS [user_name],
+            ISNULL([Full Name], [User Name]) AS [full_name],
+            [Supervisor Full Name] AS [supervisor],
+            ISNULL([Previous Process], '') AS [previous_process],
+            [SHIFT2] AS [shift],
+            ISNULL([Process], '') AS [process],
+            CONVERT(VARCHAR(8), CAST([Time] AS TIME), 108) AS [scan_time],
+            CASE [SHIFT2]
+                WHEN 'A' THEN '6:00:00 AM'
+                WHEN 'B' THEN '6:00:00 PM'
+                WHEN 'C' THEN '10:00:00 PM'
+                WHEN 'D' THEN '2:00:00 AM'
+                ELSE ''
+            END AS [clock_out_time],
+            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
+                 [User Name], [Full Name], [Supervisor Full Name],
+                 [Previous Process], [Process], [SHIFT2], CAST([Time] AS TIME)
+        ORDER BY CAST([Date] AS DATE) DESC, [User Name]
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   x No data returned ({elapsed:.2f}s)")
+        return []
+
+    cube = []
+    for _, row in df.iterrows():
+        cube.append({
+            'd': row['date'] or '',
+            'u': row['user_name'] or '',
+            'fn': row['full_name'] or '',
+            's': row['supervisor'] or '',
+            'pp': row['previous_process'] or '',
+            'sh': row['shift'] or '',
+            'pr': row['process'] or '',
+            'st': row['scan_time'] or '',
+            'cot': row['clock_out_time'] or '',
+            'ld': round(float(row['sum_line_day'] or 0), 4),
+        })
+
+    print(f"[LMS]   Done {len(cube)} rows in strong finish cube ({elapsed:.2f}s)")
+    return cube
+
+
+# ============================================================
+# STRONG FINISH DATA (page-level orchestrator)
+# ============================================================
+
+def get_strongfinish_data(supervisor='All', shift='All',
+                          date_from=None, date_to=None):
+    """Returns data for the Strong Finish page."""
+    if date_from or date_to:
+        if not date_to:
+            date_to = date.today().strftime('%Y-%m-%d')
+        if not date_from:
+            date_from = date_to
+    else:
+        yesterday = date.today() - timedelta(days=1)
+        date_from = (yesterday - timedelta(days=6)).strftime('%Y-%m-%d')
+        date_to = yesterday.strftime('%Y-%m-%d')
+
+    print(f"\n{'='*60}")
+    print(f"[LMS] STRONG FINISH REQUEST")
+    print(f"[LMS]   Date Range: {date_from or '(none)'} -> {date_to or '(none)'} | "
+          f"Supervisor: {supervisor} | Shift: {shift}")
+    print(f"{'='*60}")
+
+    filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+    cube = []
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_filters = executor.submit(get_filter_options)
+        future_cube = executor.submit(get_strongfinish_cube, date_from, date_to)
+        try:
+            filter_options = future_filters.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x Filters error: {e}")
+        try:
+            cube = future_cube.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x Strong Finish Cube error: {type(e).__name__}: {e}")
+
+    print(f"{'='*60}\n")
+
+    return {
+        'cube_json': json.dumps(cube),
+        'filters': {
+            'supervisors': filter_options['supervisors'],
+            'shifts': ['All', 'A', 'B', 'C', 'D'],
+        },
+        'selected': {
+            'supervisor': supervisor,
+            'shift': shift,
+            'date_from': date_from or '',
+            'date_to': date_to or '',
+        },
+    }

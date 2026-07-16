@@ -18,21 +18,15 @@
 <div class="filters-bar">
     <div class="filter-group">
         <label>Shift</label>
-        <select id="filter-shift">
-            <option value="All" selected>All</option>
-        </select>
+        <select id="filter-shift"><option value="All" selected>All</option></select>
     </div>
     <div class="filter-group">
         <label>Supervisor</label>
-        <select id="filter-supervisor">
-            <option value="All" selected>All</option>
-        </select>
+        <select id="filter-supervisor"><option value="All" selected>All</option></select>
     </div>
     <div class="filter-group">
         <label>Date</label>
-        <select id="filter-date">
-            <option value="All" selected>All Dates</option>
-        </select>
+        <select id="filter-date"><option value="All" selected>All Dates</option></select>
     </div>
     <div class="filter-group">
         <label>Employee</label>
@@ -51,12 +45,8 @@
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
             Export
         </button>
-        <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">
-            &#8634; Reset Filters
-        </button>
-        <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data">
-            &#8635; Refresh
-        </button>
+        <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">&#8634; Reset Filters</button>
+        <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data">&#8635; Refresh</button>
         <span class="refresh-timer" id="refresh-timer"></span>
     </div>
 </div>
@@ -64,12 +54,7 @@
 <!-- ACTIVE FILTERS BANNER -->
 <div class="active-filters-banner" id="active-filters-banner">
     <span class="banner-icon" id="banner-icon">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="12" height="11" rx="1.5"/>
-            <path d="M2 6.5h12"/>
-            <path d="M5.5 1.5v3"/>
-            <path d="M10.5 1.5v3"/>
-        </svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>
     </span>
     <span class="banner-date-range" id="banner-date-range">Loading...</span>
     <div class="banner-chips" id="banner-chips"></div>
@@ -77,27 +62,18 @@
 
 <!-- KPI + CHARTS ROW -->
 <div class="top-row">
-    <!-- KPI: Total Inactive Hours -->
     <div class="kpi-card sf-kpi">
         <h3>Inactive Hours</h3>
         <div class="skeleton skeleton-value" id="kpi-skel"></div>
         <div class="kpi-value" id="kpi-hours" style="display:none;"></div>
     </div>
-
-    <!-- Chart: Inactive Hours by Shift -->
     <div class="chart-card sf-chart-shift">
         <h3>Inactive Hours by Shift</h3>
-        <div id="chart-shift" class="chart-container">
-            <div class="skeleton skeleton-chart"></div>
-        </div>
+        <div id="chart-shift" class="chart-container"><div class="skeleton skeleton-chart"></div></div>
     </div>
-
-    <!-- Chart: Inactive Hours by Date -->
     <div class="chart-card sf-chart-date">
         <h3>Inactive Hours by Date</h3>
-        <div id="chart-date" class="chart-container">
-            <div class="skeleton skeleton-chart"></div>
-        </div>
+        <div id="chart-date" class="chart-container"><div class="skeleton skeleton-chart"></div></div>
     </div>
 </div>
 
@@ -125,9 +101,6 @@
                 <tr><td colspan="10"><div class="skeleton skeleton-row"></div></td></tr>
                 <tr><td colspan="10"><div class="skeleton skeleton-row"></div></td></tr>
                 <tr><td colspan="10"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="10"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="10"><div class="skeleton skeleton-row"></div></td></tr>
-                <tr><td colspan="10"><div class="skeleton skeleton-row"></div></td></tr>
             </tbody>
         </table>
     </div>
@@ -135,8 +108,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    var CUBE = null;
-</script>
+<script>var CUBE = null;</script>
 <script src="{% static 'dashboard/strongfinish/strongfinish.js' %}?v=1"></script>
 {% endblock %}
