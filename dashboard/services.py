@@ -199,71 +199,64 @@ _FILTER_CACHE_TTL = 3600  # 1 hour
 
 def get_filter_options():
     """Fetch distinct Supervisor, Week, and Process values (cached 1 hour).
-    Runs 3 queries in PARALLEL for speed without the UNION ALL size issue."""
+    Runs 3 sequential queries (simple, no nested threading)."""
     now = time.time()
     if _filter_cache['data'] and (now - _filter_cache['timestamp']) < _FILTER_CACHE_TTL:
         return _filter_cache['data']
 
-    print("[LMS] ─── Loading filter options (3 parallel queries) ───")
+    print("[LMS] ─── Loading filter options (sequential) ───")
     start = time.time()
 
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    sup_query = f"""
-        SELECT DISTINCT [Supervisor Full Name]
-        FROM ({_base_subquery()}) AS LMS
-        {BASE_FILTERS}
-          AND [User Name] IN ({users_str})
-          AND [Supervisor Full Name] IS NOT NULL
-          AND [Supervisor Full Name] != ''
-        ORDER BY [Supervisor Full Name]
-    """
-    week_query = f"""
-        SELECT DISTINCT [Fiscal Week]
-        FROM ({_base_subquery()}) AS LMS
-        {BASE_FILTERS}
-          AND [User Name] IN ({users_str})
-          AND [Fiscal Week] IS NOT NULL
-          AND [Fiscal Week] != ''
-        ORDER BY [Fiscal Week] DESC
-    """
-    process_query = f"""
-        SELECT DISTINCT [Process]
-        FROM ({_base_subquery()}) AS LMS
-        {BASE_FILTERS}
-          AND [User Name] IN ({users_str})
-          AND [Process] IS NOT NULL
-          AND [Process] != ''
-        ORDER BY [Process]
-    """
-
-    # Run all 3 in parallel (saves ~14s vs sequential)
     supervisors = ['All']
     weeks = ['All']
     processes = ['All']
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        f_sup = executor.submit(run_query, sup_query)
-        f_week = executor.submit(run_query, week_query)
-        f_proc = executor.submit(run_query, process_query)
-        try:
-            df_sup = f_sup.result(timeout=30)
-            supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
-        except Exception as e:
-            print(f"[LMS]   ✗ Supervisor query failed: {e}")
-        try:
-            df_week = f_week.result(timeout=30)
-            weeks = ['All'] + df_week['Fiscal Week'].tolist()
-        except Exception as e:
-            print(f"[LMS]   ✗ Week query failed: {e}")
-        try:
-            df_proc = f_proc.result(timeout=30)
-            processes = ['All'] + df_proc['Process'].tolist()
-        except Exception as e:
-            print(f"[LMS]   ✗ Process query failed: {e}")
+
+    try:
+        df_sup = run_query(f"""
+            SELECT DISTINCT [Supervisor Full Name]
+            FROM ({_base_subquery()}) AS LMS
+            {BASE_FILTERS}
+              AND [User Name] IN ({users_str})
+              AND [Supervisor Full Name] IS NOT NULL
+              AND [Supervisor Full Name] != ''
+            ORDER BY [Supervisor Full Name]
+        """)
+        supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
+    except Exception as e:
+        print(f"[LMS]   ✗ Supervisor query failed: {e}")
+
+    try:
+        df_week = run_query(f"""
+            SELECT DISTINCT [Fiscal Week]
+            FROM ({_base_subquery()}) AS LMS
+            {BASE_FILTERS}
+              AND [User Name] IN ({users_str})
+              AND [Fiscal Week] IS NOT NULL
+              AND [Fiscal Week] != ''
+            ORDER BY [Fiscal Week] DESC
+        """)
+        weeks = ['All'] + df_week['Fiscal Week'].tolist()
+    except Exception as e:
+        print(f"[LMS]   ✗ Week query failed: {e}")
+
+    try:
+        df_proc = run_query(f"""
+            SELECT DISTINCT [Process]
+            FROM ({_base_subquery()}) AS LMS
+            {BASE_FILTERS}
+              AND [User Name] IN ({users_str})
+              AND [Process] IS NOT NULL
+              AND [Process] != ''
+            ORDER BY [Process]
+        """)
+        processes = ['All'] + df_proc['Process'].tolist()
+    except Exception as e:
+        print(f"[LMS]   ✗ Process query failed: {e}")
 
     result = {'supervisors': supervisors, 'weeks': weeks, 'processes': processes}
-    # Only cache if we got real data (not just defaults)
     if len(supervisors) > 1 or len(weeks) > 1 or len(processes) > 1:
         _filter_cache['data'] = result
         _filter_cache['timestamp'] = time.time()
@@ -774,7 +767,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
                 ELSE ''
             END AS [clock_in_time],
             SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day,
-            CONVERT(VARCHAR(8), MIN(TRY_CAST([Time] AS TIME)), 108) AS [first_scan_time]
+            CONVERT(VARCHAR(8), MIN(CAST([Time] AS TIME)), 108) AS [first_scan_time]
         FROM ({_base_subquery()}) AS LMS
         {where}
         GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),

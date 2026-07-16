@@ -391,7 +391,7 @@ document.getElementById('btn-reset').addEventListener('click', function() {
 document.getElementById('btn-refresh').addEventListener('click', function() {
     showLoading();
     try {
-        sessionStorage.removeItem('lms_strongfinish_cache');
+        sessionStorage.removeItem(CACHE_KEY);
         sessionStorage.removeItem('lms_filters_cache');
         sessionStorage.removeItem(TIMER_KEY);
     } catch(e) {}
