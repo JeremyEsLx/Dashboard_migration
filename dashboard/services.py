@@ -902,15 +902,15 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             ISNULL([Previous Process], '') AS [previous_process],
             [SHIFT2] AS [shift],
             ISNULL([Process], '') AS [process],
-            LTRIM(RIGHT(CONVERT(VARCHAR(22), TRY_CAST([Previous Scan Day] AS DATETIME), 22), 11)) AS [scan_time],
-            CONVERT(VARCHAR(12), TRY_CAST([Time] AS TIME), 100) AS [clock_out_time],
+            CAST([Previous Scan Time] AS VARCHAR(30)) AS [scan_time],
+            CAST([Previous Scan Day] AS VARCHAR(30)) AS [clock_out_time],
             SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day
         FROM ({_base_subquery()}) AS LMS
         {where}
         GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
                  [User Name], [Full Name], [Supervisor Full Name],
                  [Previous Process], [Process], [SHIFT2],
-                 [Previous Scan Day], TRY_CAST([Time] AS TIME)
+                 [Previous Scan Time], [Previous Scan Day]
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
@@ -920,6 +920,32 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
     if df.empty:
         print(f"[LMS]   x No data returned ({elapsed:.2f}s)")
         return []
+
+    def _fmt_time_12h(val):
+        """Convert raw time value (e.g. '18:01:00' or '1900-01-01 17:48:02') to '5:48:02 PM' format."""
+        if not val or str(val).strip() == '':
+            return ''
+        s = str(val).strip()
+        # If it contains a date portion, take only the time part
+        if ' ' in s and '-' in s.split(' ')[0]:
+            s = s.split(' ', 1)[1]  # '1900-01-01 17:48:02' → '17:48:02'
+        # Remove fractional seconds
+        if '.' in s:
+            s = s.split('.')[0]
+        # Check if already has AM/PM
+        if 'AM' in s.upper() or 'PM' in s.upper():
+            return s
+        # Parse HH:MM:SS and convert to 12-hour
+        try:
+            parts = s.split(':')
+            h = int(parts[0])
+            m = int(parts[1]) if len(parts) > 1 else 0
+            sec = int(parts[2]) if len(parts) > 2 else 0
+            period = 'AM' if h < 12 else 'PM'
+            h12 = h % 12 or 12
+            return f'{h12}:{m:02d}:{sec:02d} {period}'
+        except Exception:
+            return s
 
     cube = []
     for _, row in df.iterrows():
@@ -931,8 +957,8 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             'pp': row['previous_process'] or '',
             'sh': row['shift'] or '',
             'pr': row['process'] or '',
-            'st': row['scan_time'] or '',
-            'cot': row['clock_out_time'] or '',
+            'st': _fmt_time_12h(row['scan_time']),
+            'cot': _fmt_time_12h(row['clock_out_time']),
             'ld': round(float(row['sum_line_day'] or 0), 4),
         })
 
@@ -1073,6 +1099,32 @@ def get_strongfinish_cube(date_from=None, date_to=None):
         print(f"[LMS]   x No data returned ({elapsed:.2f}s)")
         return []
 
+    def _fmt_time_12h(val):
+        """Convert raw time value (e.g. '18:01:00' or '1900-01-01 17:48:02') to '5:48:02 PM' format."""
+        if not val or str(val).strip() == '':
+            return ''
+        s = str(val).strip()
+        # If it contains a date portion, take only the time part
+        if ' ' in s and '-' in s.split(' ')[0]:
+            s = s.split(' ', 1)[1]  # '1900-01-01 17:48:02' → '17:48:02'
+        # Remove fractional seconds
+        if '.' in s:
+            s = s.split('.')[0]
+        # Check if already has AM/PM
+        if 'AM' in s.upper() or 'PM' in s.upper():
+            return s
+        # Parse HH:MM:SS and convert to 12-hour
+        try:
+            parts = s.split(':')
+            h = int(parts[0])
+            m = int(parts[1]) if len(parts) > 1 else 0
+            sec = int(parts[2]) if len(parts) > 2 else 0
+            period = 'AM' if h < 12 else 'PM'
+            h12 = h % 12 or 12
+            return f'{h12}:{m:02d}:{sec:02d} {period}'
+        except Exception:
+            return s
+
     cube = []
     for _, row in df.iterrows():
         cube.append({
@@ -1083,8 +1135,8 @@ def get_strongfinish_cube(date_from=None, date_to=None):
             'pp': row['previous_process'] or '',
             'sh': row['shift'] or '',
             'pr': row['process'] or '',
-            'st': row['scan_time'] or '',
-            'cot': row['clock_out_time'] or '',
+            'st': _fmt_time_12h(row['scan_time']),
+            'cot': _fmt_time_12h(row['clock_out_time']),
             'ld': round(float(row['sum_line_day'] or 0), 4),
         })
 
