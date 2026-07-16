@@ -902,7 +902,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             ISNULL([Previous Process], '') AS [previous_process],
             [SHIFT2] AS [shift],
             ISNULL([Process], '') AS [process],
-            CONVERT(VARCHAR(12), TRY_CAST([Start Time] AS TIME), 100) AS [scan_time],
+            CONVERT(VARCHAR(12), TRY_CAST([Previous Scan Time] AS TIME), 100) AS [scan_time],
             CONVERT(VARCHAR(12), TRY_CAST([Time] AS TIME), 100) AS [clock_out_time],
             SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day
         FROM ({_base_subquery()}) AS LMS
@@ -910,7 +910,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
         GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
                  [User Name], [Full Name], [Supervisor Full Name],
                  [Previous Process], [Process], [SHIFT2],
-                 TRY_CAST([Start Time] AS TIME), TRY_CAST([Time] AS TIME)
+                 TRY_CAST([Previous Scan Time] AS TIME), TRY_CAST([Time] AS TIME)
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
