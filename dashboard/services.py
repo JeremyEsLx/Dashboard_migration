@@ -13,6 +13,13 @@ for instant responsiveness. Only Date/Week changes trigger a server round-trip.
 
 Date vs Week: MUTUALLY EXCLUSIVE (Summary page).
 Performance page uses DATE RANGE (date_from, date_to) OR week.
+
+Optimizations applied:
+- Connection pooling (reuses connections instead of creating per query)
+- WITH (NOLOCK) on all reads (avoids lock waits)
+- Combined filter queries (1 round-trip instead of 3)
+- Parallel execution (filters + cube run simultaneously)
+- TTL cache for filter options (1 hour, not just per-restart)
 """
 import json
 import pyodbc
@@ -20,16 +27,22 @@ import pandas as pd
 from django.conf import settings
 from datetime import date, timedelta
 from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import threading
 
 
 # ============================================================
-# DATABASE CONNECTION
+# DATABASE CONNECTION POOL
 # ============================================================
 
-def get_connection():
-    """Connect to SQL Server (cross-database queries work on same instance)."""
-    conn_str = (
+_pool_lock = threading.Lock()
+_connection_pool = []
+_POOL_MAX_SIZE = 4
+
+
+def _build_conn_str():
+    return (
         f"DRIVER={settings.SQL_DRIVER};"
         f"SERVER={settings.SQL_SERVER};"
         f"DATABASE={settings.SQL_DATABASE};"
@@ -37,20 +50,54 @@ def get_connection():
         f"PWD={settings.SQL_PASSWORD};"
         f"TrustServerCertificate=yes;"
     )
-    return pyodbc.connect(conn_str)
+
+
+def get_connection():
+    """Get a connection from the pool (or create one if pool is empty)."""
+    with _pool_lock:
+        if _connection_pool:
+            conn = _connection_pool.pop()
+            try:
+                # Test if connection is still alive
+                conn.execute('SELECT 1')
+                return conn
+            except Exception:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+    # Create new connection
+    return pyodbc.connect(_build_conn_str())
+
+
+def _return_connection(conn):
+    """Return a connection to the pool for reuse."""
+    with _pool_lock:
+        if len(_connection_pool) < _POOL_MAX_SIZE:
+            _connection_pool.append(conn)
+        else:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def run_query(query: str) -> pd.DataFrame:
-    """Execute a SQL query and return results as a DataFrame."""
+    """Execute a SQL query and return results as a DataFrame (pooled connection)."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute(query)
         columns = [desc[0] for desc in cursor.description]
         rows = cursor.fetchall()
+        _return_connection(conn)
         return pd.DataFrame.from_records(rows, columns=columns)
-    finally:
-        conn.close()
+    except Exception:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        raise
 
 
 # ============================================================
@@ -78,7 +125,7 @@ def get_direct_users() -> set:
     roles_str = ", ".join(f"'{r}'" for r in DIRECT_ROLES)
     query = f"""
         SELECT ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50))) AS [User]
-        FROM [Business_Intelligence].[dbo].[MX03_Roster]
+        FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
         WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
           AND [Estacion_de_Trabajo] IN ({roles_str})
     """
@@ -113,7 +160,7 @@ def _base_subquery():
                 WHEN [Shift] = 'Turno D - Produccion' THEN 'D'
                 ELSE 'NO SHIFT MAPPED'
             END AS [SHIFT2]
-        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03]
+        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
     """
 
 
@@ -143,58 +190,71 @@ def _build_date_range_where(date_from=None, date_to=None, week=None):
 
 
 # ============================================================
-# FILTER OPTIONS (populate dropdowns — cached)
+# FILTER OPTIONS (populate dropdowns — TTL cached 1 hour)
 # ============================================================
 
-@lru_cache(maxsize=1)
+_filter_cache = {'data': None, 'timestamp': 0}
+_FILTER_CACHE_TTL = 3600  # 1 hour
+
+
 def get_filter_options():
-    """Fetch distinct Supervisor, Week, and Process values for filter dropdowns."""
-    print("[LMS] ─── Loading filter options ───")
+    """Fetch distinct Supervisor, Week, and Process values (cached 1 hour).
+    Uses a SINGLE combined query instead of 3 sequential ones."""
+    now = time.time()
+    if _filter_cache['data'] and (now - _filter_cache['timestamp']) < _FILTER_CACHE_TTL:
+        return _filter_cache['data']
+
+    print("[LMS] ─── Loading filter options (combined query) ───")
     start = time.time()
 
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    sup_query = f"""
-        SELECT DISTINCT [Supervisor Full Name]
+    # Single query with 3 result sets via UNION-style approach
+    combined_query = f"""
+        SELECT 'SUP' AS _type, [Supervisor Full Name] AS _val
         FROM ({_base_subquery()}) AS LMS
         {BASE_FILTERS}
           AND [User Name] IN ({users_str})
           AND [Supervisor Full Name] IS NOT NULL
           AND [Supervisor Full Name] != ''
-        ORDER BY [Supervisor Full Name]
-    """
-    week_query = f"""
-        SELECT DISTINCT [Fiscal Week]
+        GROUP BY [Supervisor Full Name]
+
+        UNION ALL
+
+        SELECT 'WEEK' AS _type, [Fiscal Week] AS _val
         FROM ({_base_subquery()}) AS LMS
         {BASE_FILTERS}
           AND [User Name] IN ({users_str})
           AND [Fiscal Week] IS NOT NULL
           AND [Fiscal Week] != ''
-        ORDER BY [Fiscal Week] DESC
-    """
-    process_query = f"""
-        SELECT DISTINCT [Process]
+        GROUP BY [Fiscal Week]
+
+        UNION ALL
+
+        SELECT 'PROC' AS _type, [Process] AS _val
         FROM ({_base_subquery()}) AS LMS
         {BASE_FILTERS}
           AND [User Name] IN ({users_str})
           AND [Process] IS NOT NULL
           AND [Process] != ''
-        ORDER BY [Process]
+        GROUP BY [Process]
     """
 
-    df_sup = run_query(sup_query)
-    df_week = run_query(week_query)
-    df_proc = run_query(process_query)
+    df = run_query(combined_query)
 
-    supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
-    weeks = ['All'] + df_week['Fiscal Week'].tolist()
-    processes = ['All'] + df_proc['Process'].tolist()
+    supervisors = ['All'] + sorted(df[df['_type'] == 'SUP']['_val'].tolist())
+    weeks = ['All'] + sorted(df[df['_type'] == 'WEEK']['_val'].tolist(), reverse=True)
+    processes = ['All'] + sorted(df[df['_type'] == 'PROC']['_val'].tolist())
+
+    result = {'supervisors': supervisors, 'weeks': weeks, 'processes': processes}
+    _filter_cache['data'] = result
+    _filter_cache['timestamp'] = time.time()
 
     elapsed = time.time() - start
     print(f"[LMS]   ✓ {len(supervisors)-1} supervisors, {len(weeks)-1} weeks, "
           f"{len(processes)-1} processes ({elapsed:.2f}s)")
-    return {'supervisors': supervisors, 'weeks': weeks, 'processes': processes}
+    return result
 
 
 # ============================================================
@@ -340,17 +400,20 @@ def get_summary_data(supervisor='All', week='All', shift='All', date_filter=None
           f"Supervisor: {supervisor} | Shift: {shift}")
     print(f"{'='*60}")
 
-    try:
-        filter_options = get_filter_options()
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
-        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
-
-    try:
-        cube = get_day_cube(date_filter, effective_week)
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (Cube): {e}")
-        cube = []
+    # Run filter options and cube query in PARALLEL
+    filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+    cube = []
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_filters = executor.submit(get_filter_options)
+        future_cube = executor.submit(get_day_cube, date_filter, effective_week)
+        try:
+            filter_options = future_filters.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
+        try:
+            cube = future_cube.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   ✗ SQL Server error (Cube): {e}")
 
     computed = compute_from_cube(cube, supervisor, shift)
 
@@ -526,23 +589,26 @@ def get_performance_data(supervisor='All', week='All', process='All',
           f"Process: {process} | Shift: {shift}")
     print(f"{'='*60}")
 
-    try:
-        filter_options = get_filter_options()
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
-        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
-
-    try:
-        cube = get_performance_cube(date_from, date_to, effective_week)
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (Performance Cube): {e}")
-        cube = []
-
-    try:
-        user_cube = get_user_cube(date_from, date_to, effective_week)
-    except Exception as e:
-        print(f"[LMS]   ✗ SQL Server error (User Cube): {e}")
-        user_cube = []
+    # Run ALL 3 queries in PARALLEL (filters + process cube + user cube)
+    filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+    cube = []
+    user_cube = []
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_filters = executor.submit(get_filter_options)
+        future_cube = executor.submit(get_performance_cube, date_from, date_to, effective_week)
+        future_users = executor.submit(get_user_cube, date_from, date_to, effective_week)
+        try:
+            filter_options = future_filters.result(timeout=45)
+        except Exception as e:
+            print(f"[LMS]   ✗ SQL Server error (Filters): {e}")
+        try:
+            cube = future_cube.result(timeout=45)
+        except Exception as e:
+            print(f"[LMS]   ✗ SQL Server error (Performance Cube): {e}")
+        try:
+            user_cube = future_users.result(timeout=45)
+        except Exception as e:
+            print(f"[LMS]   ✗ SQL Server error (User Cube): {e}")
 
     print(f"{'='*60}\n")
 
@@ -599,17 +665,20 @@ def get_process_data(week='All', process='All', shift='All',
           f"Week: {effective_week} | Process: {process} | Shift: {shift}")
     print(f"{'='*60}")
 
-    try:
-        filter_options = get_filter_options()
-    except Exception as e:
-        print(f"[LMS]   x SQL Server error (Filters): {e}")
-        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
-
-    try:
-        cube = get_performance_cube(date_from, date_to, effective_week)
-    except Exception as e:
-        print(f"[LMS]   x SQL Server error (Process Cube): {e}")
-        cube = []
+    # Run filter options and cube in PARALLEL
+    filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+    cube = []
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_filters = executor.submit(get_filter_options)
+        future_cube = executor.submit(get_performance_cube, date_from, date_to, effective_week)
+        try:
+            filter_options = future_filters.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x SQL Server error (Filters): {e}")
+        try:
+            cube = future_cube.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x SQL Server error (Process Cube): {e}")
 
     print(f"{'='*60}\n")
 
@@ -731,17 +800,20 @@ def get_strongstart_data(supervisor='All', shift='All',
           f"Supervisor: {supervisor} | Shift: {shift}")
     print(f"{'='*60}")
 
-    try:
-        filter_options = get_filter_options()
-    except Exception as e:
-        print(f"[LMS]   x SQL Server error (Filters): {e}")
-        filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
-
-    try:
-        cube = get_strongstart_cube(date_from, date_to)
-    except Exception as e:
-        print(f"[LMS]   x SQL Server error (Strong Start Cube): {e}")
-        cube = []
+    # Run filter options and cube in PARALLEL
+    filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+    cube = []
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_filters = executor.submit(get_filter_options)
+        future_cube = executor.submit(get_strongstart_cube, date_from, date_to)
+        try:
+            filter_options = future_filters.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x SQL Server error (Filters): {e}")
+        try:
+            cube = future_cube.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x SQL Server error (Strong Start Cube): {e}")
 
     print(f"{'='*60}\n")
 

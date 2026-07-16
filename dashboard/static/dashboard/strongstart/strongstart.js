@@ -405,7 +405,7 @@ setInterval(updateTimer, 1000);
 // ================================================================
 var CACHE_KEY = 'lms_strongstart_cache';
 var FILTER_CACHE_KEY = 'lms_filters_cache';
-var CACHE_MAX_AGE = 15 * 60 * 1000;
+var CACHE_MAX_AGE = 30 * 60 * 1000; // 30min (historical data, rarely changes)
 
 function populateDropdown(id, opts, sel) {
     var el = document.getElementById(id);
