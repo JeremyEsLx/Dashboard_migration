@@ -412,22 +412,22 @@ var timerEl = document.getElementById('refresh-timer');
 var timerStart;
 
 function preserveTimer() {
-    sessionStorage.setItem('lms_timer_start', timerStart.toString());
+    sessionStorage.setItem('lms_timer_summary', timerStart.toString());
 }
 
 function initTimer() {
-    var stored = sessionStorage.getItem('lms_timer_start');
+    var stored = sessionStorage.getItem('lms_timer_summary');
     if (stored) {
         timerStart = parseInt(stored, 10);
         var elapsed = Math.floor((Date.now() - timerStart) / 1000);
         if (elapsed >= REFRESH_INTERVAL) {
-            sessionStorage.removeItem('lms_timer_start');
+            sessionStorage.removeItem('lms_timer_summary');
             window.location.reload();
             return;
         }
     } else {
         timerStart = Date.now();
-        sessionStorage.setItem('lms_timer_start', timerStart.toString());
+        sessionStorage.setItem('lms_timer_summary', timerStart.toString());
     }
 }
 
@@ -445,7 +445,7 @@ function updateTimerDisplay() {
 
 function tickTimer() {
     if (getSecondsLeft() <= 0) {
-        sessionStorage.removeItem('lms_timer_start');
+        sessionStorage.removeItem('lms_timer_summary');
         window.location.reload();
     } else {
         updateTimerDisplay();
@@ -469,7 +469,7 @@ document.getElementById('btn-reset').addEventListener('click', function() {
 
 document.getElementById('btn-refresh').addEventListener('click', function() {
     showLoading();
-    sessionStorage.removeItem('lms_timer_start');
+    sessionStorage.removeItem('lms_timer_summary');
     sessionStorage.removeItem(CACHE_KEY);
     sessionStorage.removeItem(FILTER_CACHE_KEY);
     window.location.reload();

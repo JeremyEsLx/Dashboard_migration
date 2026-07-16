@@ -423,6 +423,7 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
     try {
         sessionStorage.removeItem('lms_process_cache');
         sessionStorage.removeItem('lms_filters_cache');
+        sessionStorage.removeItem(TIMER_KEY);
     } catch(e) {}
     window.location.reload();
 });
@@ -433,11 +434,38 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 // ================================================================
 var REFRESH_INTERVAL = 15 * 60;
 var timerEl = document.getElementById('refresh-timer');
-var timerStart = Date.now();
+var TIMER_KEY = 'lms_timer_process';
+
+// Persist timer across page navigations — only resets on explicit Refresh
+function getTimerStart() {
+    try {
+        var stored = sessionStorage.getItem(TIMER_KEY);
+        if (stored) {
+            var ts = parseInt(stored, 10);
+            var elapsed = Math.floor((Date.now() - ts) / 1000);
+            if (elapsed >= REFRESH_INTERVAL) {
+                // Timer expired while away — refresh now
+                sessionStorage.setItem(TIMER_KEY, String(Date.now()));
+                window.location.reload();
+                return Date.now();
+            }
+            return ts;
+        }
+    } catch(e) {}
+    // First visit or storage cleared — start fresh
+    var now = Date.now();
+    try { sessionStorage.setItem(TIMER_KEY, String(now)); } catch(e) {}
+    return now;
+}
+var timerStart = getTimerStart();
 
 function updateTimer() {
     var left = Math.max(0, REFRESH_INTERVAL - Math.floor((Date.now() - timerStart) / 1000));
-    if (left <= 0) { window.location.reload(); return; }
+    if (left <= 0) {
+        try { sessionStorage.setItem(TIMER_KEY, String(Date.now())); } catch(e) {}
+        window.location.reload();
+        return;
+    }
     var mins = Math.floor(left / 60);
     var secs = left % 60;
     timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
