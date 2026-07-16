@@ -10,4 +10,6 @@ urlpatterns = [
     path('api/process/', views.process_performance_data, name='process_performance_data'),
     path('strongstart/', views.strongstart, name='strongstart'),
     path('api/strongstart/', views.strongstart_data, name='strongstart_data'),
+    path('strongfinish/', views.strongfinish, name='strongfinish'),
+    path('api/strongfinish/', views.strongfinish_data, name='strongfinish_data'),
 ]
