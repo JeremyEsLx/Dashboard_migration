@@ -17,20 +17,18 @@
 // ================================================================
 
 function getProductivityClass(pct) {
-    // Power BI rules: 0-<1% green, 1-<2% yellow, >=2% red
-    if (pct < 0)   return '';               // negative = efficient, no highlight
+    // Power BI rules: low=green, high=red (higher = slower than target)
+    if (pct < 0)   return '';               // negative = efficient, no color
     if (pct < 1)   return 'bg-green-strong'; // 0% to <1% → green
     if (pct < 2)   return 'bg-yellow';       // 1% to <2% → yellow/amber
     return 'bg-red-light';                   // >=2% → red/pink
 }
 
 function getUphPctClass(pct) {
-    // Higher = better (meeting/exceeding target)
-    if (pct >= 140) return 'bg-green-strong';
-    if (pct >= 105) return 'bg-green-light';
-    if (pct >= 80)  return 'bg-yellow';
-    if (pct >= 50)  return 'bg-red-light';
-    return 'bg-red-medium';
+    // Power BI rules: <100%=green (under target), >=100%=red (over target)
+    if (pct < 100)  return 'bg-green-light';  // under target → green
+    if (pct < 200)  return 'bg-red-light';    // 100-199% → light red/pink
+    return 'bg-red-medium';                   // 200%+ → strong red
 }
 
 
