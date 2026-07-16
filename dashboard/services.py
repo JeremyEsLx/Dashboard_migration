@@ -875,8 +875,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
 
     # Custom WHERE clause matching Power BI's Strong Finish filters
     where = """
-    WHERE [Activity Type] = 'DIRECT'
-      AND [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
+    WHERE [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
       AND [Process] = 'CLOCK OUT'
 """
     if date_from and date_to:
@@ -1028,8 +1027,7 @@ def get_strongfinish_cube(date_from=None, date_to=None):
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
     where = """
-    WHERE [Activity Type] = 'DIRECT'
-      AND [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
+    WHERE [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
       AND [Process] = 'CLOCK OUT'
 """
     if date_from and date_to:
