@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data, get_strongfinish_data
+from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data
 
 
 # ============================================================
@@ -116,7 +116,7 @@ def strongstart(request):
 def strongstart_data(request):
     """API: returns strong start cube as JSON."""
     try:
-        data = get_strongstart_data, get_strongfinish_data(
+        data = get_strongstart_data(
             supervisor=request.GET.get('supervisor', 'All'),
             shift=request.GET.get('shift', 'All'),
             date_from=request.GET.get('date_from'),
@@ -151,31 +151,4 @@ def strongfinish_data(request):
         )
         return JsonResponse(data)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-def strongfinish(request):
-    """Render Strong Finish shell (instant, no SQL) — JS hydrates via /api/strongfinish/."""
-    data = {
-        'selected': {
-            'supervisor': request.GET.get('supervisor', 'All'),
-            'shift': request.GET.get('shift', 'All'),
-            'date_from': request.GET.get('date_from', ''),
-            'date_to': request.GET.get('date_to', ''),
-        },
-    }
-    return render(request, 'dashboard/strongfinish.html', {'data': data})
-
-
-def strongfinish_data(request):
-    """API: returns strong finish cube as JSON."""
-    try:
-        data = get_strongfinish_data(
-            supervisor=request.GET.get('supervisor', 'All'),
-            shift=request.GET.get('shift', 'All'),
-            date_from=request.GET.get('date_from'),
-            date_to=request.GET.get('date_to'),
-        )
-        return JsonResponse(data)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': str(e), 'cube_json': '[]'}, status=200)
