@@ -774,7 +774,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
                 ELSE ''
             END AS [clock_in_time],
             SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day,
-            CONVERT(VARCHAR(8), MIN(CAST([Time] AS TIME)), 108) AS [first_scan_time]
+            CONVERT(VARCHAR(8), MIN(TRY_CAST([Time] AS TIME)), 108) AS [first_scan_time]
         FROM ({_base_subquery()}) AS LMS
         {where}
         GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
@@ -840,7 +840,7 @@ def get_strongstart_data(supervisor='All', shift='All',
         try:
             cube = future_cube.result(timeout=30)
         except Exception as e:
-            print(f"[LMS]   x SQL Server error (Strong Start Cube): {e}")
+            print(f"[LMS]   x SQL Server error (Strong Start Cube): {type(e).__name__}: {e}")
 
     print(f"{'='*60}\n")
 
@@ -910,7 +910,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             ISNULL([Previous Process], '') AS [previous_process],
             [SHIFT2] AS [shift],
             ISNULL([Process], '') AS [process],
-            CONVERT(VARCHAR(8), CAST([Time] AS TIME), 108) AS [scan_time],
+            CONVERT(VARCHAR(8), TRY_CAST([Time] AS TIME), 108) AS [scan_time],
             CASE [SHIFT2]
                 WHEN 'A' THEN '6:00:00 AM'
                 WHEN 'B' THEN '6:00:00 PM'
@@ -923,7 +923,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
         {where}
         GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
                  [User Name], [Full Name], [Supervisor Full Name],
-                 [Previous Process], [Process], [SHIFT2], CAST([Time] AS TIME)
+                 [Previous Process], [Process], [SHIFT2], TRY_CAST([Time] AS TIME)
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
@@ -990,7 +990,7 @@ def get_strongfinish_data(supervisor='All', shift='All',
         try:
             cube = future_cube.result(timeout=30)
         except Exception as e:
-            print(f"[LMS]   x SQL Server error (Strong Finish Cube): {e}")
+            print(f"[LMS]   x SQL Server error (Strong Finish Cube): {type(e).__name__}: {e}")
 
     print(f"{'='*60}\n")
 

@@ -478,7 +478,7 @@ setInterval(updateTimer, 1000);
 // ================================================================
 // INIT — Stale-While-Revalidate
 // ================================================================
-var CACHE_KEY = 'lms_strongstart_cache';
+var CACHE_KEY = 'lms_strongstart_cache_v2';
 var FILTER_CACHE_KEY = 'lms_filters_cache';
 var CACHE_MAX_AGE = 30 * 60 * 1000; // 30min (historical data, rarely changes)
 
