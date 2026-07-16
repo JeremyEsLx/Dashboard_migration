@@ -543,16 +543,6 @@ function loadData(skip) {
         .then(function(r) { if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
         .then(function(d) {
             var c = (typeof d.cube_json==='string') ? JSON.parse(d.cube_json) : (d.cube_json||[]);
-            // === DEBUG: Log raw data from API ===
-            console.log('[STRONG FINISH DEBUG] Total rows:', c.length);
-            console.log('[STRONG FINISH DEBUG] First 5 rows (raw):', JSON.stringify(c.slice(0, 5), null, 2));
-            if (c.length > 0) {
-                console.log('[STRONG FINISH DEBUG] Field keys in row:', Object.keys(c[0]));
-                console.table(c.slice(0, 10).map(function(r) {
-                    return { user: r.u, date: r.d, prev_scan_time: r.st, time: r.cot, prev_process: r.pp, shift: r.sh, duration: r.ld };
-                }));
-            }
-            // === END DEBUG ===
             try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({cube:c,filters:d.filters,selected:d.selected,timestamp:Date.now()})); } catch(e) {}
             CUBE = c;
             SELECTED_STATE = d.selected || {};

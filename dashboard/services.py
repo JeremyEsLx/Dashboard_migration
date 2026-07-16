@@ -751,25 +751,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
 
     where += f"  AND [User Name] IN ({users_str})\n"
 
-    # === DEBUG: dump ALL columns for one row to find Previous Scan Time column ===
-    debug_query = f"""
-        SELECT TOP 1 *
-        FROM ({_base_subquery()}) AS LMS
-        WHERE [Process] = 'CLOCK OUT'
-          AND [User Name] = 'ALVAREZGNC'
-          AND CAST([Date] AS DATE) = '2026-07-15'
-    """
-    try:
-        debug_df = run_query(debug_query)
-        if not debug_df.empty:
-            print(f"[LMS DEBUG] === ALL COLUMNS for ALVAREZGNC 2026-07-15 CLOCK OUT ===")
-            for col in debug_df.columns:
-                val = debug_df.iloc[0][col]
-                print(f"[LMS DEBUG]   {col:30s} = {val}")
-            print(f"[LMS DEBUG] === END DEBUG ===")
-    except Exception as e:
-        print(f"[LMS DEBUG] Error: {e}")
-    # === END DEBUG ===
+    print(f"[LMS]   Query version: v3 — [Previous Scan Day] AS scan_time, [Time] AS clock_out_time")
 
     query = f"""
         SELECT
@@ -913,6 +895,8 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
         print(f"[LMS]   Mode: NO DATE FILTER")
 
     where += f"  AND [User Name] IN ({users_str})\n"
+
+    print(f"[LMS]   Query version: v3 — [Previous Scan Day] AS scan_time, [Time] AS clock_out_time")
 
     query = f"""
         SELECT
@@ -1100,6 +1084,8 @@ def get_strongfinish_cube(date_from=None, date_to=None):
         print(f"[LMS]   Mode: NO DATE FILTER")
 
     where += f"  AND [User Name] IN ({users_str})\n"
+
+    print(f"[LMS]   Query version: v3 — [Previous Scan Day] AS scan_time, [Time] AS clock_out_time")
 
     query = f"""
         SELECT
