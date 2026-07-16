@@ -751,7 +751,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
 
     where += f"  AND [User Name] IN ({users_str})\n"
 
-    print(f"[LMS]   Query version: v3 — [Previous Scan Day] AS scan_time, [Time] AS clock_out_time")
+    print(f"[LMS]   Query version: v4 — DATEPART extraction, no CONVERT")
 
     query = f"""
         SELECT
@@ -896,7 +896,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
 
     where += f"  AND [User Name] IN ({users_str})\n"
 
-    print(f"[LMS]   Query version: v3 — [Previous Scan Day] AS scan_time, [Time] AS clock_out_time")
+    print(f"[LMS]   Query version: v4 — DATEPART extraction, no CONVERT")
 
     query = f"""
         SELECT
@@ -907,8 +907,12 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             ISNULL([Previous Process], \'\') AS [previous_process],
             [SHIFT2] AS [shift],
             ISNULL([Process], \'\') AS [process],
-            CONVERT(VARCHAR(30), [Previous Scan Day]) AS [scan_time],
-            CONVERT(VARCHAR(30), [Time]) AS [clock_out_time],
+            CAST(DATEPART(HOUR, [Previous Scan Day]) AS VARCHAR) + ':' +
+                RIGHT('0' + CAST(DATEPART(MINUTE, [Previous Scan Day]) AS VARCHAR), 2) + ':' +
+                RIGHT('0' + CAST(DATEPART(SECOND, [Previous Scan Day]) AS VARCHAR), 2) AS [scan_time],
+            CAST(DATEPART(HOUR, [Time]) AS VARCHAR) + ':' +
+                RIGHT('0' + CAST(DATEPART(MINUTE, [Time]) AS VARCHAR), 2) + ':' +
+                RIGHT('0' + CAST(DATEPART(SECOND, [Time]) AS VARCHAR), 2) AS [clock_out_time],
             CAST([Line Day Activity] AS FLOAT) AS [line_day]
         FROM ({_base_subquery()}) AS LMS
         {where}
@@ -1085,7 +1089,7 @@ def get_strongfinish_cube(date_from=None, date_to=None):
 
     where += f"  AND [User Name] IN ({users_str})\n"
 
-    print(f"[LMS]   Query version: v3 — [Previous Scan Day] AS scan_time, [Time] AS clock_out_time")
+    print(f"[LMS]   Query version: v4 — DATEPART extraction, no CONVERT")
 
     query = f"""
         SELECT
