@@ -7,11 +7,12 @@
  *   3. Bar chart: Inactive Hours by Date
  *   4. Detail table: Date, User Name, Supervisor, Process, Shift, Duration
  *
- * Cube rows: { d, u, s, p, sh, ld }
- *   d=Date, u=User Name, s=Supervisor, p=Process, sh=Shift, ld=Line Day Activity
+ * Cube rows: { d, u, fn, s, p, cit, fst, sh, ld }
+ *   d=Date, u=User Name, fn=Full Name, s=Supervisor, p=Process,
+ *   cit=Clock In Time, fst=First Scan Time, sh=Shift, ld=Line Day Activity
  *   Duration (hrs) = ld / 60
  *
- * Client-side filters: Shift, Supervisor (instant)
+ * Client-side filters: Shift, Supervisor, Date, Employee (instant)
  * Server-side filters: Date Range (reload)
  */
 
@@ -273,6 +274,7 @@ function renderTable(filtered) {
 function renderAll() {
     if (!CUBE) return;
     populateDateDropdown();
+    populateSupervisorFromCube();
     var filtered = filterCube();
     renderKPI(filtered);
     renderShiftChart(filtered);
@@ -319,6 +321,49 @@ function populateDateDropdown() {
         o.value = sorted[i]; o.textContent = sorted[i];
         if (sorted[i] === cur) o.selected = true;
         el.appendChild(o);
+    }
+}
+
+function populateSupervisorFromCube() {
+    if (!CUBE) return;
+    var el = document.getElementById('filter-supervisor');
+    // Only populate from cube if server-side filters didn't load (just "All")
+    if (el.options.length > 1) return;
+    var sups = {};
+    for (var i = 0; i < CUBE.length; i++) {
+        if (CUBE[i].s) sups[CUBE[i].s] = true;
+    }
+    var sorted = Object.keys(sups).sort();
+    if (sorted.length === 0) return;
+    var cur = el.value || 'All';
+    el.innerHTML = '<option value="All">All</option>';
+    for (var i = 0; i < sorted.length; i++) {
+        var o = document.createElement('option');
+        o.value = sorted[i]; o.textContent = sorted[i];
+        if (sorted[i] === cur) o.selected = true;
+        el.appendChild(o);
+    }
+}
+
+function populateSupervisorFromCube() {
+    if (!CUBE) return;
+    var sups = {};
+    for (var i = 0; i < CUBE.length; i++) {
+        if (CUBE[i].s) sups[CUBE[i].s] = true;
+    }
+    var sorted = Object.keys(sups).sort();
+    var el = document.getElementById('filter-supervisor');
+    var cur = el.value || 'All';
+    // Only repopulate if dropdown has just "All" (server filters failed)
+    // or if cube has more supervisors than the dropdown
+    if (el.options.length <= 1 || sorted.length > el.options.length - 1) {
+        el.innerHTML = '<option value="All">All</option>';
+        for (var i = 0; i < sorted.length; i++) {
+            var o = document.createElement('option');
+            o.value = sorted[i]; o.textContent = sorted[i];
+            if (sorted[i] === cur) o.selected = true;
+            el.appendChild(o);
+        }
     }
 }
 
@@ -424,7 +469,9 @@ function populateDropdown(id, opts, sel) {
 function populateFilters(f, s) {
     if (!f) return;
     populateDropdown('filter-shift', f.shifts, s.shift);
-    populateDropdown('filter-supervisor', f.supervisors, s.supervisor);
+    if (f.supervisors && f.supervisors.length > 1) {
+        populateDropdown('filter-supervisor', f.supervisors, s.supervisor);
+    }
     try { sessionStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(f)); } catch(e) {}
 }
 function getCachedData() {
