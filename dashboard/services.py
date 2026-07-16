@@ -784,6 +784,24 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
         print(f"[LMS]   x No data returned ({elapsed:.2f}s)")
         return []
 
+    def _to_12h(val):
+        """Convert 24-hour time string (e.g. '18:07:14') to '6:07:14 PM'."""
+        if not val or str(val).strip() == '':
+            return ''
+        s = str(val).strip()
+        if 'AM' in s.upper() or 'PM' in s.upper():
+            return s
+        try:
+            parts = s.split(':')
+            h = int(parts[0])
+            m = int(parts[1]) if len(parts) > 1 else 0
+            sec = int(parts[2].split('.')[0]) if len(parts) > 2 else 0
+            period = 'AM' if h < 12 else 'PM'
+            h12 = h % 12 or 12
+            return f'{h12}:{m:02d}:{sec:02d} {period}'
+        except Exception:
+            return s
+
     cube = []
     for _, row in df.iterrows():
         cube.append({
@@ -793,7 +811,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
             's': row['supervisor'] or '',
             'p': row['process'] or '',
             'cit': row['clock_in_time'] or '',
-            'fst': row['first_scan_time'] or '',
+            'fst': _to_12h(row['first_scan_time']),
             'sh': row['shift'] or '',
             'ld': round(float(row['sum_line_day'] or 0), 4),
         })
