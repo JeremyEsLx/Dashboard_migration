@@ -857,36 +857,37 @@ def get_strongstart_data(supervisor='All', shift='All',
 # ============================================================
 
 def get_strongfinish_cube(date_from=None, date_to=None, week=None):
-    """Query at user/date granularity for Strong Finish page.
-    
-    Power BI filters for this page:
-      - Activity Type = 'DIRECT'
-      - Employee Type = DIRECT (via roster join)
+    """Query Strong Finish detail rows (no aggregation — matches Power BI detail table).
+
+    Power BI filters:
       - Previous Process NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
-      - Process = 'CLOCK OUT' (last activity before clocking out)
-    
-    NOTE: Does NOT use BASE_FILTERS (different filter logic).
+      - Process = 'CLOCK OUT'
+      - Employee Type = DIRECT (via roster join → User Name IN)
+
+    Columns from LMS table:
+      [Previous Scan Day] → "Previous Scan time" (datetime of last productive scan)
+      [Time] → "Time" (datetime of actual clock-out)
+      Duration = [Line Day Activity] / 60
     """
     print(f"[LMS] ─── Loading Strong Finish Cube ───")
     start = time.time()
 
     direct_users = get_direct_users()
-    users_str = ", ".join(f"'{u}'" for u in direct_users)
+    users_str = ", ".join(f"\'{u}\'" for u in direct_users)
 
-    # Custom WHERE clause matching Power BI's Strong Finish filters
     where = """
     WHERE [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
       AND [Process] = 'CLOCK OUT'
 """
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += f"  AND CAST([Date] AS DATE) >= \'{date_from}\'\n"
+        where += f"  AND CAST([Date] AS DATE) <= \'{date_to}\'\n"
         print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += f"  AND CAST([Date] AS DATE) >= \'{date_from}\'\n"
         print(f"[LMS]   Mode: DATE FROM = {date_from}")
     elif date_to:
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += f"  AND CAST([Date] AS DATE) <= \'{date_to}\'\n"
         print(f"[LMS]   Mode: DATE TO = {date_to}")
     else:
         print(f"[LMS]   Mode: NO DATE FILTER")
@@ -899,18 +900,14 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             [User Name] AS [user_name],
             ISNULL([Full Name], [User Name]) AS [full_name],
             [Supervisor Full Name] AS [supervisor],
-            ISNULL([Previous Process], '') AS [previous_process],
+            ISNULL([Previous Process], \'\') AS [previous_process],
             [SHIFT2] AS [shift],
-            ISNULL([Process], '') AS [process],
-            CAST([Previous Scan Time] AS VARCHAR(30)) AS [scan_time],
-            CAST([Previous Scan Day] AS VARCHAR(30)) AS [clock_out_time],
-            SUM(CAST([Line Day Activity] AS FLOAT)) AS sum_line_day
+            ISNULL([Process], \'\') AS [process],
+            CONVERT(VARCHAR(30), [Previous Scan Day]) AS [scan_time],
+            CONVERT(VARCHAR(30), [Time]) AS [clock_out_time],
+            CAST([Line Day Activity] AS FLOAT) AS [line_day]
         FROM ({_base_subquery()}) AS LMS
         {where}
-        GROUP BY CAST([Date] AS DATE), CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23),
-                 [User Name], [Full Name], [Supervisor Full Name],
-                 [Previous Process], [Process], [SHIFT2],
-                 [Previous Scan Time], [Previous Scan Day]
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
@@ -922,20 +919,38 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
         return []
 
     def _fmt_time_12h(val):
-        """Convert raw time value (e.g. '18:01:00' or '1900-01-01 17:48:02') to '5:48:02 PM' format."""
+        """Convert raw time/datetime value to 'h:mm:ss AM/PM' format."""
         if not val or str(val).strip() == '':
             return ''
         s = str(val).strip()
-        # If it contains a date portion, take only the time part
-        if ' ' in s and '-' in s.split(' ')[0]:
-            s = s.split(' ', 1)[1]  # '1900-01-01 17:48:02' → '17:48:02'
+        # If it contains a date portion (e.g. 'Jul 13 2026  5:48PM' or '2026-07-13 17:48:02')
+        # Extract time part
+        if len(s) > 12:
+            # Try common SQL Server default format: 'Mon dd yyyy hh:mmAM' or 'Mon dd yyyy  h:mm:ssPM'
+            # or ISO format: '2026-07-13 17:48:02.000'
+            if '-' in s[:10]:
+                # ISO format: take after the space
+                parts = s.split(' ')
+                if len(parts) >= 2:
+                    s = ' '.join(parts[1:])
+            else:
+                # SQL Server default: 'Jul 13 2026  5:48PM' — time is after year
+                # Find the time portion (after the year and spaces)
+                import re as _re
+                m = _re.search(r'(\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*[AP]M)', s, _re.IGNORECASE)
+                if m:
+                    return m.group(1).strip()
+                # Try: everything after last double-space or after 4-digit year
+                m2 = _re.search(r'\d{4}\s+(.*)', s)
+                if m2:
+                    s = m2.group(1).strip()
         # Remove fractional seconds
         if '.' in s:
             s = s.split('.')[0]
-        # Check if already has AM/PM
+        # If already has AM/PM, return as-is
         if 'AM' in s.upper() or 'PM' in s.upper():
-            return s
-        # Parse HH:MM:SS and convert to 12-hour
+            return s.strip()
+        # Parse HH:MM:SS (24-hour) and convert to 12-hour
         try:
             parts = s.split(':')
             h = int(parts[0])
@@ -959,10 +974,10 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             'pr': row['process'] or '',
             'st': _fmt_time_12h(row['scan_time']),
             'cot': _fmt_time_12h(row['clock_out_time']),
-            'ld': round(float(row['sum_line_day'] or 0), 4),
+            'ld': round(float(row['line_day'] or 0), 4),
         })
 
-    print(f"[LMS]   Done {len(cube)} rows in strong finish cube ({elapsed:.2f}s)")
+    print(f"[LMS]   ✓ {len(cube)} rows in strong finish cube ({elapsed:.2f}s)")
     return cube
 
 
