@@ -199,57 +199,74 @@ _FILTER_CACHE_TTL = 3600  # 1 hour
 
 def get_filter_options():
     """Fetch distinct Supervisor, Week, and Process values (cached 1 hour).
-    Uses a SINGLE combined query instead of 3 sequential ones."""
+    Runs 3 queries in PARALLEL for speed without the UNION ALL size issue."""
     now = time.time()
     if _filter_cache['data'] and (now - _filter_cache['timestamp']) < _FILTER_CACHE_TTL:
         return _filter_cache['data']
 
-    print("[LMS] ─── Loading filter options (combined query) ───")
+    print("[LMS] ─── Loading filter options (3 parallel queries) ───")
     start = time.time()
 
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    # Single query with 3 result sets via UNION-style approach
-    combined_query = f"""
-        SELECT 'SUP' AS _type, [Supervisor Full Name] AS _val
+    sup_query = f"""
+        SELECT DISTINCT [Supervisor Full Name]
         FROM ({_base_subquery()}) AS LMS
         {BASE_FILTERS}
           AND [User Name] IN ({users_str})
           AND [Supervisor Full Name] IS NOT NULL
           AND [Supervisor Full Name] != ''
-        GROUP BY [Supervisor Full Name]
-
-        UNION ALL
-
-        SELECT 'WEEK' AS _type, [Fiscal Week] AS _val
+        ORDER BY [Supervisor Full Name]
+    """
+    week_query = f"""
+        SELECT DISTINCT [Fiscal Week]
         FROM ({_base_subquery()}) AS LMS
         {BASE_FILTERS}
           AND [User Name] IN ({users_str})
           AND [Fiscal Week] IS NOT NULL
           AND [Fiscal Week] != ''
-        GROUP BY [Fiscal Week]
-
-        UNION ALL
-
-        SELECT 'PROC' AS _type, [Process] AS _val
+        ORDER BY [Fiscal Week] DESC
+    """
+    process_query = f"""
+        SELECT DISTINCT [Process]
         FROM ({_base_subquery()}) AS LMS
         {BASE_FILTERS}
           AND [User Name] IN ({users_str})
           AND [Process] IS NOT NULL
           AND [Process] != ''
-        GROUP BY [Process]
+        ORDER BY [Process]
     """
 
-    df = run_query(combined_query)
-
-    supervisors = ['All'] + sorted(df[df['_type'] == 'SUP']['_val'].tolist())
-    weeks = ['All'] + sorted(df[df['_type'] == 'WEEK']['_val'].tolist(), reverse=True)
-    processes = ['All'] + sorted(df[df['_type'] == 'PROC']['_val'].tolist())
+    # Run all 3 in parallel (saves ~14s vs sequential)
+    supervisors = ['All']
+    weeks = ['All']
+    processes = ['All']
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        f_sup = executor.submit(run_query, sup_query)
+        f_week = executor.submit(run_query, week_query)
+        f_proc = executor.submit(run_query, process_query)
+        try:
+            df_sup = f_sup.result(timeout=30)
+            supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
+        except Exception as e:
+            print(f"[LMS]   ✗ Supervisor query failed: {e}")
+        try:
+            df_week = f_week.result(timeout=30)
+            weeks = ['All'] + df_week['Fiscal Week'].tolist()
+        except Exception as e:
+            print(f"[LMS]   ✗ Week query failed: {e}")
+        try:
+            df_proc = f_proc.result(timeout=30)
+            processes = ['All'] + df_proc['Process'].tolist()
+        except Exception as e:
+            print(f"[LMS]   ✗ Process query failed: {e}")
 
     result = {'supervisors': supervisors, 'weeks': weeks, 'processes': processes}
-    _filter_cache['data'] = result
-    _filter_cache['timestamp'] = time.time()
+    # Only cache if we got real data (not just defaults)
+    if len(supervisors) > 1 or len(weeks) > 1 or len(processes) > 1:
+        _filter_cache['data'] = result
+        _filter_cache['timestamp'] = time.time()
 
     elapsed = time.time() - start
     print(f"[LMS]   ✓ {len(supervisors)-1} supervisors, {len(weeks)-1} weeks, "
