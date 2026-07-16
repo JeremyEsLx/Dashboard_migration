@@ -129,6 +129,13 @@
 }
 .chart-container {
     height: 180px;
+    overflow: hidden;
+    position: relative;
+}
+/* Hide skeleton shimmer once Plotly renders */
+.chart-container .js-plotly-plot ~ .skeleton,
+.chart-container.plotly-rendered .skeleton {
+    display: none;
 }
 
 /* === DETAIL TABLE === */

@@ -173,27 +173,32 @@ function renderShiftChart(filtered) {
     var shifts = entries.map(function(e) { return e.shift; });
     var values = entries.map(function(e) { return Math.round(e.val * 100) / 100; });
 
+    // Remove skeleton shimmer
+    var shiftEl = document.getElementById('chart-shift');
+    var shiftSkels = shiftEl.querySelectorAll('.skeleton');
+    for (var s = 0; s < shiftSkels.length; s++) shiftSkels[s].remove();
+
     Plotly.react('chart-shift', [{
         y: shifts,
         x: values,
         type: 'bar',
         orientation: 'h',
-        marker: { color: '#d4979a' },
+        marker: { color: values.map(function(v, i) { return ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'][i % 4]; }).reverse(), cornerradius: 4 },
         text: values.map(function(v) { return Math.round(v); }),
         textposition: 'inside',
         insidetextanchor: 'end',
-        textfont: { size: 12, color: '#fff', family: 'Inter' },
+        textfont: { size: 13, color: '#fff', family: 'Inter', weight: 600 },
         cliponaxis: false,
         hoverinfo: 'x+y'
     }], {
-        margin: { t: 5, b: 20, l: 22, r: 10 },
-        xaxis: { title: '', showgrid: false, showticklabels: false, zeroline: false },
-        yaxis: { title: '', automargin: true, tickfont: { size: 12, color: '#374151' } },
+        margin: { t: 8, b: 8, l: 24, r: 12 },
+        xaxis: { title: '', showgrid: false, showticklabels: false, zeroline: false, fixedrange: true },
+        yaxis: { title: '', automargin: true, tickfont: { size: 13, color: '#1f2937', family: 'Inter' }, fixedrange: true },
         paper_bgcolor: 'white',
         plot_bgcolor: 'white',
         font: { family: 'Inter', size: 11 },
         bargap: 0.35
-    }, { responsive: true, displayModeBar: false, staticPlot: false });
+    }, { responsive: true, displayModeBar: false, staticPlot: true });
 }
 
 function renderDateChart(filtered) {
@@ -213,26 +218,31 @@ function renderDateChart(filtered) {
         return parts[1] + '/' + parts[2];
     });
 
+    // Remove skeleton shimmer
+    var dateEl = document.getElementById('chart-date');
+    var dateSkels = dateEl.querySelectorAll('.skeleton');
+    for (var s = 0; s < dateSkels.length; s++) dateSkels[s].remove();
+
     Plotly.react('chart-date', [{
         x: shortDates,
         y: values,
         type: 'bar',
-        marker: { color: '#d4979a' },
+        marker: { color: '#14b8a6', cornerradius: 3 },
         text: values.map(function(v) { return Math.round(v); }),
         textposition: 'inside',
         insidetextanchor: 'end',
-        textfont: { size: 11, color: '#fff', family: 'Inter' },
+        textfont: { size: 11, color: '#fff', family: 'Inter', weight: 600 },
         cliponaxis: false,
         hoverinfo: 'x+y'
     }], {
-        margin: { t: 8, b: 28, l: 35, r: 8 },
-        yaxis: { title: '', gridcolor: '#f3f4f6', showgrid: true, zeroline: false, tickfont: { size: 10, color: '#9ca3af' } },
-        xaxis: { title: '', type: 'category', tickangle: 0, tickfont: { size: 10, color: '#6b7280' } },
+        margin: { t: 8, b: 30, l: 38, r: 8 },
+        yaxis: { title: '', gridcolor: '#f0f0f0', showgrid: true, zeroline: false, tickfont: { size: 10, color: '#9ca3af' }, fixedrange: true },
+        xaxis: { title: '', type: 'category', tickangle: 0, tickfont: { size: 11, color: '#374151', family: 'Inter' }, fixedrange: true },
         paper_bgcolor: 'white',
         plot_bgcolor: 'white',
         font: { family: 'Inter', size: 11 },
         bargap: 0.3
-    }, { responsive: true, displayModeBar: false, staticPlot: false });
+    }, { responsive: true, displayModeBar: false, staticPlot: true });
 }
 
 
