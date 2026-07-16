@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Shared Styles -->
-    <link rel="stylesheet" href="{% static 'dashboard/base.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'dashboard/base.css' %}?v=7">
 
     <!-- Page-specific Styles -->
     {% block styles %}{% endblock %}
@@ -21,7 +21,8 @@
     <!-- HEADER -->
     <div class="header">
         <div class="logo-icon">T</div>
-        TIJUANA LMS
+        <span style="font-weight:700; letter-spacing:-0.3px;">Tijuana</span>
+        <span style="font-weight:400; color:#6b7280;">LMS Dashboard</span>
     </div>
 
     <div class="layout">
@@ -29,16 +30,28 @@
         <nav class="sidebar">
             <div class="sidebar-section">Dashboards</div>
             <a href="/" class="{% block nav_summary %}{% endblock %}">
-                <span class="sidebar-icon">&#9632;</span> Summary
+                <span class="sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+                </span>
+                Summary
             </a>
             <a href="/performance/" class="{% block nav_performance %}{% endblock %}">
-                <span class="sidebar-icon">&#9650;</span> Performance by User
+                <span class="sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14l4-5 3 3 5-7"/><circle cx="14" cy="5" r="1.5"/></svg>
+                </span>
+                Performance by User
             </a>
             <a href="/process/" class="{% block nav_process %}{% endblock %}">
-                <span class="sidebar-icon">&#9679;</span> Performance by Process
+                <span class="sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12V6"/><path d="M6 12V4"/><path d="M9 12V8"/><path d="M12 12V3"/></svg>
+                </span>
+                Performance by Process
             </a>
             <a href="/strongstart/" class="{% block nav_trends %}{% endblock %}">
-                <span class="sidebar-icon">&#9670;</span> Strong Start
+                <span class="sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+                </span>
+                Strong Start
             </a>
         </nav>
 
