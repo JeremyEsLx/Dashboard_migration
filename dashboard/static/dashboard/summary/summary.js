@@ -206,31 +206,39 @@ function computeAll(filtered) {
 // ================================================================
 
 function renderGauge(uph, target) {
+    // Dynamic max: use target with 20% headroom (like Power BI gauge)
+    var gaugeMax = Math.max(target, uph) * 1.2;
+    gaugeMax = Math.ceil(gaugeMax / 50) * 50; // Round up to nearest 50
+
+    // Color bar based on how close UPH is to target
+    var uphPct = target > 0 ? (uph / target * 100) : 0;
+    var barColor = uphPct >= 100 ? '#059669' : uphPct >= 80 ? '#f59e0b' : '#dc2626';
+
     Plotly.react('gauge-container', [{
         type: 'indicator',
         mode: 'gauge+number',
         value: uph,
         number: {
-            font: { size: 42, color: '#111827', family: 'Inter, sans-serif' },
+            font: { size: 44, color: '#111827', family: 'Inter, sans-serif' },
             suffix: ''
         },
         gauge: {
             shape: 'angular',
             axis: {
-                range: [0, 250],
+                range: [0, gaugeMax],
                 tickwidth: 1,
                 tickcolor: '#d1d5db',
-                dtick: 50,
+                dtick: Math.round(gaugeMax / 5),
                 tickfont: { size: 10, color: '#9ca3af', family: 'Inter' }
             },
-            bar: { color: '#111827', thickness: 0.08 },
-            bgcolor: '#f9fafb',
+            bar: { color: barColor, thickness: 0.2 },
+            bgcolor: '#f3f4f6',
             borderwidth: 0,
             steps: [
-                { range: [0, 80], color: '#fef2f2' },
-                { range: [80, 120], color: '#fef9c3' },
-                { range: [120, target], color: '#dcfce7' },
-                { range: [target, 250], color: '#86efac' }
+                { range: [0, target * 0.6], color: '#fef2f2' },
+                { range: [target * 0.6, target * 0.8], color: '#fef9c3' },
+                { range: [target * 0.8, target], color: '#dcfce7' },
+                { range: [target, gaugeMax], color: '#bbf7d0' }
             ],
             threshold: {
                 line: { color: '#1d4ed8', width: 3 },
@@ -239,15 +247,15 @@ function renderGauge(uph, target) {
             }
         }
     }], {
-        margin: { t: 20, b: 0, l: 20, r: 20 },
-        height: 180,
+        margin: { t: 18, b: 32, l: 20, r: 20 },
+        height: 200,
         paper_bgcolor: 'transparent',
         font: { family: 'Inter, sans-serif' },
         annotations: [{
-            x: 0.5, y: -0.05,
-            text: '<b style="color:#1d4ed8">Target: ' + target + '</b>',
+            x: 0.5, y: -0.18,
+            text: '<b>Target: ' + target + '</b>',
             showarrow: false,
-            font: { size: 11, color: '#1d4ed8', family: 'Inter' }
+            font: { size: 13, color: '#1d4ed8', family: 'Inter' }
         }]
     }, { responsive: true, displayModeBar: false });
 }
