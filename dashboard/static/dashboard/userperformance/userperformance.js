@@ -115,12 +115,9 @@ function renderAll() {
         return;
     }
 
-    // Limit rendering to first 5000 rows for performance
-    var MAX_RENDER = 5000;
-    var rows = filtered.length > MAX_RENDER ? filtered.slice(0, MAX_RENDER) : filtered;
     var html = '';
-    for (var i = 0; i < rows.length; i++) {
-        var r = rows[i];
+    for (var i = 0; i < filtered.length; i++) {
+        var r = filtered[i];
         html += '<tr>';
         html += '<td>' + r.at + '</td>';
         html += '<td>' + r.u + '</td>';
@@ -144,10 +141,6 @@ function renderAll() {
         html += '</tr>';
     }
     tbody.innerHTML = html;
-
-    if (filtered.length > MAX_RENDER) {
-        countEl.textContent += ' (showing first ' + MAX_RENDER.toLocaleString() + ')';
-    }
 
     hideLoading();
     updateBanner();
