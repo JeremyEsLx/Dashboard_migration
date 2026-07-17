@@ -121,10 +121,9 @@ function updateFiltersBanner() {
 // ================================================================
 
 function getUphPctColor(pct) {
-    if (pct >= 100) return '#059669';
-    if (pct >= 80)  return '#f59e0b';
-    if (pct >= 60)  return '#f97316';
-    return '#dc2626';
+    if (pct >= 90) return '#22c55e';  // Green (Power BI: >= 0.9)
+    if (pct >= 70) return '#eab308';  // Yellow (Power BI: >= 0.7)
+    return '#dc2626';                 // Red (Power BI: < 0.7)
 }
 
 function getProductivityColor(pct) {
@@ -210,9 +209,9 @@ function renderGauge(uph, target) {
     var gaugeMax = Math.max(target, uph) * 1.2;
     gaugeMax = Math.ceil(gaugeMax / 50) * 50; // Round up to nearest 50
 
-    // Color bar based on how close UPH is to target
+    // Color bar based on Power BI rules: >=0.9 green, >=0.7 yellow, <0.7 red
     var uphPct = target > 0 ? (uph / target * 100) : 0;
-    var barColor = uphPct >= 100 ? '#059669' : uphPct >= 80 ? '#f59e0b' : '#dc2626';
+    var barColor = uphPct >= 90 ? '#22c55e' : uphPct >= 70 ? '#eab308' : '#dc2626';
 
     Plotly.react('gauge-container', [{
         type: 'indicator',
@@ -235,10 +234,9 @@ function renderGauge(uph, target) {
             bgcolor: '#f3f4f6',
             borderwidth: 0,
             steps: [
-                { range: [0, target * 0.6], color: '#fef2f2' },
-                { range: [target * 0.6, target * 0.8], color: '#fef9c3' },
-                { range: [target * 0.8, target], color: '#dcfce7' },
-                { range: [target, gaugeMax], color: '#bbf7d0' }
+                { range: [0, target * 0.7], color: '#fef2f2' },
+                { range: [target * 0.7, target * 0.9], color: '#fef9c3' },
+                { range: [target * 0.9, gaugeMax], color: '#dcfce7' }
             ],
             threshold: {
                 line: { color: '#1d4ed8', width: 3 },
