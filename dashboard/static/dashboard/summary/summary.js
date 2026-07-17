@@ -279,7 +279,7 @@ function renderQtyChart(entries) {
         text: values.map(v => v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v),
         textposition: 'outside',
         marker: {
-            color: labels.map(p => p === 'REPLENISHMENT' ? COLOR_GREEN : COLOR_PINK),
+            color: '#86efac',  // All bars green (matches Power BI)
             line: { width: 0 }
         },
         hovertemplate: '%{y}: %{x:,.0f}<extra></extra>'
@@ -326,10 +326,9 @@ function renderProdChart(entries) {
         textposition: 'auto',
         marker: {
             color: values.map(v => {
-                if (v < 0) return COLOR_GREEN;
-                if (v <= 20) return COLOR_YELLOW;
-                if (v <= 50) return COLOR_ORANGE;
-                return COLOR_PINK;
+                if (v <= 5)  return '#86efac';  // Green (Power BI: <= 0.05)
+                if (v <= 20) return '#fde047';  // Yellow (Power BI: <= 0.2)
+                return '#fca5a5';               // Pink (Power BI: > 0.2)
             }),
             line: { width: 0 }
         },
