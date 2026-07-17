@@ -268,7 +268,13 @@ function renderKPIs(data) {
     prodEl.style.color = getProductivityColor(data.productivity);
 }
 
-function renderQtyChart(entries) {
+function renderQtyChart(entries, targetEntries) {
+    // Build lookup: process → UPH% (for bar coloring)
+    var targetMap = {};
+    if (targetEntries) {
+        targetEntries.forEach(function(e) { targetMap[e[0]] = e[1]; });
+    }
+
     var labels = entries.map(e => e[0]).reverse();
     var values = entries.map(e => e[1]).reverse();
     Plotly.react('chart-quantity', [{
@@ -276,7 +282,12 @@ function renderQtyChart(entries) {
         text: values.map(v => v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v),
         textposition: 'outside',
         marker: {
-            color: '#86efac',  // All bars green (matches Power BI)
+            color: labels.map(function(p) {
+                var pct = targetMap[p] || 0;
+                if (pct >= 99) return '#86efac';  // Green (Power BI: >= 0.99)
+                if (pct >= 95) return '#fde047';  // Yellow (Power BI: >= 0.95)
+                return '#fca5a5';                  // Red/Pink (Power BI: < 0.95)
+            }),
             line: { width: 0 }
         },
         hovertemplate: '%{y}: %{x:,.0f}<extra></extra>'
@@ -351,7 +362,7 @@ function renderAll() {
     var data = computeAll(filtered);
     renderGauge(data.uph, data.targetUph);
     renderKPIs(data);
-    renderQtyChart(data.qtyByProcess);
+    renderQtyChart(data.qtyByProcess, data.targetByProcess);
     renderTargetChart(data.targetByProcess);
     renderProdChart(data.prodByProcess);
     // Wait for browser to paint charts before announcing "ready"
