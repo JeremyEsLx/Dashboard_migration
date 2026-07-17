@@ -6,7 +6,7 @@
 {% block nav_noactivity %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/noactivity/noactivity.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'dashboard/noactivity/noactivity.css' %}?v=2">
 {% endblock %}
 
 {% block page_title %}
@@ -69,11 +69,11 @@
     </div>
     <div class="chart-card na-chart-supervisor">
         <h3>Duration by Supervisor</h3>
-        <div id="chart-supervisor" class="chart-container"><div class="skeleton skeleton-chart"></div></div>
+        <div id="chart-supervisor" class="chart-container"></div>
     </div>
     <div class="chart-card na-chart-date">
         <h3>Duration by Date</h3>
-        <div id="chart-date" class="chart-container"><div class="skeleton skeleton-chart"></div></div>
+        <div id="chart-date" class="chart-container"></div>
     </div>
 </div>
 
@@ -107,5 +107,5 @@
 
 {% block scripts %}
 <script>var CUBE = null;</script>
-<script src="{% static 'dashboard/noactivity/noactivity.js' %}?v=1"></script>
+<script src="{% static 'dashboard/noactivity/noactivity.js' %}?v=2"></script>
 {% endblock %}

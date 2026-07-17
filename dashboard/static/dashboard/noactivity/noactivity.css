@@ -130,10 +130,17 @@
     letter-spacing: -0.1px;
 }
 .chart-container {
-    height: 180px;
+    width: 100%;
+    min-height: 220px;
     overflow: hidden;
     position: relative;
 }
+/* Hide skeleton once Plotly renders */
+.chart-container .js-plotly-plot ~ .skeleton,
+.chart-container .js-plotly-plot + .skeleton {
+    display: none !important;
+}
+.skeleton-chart { display: none; }
 
 /* === DETAIL TABLE === */
 .na-table-card {
@@ -143,7 +150,7 @@
     padding: 14px 18px;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 450px);
+    height: calc(100vh - 480px);
     min-height: 200px;
 }
 .na-table-card .table-scroll {

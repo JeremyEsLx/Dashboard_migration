@@ -38,6 +38,10 @@ function hideLoading() {
     if (bannerIcon) bannerIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
 }
 
+function removeSkeletons() {
+    document.querySelectorAll('.skeleton').forEach(function(el) { el.remove(); });
+}
+
 // ================================================================
 // FILTER + RENDER
 // ================================================================
@@ -62,6 +66,9 @@ function getFiltered() {
 function renderAll() {
     var filtered = getFiltered();
 
+    // Remove all skeleton placeholders
+    removeSkeletons();
+
     // KPI: Misplaced Hours = sum(ld) / 60
     var totalHrs = 0;
     for (var i = 0; i < filtered.length; i++) totalHrs += filtered[i].ld;
@@ -84,15 +91,17 @@ function renderAll() {
 
     Plotly.react('chart-supervisor', [{
         type: 'bar', y: supLabels, x: supValues, orientation: 'h',
-        text: supValues, textposition: 'outside',
+        text: supValues.map(function(v) { return v + ' hrs'; }),
+        textposition: 'outside',
+        textfont: { size: 11, color: '#374151' },
         marker: { color: '#f97316', cornerradius: 4 },
         hovertemplate: '%{y}: %{x} hrs<extra></extra>'
     }], {
-        margin: { t: 5, b: 25, l: 140, r: 50 },
-        xaxis: { title: '', gridcolor: '#f3f4f6' },
-        yaxis: { automargin: true },
+        margin: { t: 5, b: 25, l: 150, r: 60 },
+        xaxis: { title: '', gridcolor: '#f3f4f6', showticklabels: false },
+        yaxis: { automargin: true, tickfont: { size: 11 } },
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
-        height: Math.max(180, supLabels.length * 30)
+        height: Math.max(220, supLabels.length * 35)
     }, { responsive: true, displayModeBar: false, staticPlot: true });
 
     // Chart: Duration by Date (vertical bar)
@@ -102,28 +111,36 @@ function renderAll() {
         byDate[r.d] += r.ld / 60;
     });
     var dateEntries = Object.entries(byDate).sort(function(a, b) { return a[0].localeCompare(b[0]); });
+    // Shorter date labels: "Jul 02" format
     var dateLabels = dateEntries.map(function(e) {
         var parts = e[0].split('-');
-        return parts[1] + '/' + parts[2] + '/' + parts[0];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months[parseInt(parts[1], 10) - 1] + ' ' + parseInt(parts[2], 10);
     });
     var dateValues = dateEntries.map(function(e) { return Math.round(e[1]); });
 
     Plotly.react('chart-date', [{
         type: 'bar', x: dateLabels, y: dateValues,
-        text: dateValues, textposition: 'outside',
+        text: dateValues.map(function(v) { return v > 0 ? v : ''; }),
+        textposition: 'outside',
+        textfont: { size: 10, color: '#374151' },
         marker: { color: CHART_COLOR, cornerradius: 3 },
         hovertemplate: '%{x}: %{y} hrs<extra></extra>'
     }], {
-        margin: { t: 20, b: 60, l: 40, r: 20 },
-        xaxis: { tickangle: -45, tickfont: { size: 10 } },
-        yaxis: { title: 'Duration', gridcolor: '#f3f4f6' },
-        paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
+        margin: { t: 25, b: 50, l: 45, r: 15 },
+        xaxis: { tickangle: -45, tickfont: { size: 10 }, gridcolor: '#f3f4f6' },
+        yaxis: { title: '', gridcolor: '#f3f4f6', tickfont: { size: 10 } },
+        paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+        height: 240,
+        bargap: 0.15
     }, { responsive: true, displayModeBar: false, staticPlot: true });
 
     // Detail table
     var tbody = document.getElementById('detail-tbody');
     if (!filtered.length) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">No records found</td></tr>';
+        hideLoading();
+        updateBanner();
         return;
     }
     var html = '';
