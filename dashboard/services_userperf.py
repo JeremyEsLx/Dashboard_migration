@@ -21,6 +21,10 @@ from .services import (
 # USER PERFORMANCE CUBE (raw rows, many columns)
 # ============================================================
 
+# Max rows to return to client (keeps JSON payload under ~15MB)
+_MAX_ROWS = 30000
+
+
 def _default_date_range():
     """26th of last month to today."""
     today = date.today()
@@ -36,6 +40,7 @@ def get_userperformance_cube(date_from=None, date_to=None):
 
     WHERE: Process NOT IN (CLOCK IN, CLOCK OUT, TEMP EXIT)
     All other filters (Activity Type, Movement, etc.) are client-side.
+    Returns at most _MAX_ROWS rows to avoid massive payloads.
     """
     print(f"[LMS] --- Loading User Performance Cube ---")
     start = time.time()
@@ -60,7 +65,7 @@ def get_userperformance_cube(date_from=None, date_to=None):
     where += f"  AND [User Name] IN ({users_str})\n"
 
     query = f"""
-        SELECT
+        SELECT TOP {_MAX_ROWS}
             CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23) AS [date],
             ISNULL([Fiscal Week], '') AS [fiscal_week],
             [SHIFT2] AS [shift],
@@ -160,7 +165,7 @@ def get_userperformance_data(date_from=None, date_to=None):
         except Exception as e:
             print(f"[LMS]   x Filters error: {e}")
         try:
-            cube = future_cube.result(timeout=60)
+            cube = future_cube.result(timeout=120)
         except Exception as e:
             print(f"[LMS]   x User Performance Cube error: {type(e).__name__}: {e}")
 
