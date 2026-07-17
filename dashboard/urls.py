@@ -14,4 +14,6 @@ urlpatterns = [
     path('api/strongfinish/', views.strongfinish_data, name='strongfinish_data'),
     path('noactivity/', views.noactivity, name='noactivity'),
     path('api/noactivity/', views.noactivity_data, name='noactivity_data'),
+    path('userperformance/', views.userperformance, name='userperformance'),
+    path('api/userperformance/', views.userperformance_data, name='userperformance_data'),
 ]

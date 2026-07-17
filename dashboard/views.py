@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data, get_noactivity_data
+from .services_userperf import get_userperformance_data
 
 
 # ============================================================
@@ -173,6 +174,29 @@ def noactivity_data(request):
         data = get_noactivity_data(
             supervisor=request.GET.get('supervisor', 'All'),
             shift=request.GET.get('shift', 'All'),
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'cube_json': '[]'}, status=200)
+
+
+def userperformance(request):
+    """Render User Performance shell (instant, no SQL) — JS hydrates via /api/userperformance/."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/userperformance.html', {'data': data})
+
+
+def userperformance_data(request):
+    """API: returns user performance raw cube as JSON."""
+    try:
+        data = get_userperformance_data(
             date_from=request.GET.get('date_from'),
             date_to=request.GET.get('date_to'),
         )
