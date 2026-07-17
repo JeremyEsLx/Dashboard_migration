@@ -47,6 +47,14 @@ function hideLoading() {
 
 var SELECTED_STATE = {};
 
+function fmtDate(isoStr) {
+    // Convert yyyy-mm-dd to mm/dd/yyyy
+    if (!isoStr) return '';
+    var p = isoStr.split('-');
+    if (p.length !== 3) return isoStr;
+    return p[1] + '/' + p[2] + '/' + p[0];
+}
+
 function formatDateNice(dateStr) {
     if (!dateStr) return '';
     var d = new Date(dateStr + 'T00:00:00');
@@ -87,7 +95,7 @@ function updateFiltersBanner() {
     var employee = document.getElementById('filter-employee').value.trim();
     if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
     if (supervisor && supervisor !== 'All') chips.push({ label: 'Supervisor', value: supervisor });
-    if (dateFilter && dateFilter !== 'All') chips.push({ label: 'Date', value: dateFilter });
+    if (dateFilter && dateFilter !== 'All') chips.push({ label: 'Date', value: fmtDate(dateFilter) });
     if (employee) chips.push({ label: 'Employee', value: employee });
 
     if (chips.length === 0) {
@@ -268,7 +276,7 @@ function renderTable(filtered) {
         html += '<td>' + r.s + '</td>';
         html += '<td>' + (r.pp || '') + '</td>';
         html += '<td>' + (r.st || '') + '</td>';
-        html += '<td>' + r.d + '</td>';
+        html += '<td>' + fmtDate(r.d) + '</td>';
         html += '<td>' + (r.cot || '') + '</td>';
         html += '<td>' + (r.pr || '') + '</td>';
         html += '<td class="col-num">' + duration.toFixed(2) + '</td>';
@@ -329,28 +337,7 @@ function populateDateDropdown() {
     el.innerHTML = '<option value="All">All Dates</option>';
     for (var i = 0; i < sorted.length; i++) {
         var o = document.createElement('option');
-        o.value = sorted[i]; o.textContent = sorted[i];
-        if (sorted[i] === cur) o.selected = true;
-        el.appendChild(o);
-    }
-}
-
-function populateSupervisorFromCube() {
-    if (!CUBE) return;
-    var el = document.getElementById('filter-supervisor');
-    // Only populate from cube if server-side filters didn't load (just "All")
-    if (el.options.length > 1) return;
-    var sups = {};
-    for (var i = 0; i < CUBE.length; i++) {
-        if (CUBE[i].s) sups[CUBE[i].s] = true;
-    }
-    var sorted = Object.keys(sups).sort();
-    if (sorted.length === 0) return;
-    var cur = el.value || 'All';
-    el.innerHTML = '<option value="All">All</option>';
-    for (var i = 0; i < sorted.length; i++) {
-        var o = document.createElement('option');
-        o.value = sorted[i]; o.textContent = sorted[i];
+        o.value = sorted[i]; o.textContent = fmtDate(sorted[i]);
         if (sorted[i] === cur) o.selected = true;
         el.appendChild(o);
     }
@@ -365,8 +352,7 @@ function populateSupervisorFromCube() {
     var sorted = Object.keys(sups).sort();
     var el = document.getElementById('filter-supervisor');
     var cur = el.value || 'All';
-    // Only repopulate if dropdown has just "All" (server filters failed)
-    // or if cube has more supervisors than the dropdown
+    // Only repopulate if dropdown has just "All" or if cube has more supervisors than the dropdown
     if (el.options.length <= 1 || sorted.length > el.options.length - 1) {
         el.innerHTML = '<option value="All">All</option>';
         for (var i = 0; i < sorted.length; i++) {
@@ -404,7 +390,7 @@ function exportData() {
     var rows = [['Shift', 'User Name', 'Full Name', 'Supervisor', 'Previous Process', 'Previous Scan Time', 'Date', 'Time', 'Process', 'Duration (hrs)']];
     for (var i = 0; i < filtered.length; i++) {
         var r = filtered[i];
-        rows.push([r.sh, r.u, r.fn || '', r.s, r.pp || '', r.st || '', r.d, r.cot || '', r.pr || '', Math.round((r.ld / 60) * 100) / 100]);
+        rows.push([r.sh, r.u, r.fn || '', r.s, r.pp || '', r.st || '', fmtDate(r.d), r.cot || '', r.pr || '', Math.round((r.ld / 60) * 100) / 100]);
     }
 
     var dateFrom = SELECTED_STATE.date_from || '';

@@ -12,6 +12,13 @@ var CHART_COLOR = '#ef4444'; // Red — misplaced/wasted time
 // HELPERS
 // ================================================================
 
+function fmtDate(isoStr) {
+    // Convert yyyy-mm-dd to mm/dd/yyyy
+    if (!isoStr) return '';
+    var p = isoStr.split('-');
+    return p[1] + '/' + p[2] + '/' + p[0];
+}
+
 function formatDateNice(dateStr) {
     if (!dateStr) return '';
     var d = new Date(dateStr + 'T00:00:00');
@@ -127,13 +134,12 @@ function renderAll() {
     for (var i = 0; i < sorted.length; i++) {
         var r = sorted[i];
         var duration = r.ld / 60;
-        var dateFormatted = r.d ? r.d.split('-').slice(1).join('/') + '/' + r.d.split('-')[0] : '';
         html += '<tr>';
         html += '<td>' + r.sh + '</td>';
         html += '<td>' + r.u + '</td>';
         html += '<td>' + (r.fn || '') + '</td>';
         html += '<td>' + r.s + '</td>';
-        html += '<td>' + dateFormatted + '</td>';
+        html += '<td>' + fmtDate(r.d) + '</td>';
         html += '<td>' + (r.cit || '') + '</td>';
         html += '<td>' + (r.cot || '') + '</td>';
         html += '<td class="col-num">' + duration.toFixed(2) + '</td>';
@@ -201,14 +207,14 @@ function populateFilters(data) {
         shiftSel.appendChild(opt);
     });
 
-    // Date dropdown from cube data
+    // Date dropdown from cube data — display as mm/dd/yyyy, value stays iso for filtering
     var dateSel = document.getElementById('filter-date');
     dateSel.innerHTML = '<option value="All">All Dates</option>';
     if (CUBE && CUBE.length) {
         var dates = [...new Set(CUBE.map(function(r) { return r.d; }))].sort().reverse();
         dates.forEach(function(d) {
             var opt = document.createElement('option');
-            opt.value = d; opt.textContent = d;
+            opt.value = d; opt.textContent = fmtDate(d);
             dateSel.appendChild(opt);
         });
     }
@@ -298,7 +304,7 @@ document.getElementById('btn-export').addEventListener('click', function() {
     var csv = 'Shift,User Name,Full Name,Supervisor,Date,Clock In,Clock Out,Duration (hrs)\n';
     filtered.forEach(function(r) {
         var dur = (r.ld / 60).toFixed(2);
-        csv += [r.sh, r.u, '"' + (r.fn||'') + '"', '"' + r.s + '"', r.d, r.cit, r.cot, dur].join(',') + '\n';
+        csv += [r.sh, r.u, '"' + (r.fn||'') + '"', '"' + r.s + '"', fmtDate(r.d), r.cit, r.cot, dur].join(',') + '\n';
     });
     var blob = new Blob([csv], {type: 'text/csv'});
     var a = document.createElement('a');
