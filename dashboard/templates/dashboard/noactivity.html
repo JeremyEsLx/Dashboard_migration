@@ -6,7 +6,7 @@
 {% block nav_noactivity %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/noactivity/noactivity.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'dashboard/noactivity/noactivity.css' %}?v=3">
 {% endblock %}
 
 {% block page_title %}
@@ -60,16 +60,12 @@
     <div class="banner-chips" id="banner-chips"></div>
 </div>
 
-<!-- KPI + CHARTS ROW -->
+<!-- KPI + DATE CHART ROW -->
 <div class="top-row">
     <div class="kpi-card na-kpi">
         <h3>Misplaced Hours</h3>
         <div class="skeleton skeleton-value" id="kpi-skel"></div>
         <div class="kpi-value" id="kpi-hours" style="display:none;"></div>
-    </div>
-    <div class="chart-card na-chart-supervisor">
-        <h3>Duration by Supervisor</h3>
-        <div id="chart-supervisor" class="chart-container"></div>
     </div>
     <div class="chart-card na-chart-date">
         <h3>Duration by Date</h3>
@@ -107,5 +103,5 @@
 
 {% block scripts %}
 <script>var CUBE = null;</script>
-<script src="{% static 'dashboard/noactivity/noactivity.js' %}?v=2"></script>
+<script src="{% static 'dashboard/noactivity/noactivity.js' %}?v=3"></script>
 {% endblock %}

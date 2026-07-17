@@ -79,10 +79,10 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* === TOP ROW: KPI + 2 Charts === */
+/* === TOP ROW: KPI + Date Chart === */
 .top-row {
     display: grid;
-    grid-template-columns: 150px 1fr 2fr;
+    grid-template-columns: 150px 1fr;
     gap: 14px;
     margin-bottom: 14px;
 }
@@ -113,7 +113,6 @@
     line-height: 1;
 }
 
-.na-chart-supervisor,
 .na-chart-date {
     background: white;
     border: 1px solid #e5e7eb;
@@ -121,7 +120,6 @@
     padding: 14px 16px;
     overflow: hidden;
 }
-.na-chart-supervisor h3,
 .na-chart-date h3 {
     font-size: 11px;
     font-weight: 600;
@@ -131,14 +129,9 @@
 }
 .chart-container {
     width: 100%;
-    min-height: 220px;
+    min-height: 200px;
     overflow: hidden;
     position: relative;
-}
-/* Hide skeleton once Plotly renders */
-.chart-container .js-plotly-plot ~ .skeleton,
-.chart-container .js-plotly-plot + .skeleton {
-    display: none !important;
 }
 .skeleton-chart { display: none; }
 
@@ -150,7 +143,7 @@
     padding: 14px 18px;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 480px);
+    height: calc(100vh - 420px);
     min-height: 200px;
 }
 .na-table-card .table-scroll {

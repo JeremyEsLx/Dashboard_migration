@@ -79,31 +79,6 @@ function renderAll() {
     kpiEl.style.display = '';
     kpiEl.textContent = totalHrs >= 1000 ? (totalHrs / 1000).toFixed(1) + 'K' : Math.round(totalHrs).toLocaleString();
 
-    // Chart: Duration by Supervisor (horizontal bar)
-    var bySup = {};
-    filtered.forEach(function(r) {
-        if (!bySup[r.s]) bySup[r.s] = 0;
-        bySup[r.s] += r.ld / 60;
-    });
-    var supEntries = Object.entries(bySup).sort(function(a, b) { return b[1] - a[1]; });
-    var supLabels = supEntries.map(function(e) { return e[0]; }).reverse();
-    var supValues = supEntries.map(function(e) { return Math.round(e[1]); }).reverse();
-
-    Plotly.react('chart-supervisor', [{
-        type: 'bar', y: supLabels, x: supValues, orientation: 'h',
-        text: supValues.map(function(v) { return v + ' hrs'; }),
-        textposition: 'outside',
-        textfont: { size: 11, color: '#374151' },
-        marker: { color: '#f97316', cornerradius: 4 },
-        hovertemplate: '%{y}: %{x} hrs<extra></extra>'
-    }], {
-        margin: { t: 5, b: 25, l: 150, r: 60 },
-        xaxis: { title: '', gridcolor: '#f3f4f6', showticklabels: false },
-        yaxis: { automargin: true, tickfont: { size: 11 } },
-        paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
-        height: Math.max(220, supLabels.length * 35)
-    }, { responsive: true, displayModeBar: false, staticPlot: true });
-
     // Chart: Duration by Date (vertical bar)
     var byDate = {};
     filtered.forEach(function(r) {
@@ -123,15 +98,15 @@ function renderAll() {
         type: 'bar', x: dateLabels, y: dateValues,
         text: dateValues.map(function(v) { return v > 0 ? v : ''; }),
         textposition: 'outside',
-        textfont: { size: 10, color: '#374151' },
+        textfont: { size: 11, color: '#374151' },
         marker: { color: CHART_COLOR, cornerradius: 3 },
         hovertemplate: '%{x}: %{y} hrs<extra></extra>'
     }], {
-        margin: { t: 25, b: 50, l: 45, r: 15 },
+        margin: { t: 30, b: 50, l: 45, r: 20 },
         xaxis: { tickangle: -45, tickfont: { size: 10 }, gridcolor: '#f3f4f6' },
         yaxis: { title: '', gridcolor: '#f3f4f6', tickfont: { size: 10 } },
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
-        height: 240,
+        height: 220,
         bargap: 0.15
     }, { responsive: true, displayModeBar: false, staticPlot: true });
 
