@@ -302,9 +302,9 @@ function renderTargetChart(entries) {
         textposition: 'outside',
         marker: {
             color: values.map(v => {
-                if (v >= 100) return COLOR_GREEN;
-                if (v >= 80) return COLOR_YELLOW;
-                return COLOR_PINK;
+                if (v >= 90) return '#22c55e';  // Green (Power BI: >= 0.9)
+                if (v >= 70) return '#eab308';  // Yellow (Power BI: >= 0.7)
+                return '#dc2626';               // Red (Power BI: < 0.7)
             }),
             line: { width: 0 }
         },
