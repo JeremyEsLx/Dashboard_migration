@@ -168,10 +168,49 @@
 }
 .perf-table tbody tr:hover { background: #fafbfc; }
 
-/* Row count badge */
+/* Table header row (count + pagination) */
+.table-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0 8px;
+}
 .row-count {
     font-size: 11px;
     color: #6b7280;
-    padding: 4px 0;
-    text-align: right;
 }
+
+/* === SEARCH BUTTON === */
+.btn-search {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+    font-weight: 600;
+    padding: 6px 14px;
+}
+.btn-search:hover { background: #1d4ed8; }
+
+/* === PAGINATION === */
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.pg-btn {
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    background: white;
+    font-size: 12px;
+    cursor: pointer;
+    color: #374151;
+    transition: background 0.15s;
+}
+.pg-btn:hover:not(:disabled) { background: #f3f4f6; }
+.pg-btn:disabled { opacity: 0.4; cursor: default; }
+.pg-info {
+    font-size: 11px;
+    color: #6b7280;
+    padding: 0 6px;
+}
+.pg-range { color: #9ca3af; }

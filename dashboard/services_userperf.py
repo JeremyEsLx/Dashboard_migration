@@ -1,10 +1,12 @@
-"""User Performance service — raw detail-level data explorer.
+"""User Performance service — search-first raw detail explorer.
 
-Queries the same LMS table but returns individual transaction rows (no GROUP BY)
-with all columns needed for the Power BI 'User Performance' page.
+Queries the same LMS table but returns individual transaction rows (no GROUP BY).
+All filters are applied SERVER-SIDE to keep result sets manageable.
+The page does NOT auto-load — user must click Search after selecting filters.
 
-Filter: [Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
+Base filter: [Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
 Date default: 26th of last month to today.
+Safety cap: TOP 10000 rows per request.
 """
 import json
 import time
@@ -18,8 +20,11 @@ from .services import (
 
 
 # ============================================================
-# USER PERFORMANCE CUBE (raw rows, many columns)
+# USER PERFORMANCE CUBE (server-side filtered)
 # ============================================================
+
+_MAX_ROWS = 10000  # Safety cap per request
+
 
 def _default_date_range():
     """26th of last month to today."""
@@ -31,12 +36,13 @@ def _default_date_range():
     return date_from.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')
 
 
-def get_userperformance_cube(date_from=None, date_to=None):
-    """Query raw LMS rows for User Performance page.
+def get_userperformance_cube(date_from=None, date_to=None, supervisor=None,
+                             user_name=None, process=None, movement=None,
+                             shift=None, hour=None):
+    """Query raw LMS rows with server-side filters.
 
-    WHERE: Process NOT IN (CLOCK IN, CLOCK OUT, TEMP EXIT)
-    All other filters (Activity Type, Movement, etc.) are client-side.
-    Returns ALL rows — GZip middleware compresses the large payload.
+    All filters narrow the SQL WHERE clause so only relevant rows are returned.
+    Returns at most _MAX_ROWS rows.
     """
     print(f"[LMS] --- Loading User Performance Cube ---")
     start = time.time()
@@ -44,27 +50,58 @@ def get_userperformance_cube(date_from=None, date_to=None):
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    where = """
-    WHERE [Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
-"""
-    if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
-        print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
-    elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-    elif date_to:
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
-    else:
-        print(f"[LMS]   Mode: NO DATE FILTER")
+    where = "    WHERE [Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')\n"
 
-    where += f"  AND [User Name] IN ({users_str})\n"
+    if date_from and date_to:
+        where += f"      AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += f"      AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        print(f"[LMS]   Date: {date_from} -> {date_to}")
+    elif date_from:
+        where += f"      AND CAST([Date] AS DATE) >= '{date_from}'\n"
+    elif date_to:
+        where += f"      AND CAST([Date] AS DATE) <= '{date_to}'\n"
+
+    where += f"      AND [User Name] IN ({users_str})\n"
+
+    # Server-side filters
+    if supervisor and supervisor != 'All':
+        where += f"      AND [Supervisor Full Name] = '{supervisor.replace(chr(39), chr(39)+chr(39))}'\n"
+        print(f"[LMS]   Supervisor: {supervisor}")
+    if user_name:
+        where += f"      AND [User Name] LIKE '%{user_name.replace(chr(39), chr(39)+chr(39))}%'\n"
+        print(f"[LMS]   User Name: {user_name}")
+    if process and process != 'All':
+        where += f"      AND [Process] = '{process.replace(chr(39), chr(39)+chr(39))}'\n"
+        print(f"[LMS]   Process: {process}")
+    if movement and movement != 'All':
+        where += f"      AND [Movement] = '{movement.replace(chr(39), chr(39)+chr(39))}'\n"
+        print(f"[LMS]   Movement: {movement}")
+    if shift and shift != 'All':
+        shift_map = {
+            'A': ("'Turno A - Produccion'", "'Lunes-Jueves 06:00 a 18:00'", "'Lunes-Viernes 08:00 a 17:30'"),
+            'B': ("'Turno B - Produccion'",),
+            'C': ("'Turno C - Produccion'",),
+            'D': ("'Turno D - Produccion'",),
+        }
+        if shift in shift_map:
+            vals = ", ".join(shift_map[shift])
+            where += f"      AND [Shift] IN ({vals})\n"
+            print(f"[LMS]   Shift: {shift}")
+    if hour is not None and hour != '' and hour != 'All':
+        where += f"      AND DATEPART(HOUR, [Time]) = {int(hour)}\n"
+        print(f"[LMS]   Hour: {hour}")
 
     query = f"""
-        SELECT
+        SELECT TOP {_MAX_ROWS}
             CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23) AS [date],
             ISNULL([Fiscal Week], '') AS [fiscal_week],
-            [SHIFT2] AS [shift],
+            CASE
+                WHEN [Shift] IN ('Turno A - Produccion', 'Lunes-Jueves 06:00 a 18:00', 'Lunes-Viernes 08:00 a 17:30') THEN 'A'
+                WHEN [Shift] = 'Turno B - Produccion' THEN 'B'
+                WHEN [Shift] = 'Turno C - Produccion' THEN 'C'
+                WHEN [Shift] = 'Turno D - Produccion' THEN 'D'
+                ELSE 'OTHER'
+            END AS [shift],
             [User Name] AS [user_name],
             ISNULL([Full Name], [User Name]) AS [full_name],
             [Supervisor Full Name] AS [supervisor],
@@ -90,7 +127,7 @@ def get_userperformance_cube(date_from=None, date_to=None):
             ISNULL(TRY_CAST([Line Day Activity] AS FLOAT), 0) AS [line_day],
             ISNULL(TRY_CAST([Idle Time Day] AS FLOAT), 0) AS [idle_time],
             DATEPART(HOUR, [Time]) AS [hour]
-        FROM ({_base_subquery()}) AS LMS
+        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
         {where}
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
@@ -100,7 +137,7 @@ def get_userperformance_cube(date_from=None, date_to=None):
 
     if df.empty:
         print(f"[LMS]   x No data returned ({elapsed:.2f}s)")
-        return []
+        return [], 0
 
     cube = []
     for _, row in df.iterrows():
@@ -132,12 +169,20 @@ def get_userperformance_cube(date_from=None, date_to=None):
             'hr': int(row['hour']) if row['hour'] is not None else 0,
         })
 
-    print(f"[LMS]   Done {len(cube)} rows in user performance cube ({elapsed:.2f}s)")
-    return cube
+    total = len(cube)
+    capped = total >= _MAX_ROWS
+    print(f"[LMS]   Done {total} rows ({elapsed:.2f}s){' [CAPPED]' if capped else ''}")
+    return cube, total
 
 
-def get_userperformance_data(date_from=None, date_to=None):
-    """Returns data for the User Performance page."""
+def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
+                             user_name=None, process=None, movement=None,
+                             shift=None, hour=None):
+    """Returns data for the User Performance page (search-first).
+
+    If no filters beyond date are provided, returns only filter options
+    (no cube data) so the page can populate dropdowns without querying 1M rows.
+    """
     if not date_from and not date_to:
         date_from, date_to = _default_date_range()
     else:
@@ -146,29 +191,54 @@ def get_userperformance_data(date_from=None, date_to=None):
         if not date_from:
             date_from = date_to
 
+    # Check if user provided at least one narrowing filter
+    has_filter = any([
+        supervisor and supervisor != 'All',
+        user_name,
+        process and process != 'All',
+        movement and movement != 'All',
+        shift and shift != 'All',
+        hour is not None and hour != '' and hour != 'All',
+    ])
+
     print(f"\n{'='*60}")
     print(f"[LMS] USER PERFORMANCE REQUEST")
     print(f"[LMS]   Date Range: {date_from} -> {date_to}")
+    print(f"[LMS]   Has narrowing filter: {has_filter}")
     print(f"{'='*60}")
 
+    # Always load filter options (lightweight)
     filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+    try:
+        filter_options = get_filter_options()
+    except Exception as e:
+        print(f"[LMS]   x Filters error: {e}")
+
+    # Only run the heavy cube query if user provided at least one filter
     cube = []
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        future_filters = executor.submit(get_filter_options)
-        future_cube = executor.submit(get_userperformance_cube, date_from, date_to)
+    total = 0
+    capped = False
+    if has_filter:
         try:
-            filter_options = future_filters.result(timeout=60)
-        except Exception as e:
-            print(f"[LMS]   x Filters error: {e}")
-        try:
-            cube = future_cube.result(timeout=180)
+            cube, total = get_userperformance_cube(
+                date_from=date_from, date_to=date_to,
+                supervisor=supervisor, user_name=user_name,
+                process=process, movement=movement,
+                shift=shift, hour=hour,
+            )
+            capped = total >= _MAX_ROWS
         except Exception as e:
             print(f"[LMS]   x User Performance Cube error: {type(e).__name__}: {e}")
+    else:
+        print(f"[LMS]   Skipping cube query — no narrowing filter provided")
 
     print(f"{'='*60}\n")
 
     return {
         'cube_json': json.dumps(cube),
+        'total': total,
+        'capped': capped,
+        'max_rows': _MAX_ROWS,
         'filters': {
             'supervisors': filter_options['supervisors'],
             'weeks': filter_options['weeks'],
@@ -179,4 +249,5 @@ def get_userperformance_data(date_from=None, date_to=None):
             'date_from': date_from or '',
             'date_to': date_to or '',
         },
+        'has_filter': has_filter,
     }

@@ -194,12 +194,18 @@ def userperformance(request):
 
 
 def userperformance_data(request):
-    """API: returns user performance raw cube as JSON."""
+    """API: returns user performance data as JSON (search-first, server-side filters)."""
     try:
         data = get_userperformance_data(
             date_from=request.GET.get('date_from'),
             date_to=request.GET.get('date_to'),
+            supervisor=request.GET.get('supervisor'),
+            user_name=request.GET.get('user_name'),
+            process=request.GET.get('process'),
+            movement=request.GET.get('movement'),
+            shift=request.GET.get('shift'),
+            hour=request.GET.get('hour'),
         )
         return JsonResponse(data)
     except Exception as e:
-        return JsonResponse({'error': str(e), 'cube_json': '[]'}, status=200)
+        return JsonResponse({'error': str(e), 'cube_json': '[]', 'total': 0}, status=200)

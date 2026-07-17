@@ -1,13 +1,16 @@
 /**
- * User Performance — Client-side Logic
- * Raw detail table with client-side filtering.
- * Cube fields: { d, wk, sh, u, fn, s, at, pr, mv, dl, vt, po, to, sst, ssb, dst, dsb, pm, ft, fm, ct, tt, ld, it, hr }
+ * User Performance — Search-First Pattern
+ * Page loads empty. User selects filters, clicks Search.
+ * Server-side filtering keeps result sets manageable (max 10K rows).
+ * Client-side pagination renders 100 rows at a time.
  */
 
-var CACHE_KEY = 'lms_userperf_cache';
-var REFRESH_INTERVAL = 15 * 60;
+var CUBE = null;
+var PAGE_SIZE = 100;
+var currentPage = 1;
+var filtered = [];
 
-// Column definitions: key → cube field mapping
+// Column definitions
 var COLUMNS = [
     { key: 'at', label: 'Activity Type' },
     { key: 'u',  label: 'User Name' },
@@ -41,23 +44,13 @@ function fmtDate(isoStr) {
     return p[1] + '/' + p[2] + '/' + p[0];
 }
 
-function formatDateNice(dateStr) {
-    if (!dateStr) return '';
-    var d = new Date(dateStr + 'T00:00:00');
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
-}
-
 function showLoading() {
     var banner = document.getElementById('active-filters-banner');
     var bannerDate = document.getElementById('banner-date-range');
     var bannerIcon = document.getElementById('banner-icon');
-    var bannerChips = document.getElementById('banner-chips');
     if (banner) banner.classList.add('is-loading');
     if (bannerIcon) bannerIcon.innerHTML = '<div class="inline-spinner"></div>';
-    if (bannerDate) bannerDate.innerHTML = 'Loading new data...';
-    if (bannerChips) bannerChips.innerHTML = '';
+    if (bannerDate) bannerDate.innerHTML = 'Searching...';
 }
 
 function hideLoading() {
@@ -68,56 +61,36 @@ function hideLoading() {
 }
 
 // ================================================================
-// FILTER + RENDER
+// PAGINATION
 // ================================================================
 
-function getFiltered() {
-    if (!CUBE || !CUBE.length) return [];
-    var wk = document.getElementById('filter-week').value;
-    var shift = document.getElementById('filter-shift').value;
-    var name = document.getElementById('filter-name').value.trim().toLowerCase();
-    var sup = document.getElementById('filter-supervisor').value;
-    var fullname = document.getElementById('filter-fullname').value.trim().toLowerCase();
-    var proc = document.getElementById('filter-process').value;
-    var mv = document.getElementById('filter-movement').value;
-    var hr = document.getElementById('filter-hour').value;
-
-    return CUBE.filter(function(r) {
-        if (wk && wk !== 'All' && r.wk !== wk) return false;
-        if (shift && shift !== 'All' && r.sh !== shift) return false;
-        if (name && (r.u || '').toLowerCase().indexOf(name) === -1) return false;
-        if (sup && sup !== 'All' && r.s !== sup) return false;
-        if (fullname && (r.fn || '').toLowerCase().indexOf(fullname) === -1) return false;
-        if (proc && proc !== 'All' && r.pr !== proc) return false;
-        if (mv && mv !== 'All' && r.mv !== mv) return false;
-        if (hr && hr !== 'All' && r.hr !== parseInt(hr, 10)) return false;
-        return true;
-    });
+function getTotalPages() {
+    return Math.ceil(filtered.length / PAGE_SIZE) || 1;
 }
 
-function renderAll() {
-    var filtered = getFiltered();
-
-    // Remove skeletons
-    document.querySelectorAll('.skeleton').forEach(function(el) { el.remove(); });
-
-    // Row count
-    var countEl = document.getElementById('row-count');
-    countEl.textContent = filtered.length.toLocaleString() + ' rows' +
-        (CUBE ? ' (of ' + CUBE.length.toLocaleString() + ' total)' : '');
-
-    // Detail table
+function renderPage() {
     var tbody = document.getElementById('detail-tbody');
+    var countEl = document.getElementById('row-count');
+    var paginationEl = document.getElementById('pagination-controls');
+
     if (!filtered.length) {
         tbody.innerHTML = '<tr><td colspan="19" style="text-align:center;padding:24px;color:#6b7280;">No records found</td></tr>';
-        hideLoading();
-        updateBanner();
+        countEl.textContent = '0 rows';
+        if (paginationEl) paginationEl.innerHTML = '';
         return;
     }
 
+    var totalPages = getTotalPages();
+    if (currentPage > totalPages) currentPage = totalPages;
+    var startIdx = (currentPage - 1) * PAGE_SIZE;
+    var endIdx = Math.min(startIdx + PAGE_SIZE, filtered.length);
+    var pageRows = filtered.slice(startIdx, endIdx);
+
+    countEl.textContent = filtered.length.toLocaleString() + ' rows';
+
     var html = '';
-    for (var i = 0; i < filtered.length; i++) {
-        var r = filtered[i];
+    for (var i = 0; i < pageRows.length; i++) {
+        var r = pageRows[i];
         html += '<tr>';
         html += '<td>' + r.at + '</td>';
         html += '<td>' + r.u + '</td>';
@@ -142,7 +115,40 @@ function renderAll() {
     }
     tbody.innerHTML = html;
 
-    hideLoading();
+    // Pagination controls
+    if (paginationEl) {
+        var pH = '';
+        pH += '<button class="pg-btn" id="pg-first" ' + (currentPage === 1 ? 'disabled' : '') + '>&laquo;</button>';
+        pH += '<button class="pg-btn" id="pg-prev" ' + (currentPage === 1 ? 'disabled' : '') + '>&lsaquo;</button>';
+        pH += '<span class="pg-info">Page ' + currentPage + ' of ' + totalPages + '</span>';
+        pH += '<span class="pg-info pg-range">(' + (startIdx + 1).toLocaleString() + '\u2013' + endIdx.toLocaleString() + ')</span>';
+        pH += '<button class="pg-btn" id="pg-next" ' + (currentPage >= totalPages ? 'disabled' : '') + '>&rsaquo;</button>';
+        pH += '<button class="pg-btn" id="pg-last" ' + (currentPage >= totalPages ? 'disabled' : '') + '>&raquo;</button>';
+        paginationEl.innerHTML = pH;
+
+        document.getElementById('pg-first').onclick = function() { currentPage = 1; renderPage(); };
+        document.getElementById('pg-prev').onclick = function() { if (currentPage > 1) { currentPage--; renderPage(); } };
+        document.getElementById('pg-next').onclick = function() { if (currentPage < totalPages) { currentPage++; renderPage(); } };
+        document.getElementById('pg-last').onclick = function() { currentPage = totalPages; renderPage(); };
+    }
+}
+
+// ================================================================
+// CLIENT-SIDE FILTER (post-search narrowing by week/hour)
+// ================================================================
+
+function applyClientFilter() {
+    if (!CUBE || !CUBE.length) { filtered = []; renderPage(); return; }
+    var wk = document.getElementById('filter-week').value;
+    var hr = document.getElementById('filter-hour').value;
+
+    filtered = CUBE.filter(function(r) {
+        if (wk && wk !== 'All' && r.wk !== wk) return false;
+        if (hr && hr !== 'All' && r.hr !== parseInt(hr, 10)) return false;
+        return true;
+    });
+    currentPage = 1;
+    renderPage();
     updateBanner();
 }
 
@@ -158,27 +164,25 @@ function updateBanner() {
     var df = document.getElementById('filter-date-from').value;
     var dt = document.getElementById('filter-date-to').value;
     if (df && dt) {
-        bannerDate.innerHTML = '<strong>Showing:</strong> ' + fmtDate(df) + ' &mdash; ' + fmtDate(dt);
+        bannerDate.innerHTML = '<strong>Showing:</strong> ' + fmtDate(df) + ' \u2014 ' + fmtDate(dt);
     } else {
-        bannerDate.innerHTML = '<strong>Showing:</strong> All dates';
+        bannerDate.innerHTML = '<strong>Showing:</strong> Select filters and click Search';
     }
 
     var chips = [];
-    var wk = document.getElementById('filter-week').value;
-    var shift = document.getElementById('filter-shift').value;
     var sup = document.getElementById('filter-supervisor').value;
     var proc = document.getElementById('filter-process').value;
     var mv = document.getElementById('filter-movement').value;
-    var hr = document.getElementById('filter-hour').value;
-    if (wk && wk !== 'All') chips.push({ label: 'Week', value: wk });
-    if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
+    var shift = document.getElementById('filter-shift').value;
+    var name = document.getElementById('filter-name').value.trim();
     if (sup && sup !== 'All') chips.push({ label: 'Supervisor', value: sup });
     if (proc && proc !== 'All') chips.push({ label: 'Process', value: proc });
     if (mv && mv !== 'All') chips.push({ label: 'Movement', value: mv });
-    if (hr && hr !== 'All') chips.push({ label: 'Hour', value: hr });
+    if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
+    if (name) chips.push({ label: 'Name', value: name });
 
     if (!chips.length) {
-        bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">All Filters</span>';
+        bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">No filter \u2014 select at least one</span>';
     } else {
         bannerChips.innerHTML = chips.map(function(c) {
             return '<span class="banner-chip"><strong>' + c.label + ':</strong> ' + c.value + '</span>';
@@ -187,11 +191,10 @@ function updateBanner() {
 }
 
 // ================================================================
-// POPULATE FILTERS (from cube data)
+// POPULATE FILTER DROPDOWNS
 // ================================================================
 
 function populateFilters(data) {
-    // Supervisor
     var supSel = document.getElementById('filter-supervisor');
     supSel.innerHTML = '<option value="All">All</option>';
     (data.filters.supervisors || []).forEach(function(s) {
@@ -201,17 +204,6 @@ function populateFilters(data) {
         supSel.appendChild(opt);
     });
 
-    // Week
-    var wkSel = document.getElementById('filter-week');
-    wkSel.innerHTML = '<option value="All">All</option>';
-    (data.filters.weeks || []).forEach(function(w) {
-        if (w === 'All') return;
-        var opt = document.createElement('option');
-        opt.value = w; opt.textContent = w;
-        wkSel.appendChild(opt);
-    });
-
-    // Shift
     var shiftSel = document.getElementById('filter-shift');
     shiftSel.innerHTML = '';
     (data.filters.shifts || ['All','A','B','C','D']).forEach(function(s) {
@@ -220,35 +212,38 @@ function populateFilters(data) {
         shiftSel.appendChild(opt);
     });
 
-    // Process (from cube distinct values)
     var procSel = document.getElementById('filter-process');
     procSel.innerHTML = '<option value="All">All</option>';
-    if (CUBE && CUBE.length) {
-        var procs = [...new Set(CUBE.map(function(r) { return r.pr; }))].filter(Boolean).sort();
-        procs.forEach(function(p) {
-            var opt = document.createElement('option');
-            opt.value = p; opt.textContent = p;
-            procSel.appendChild(opt);
-        });
-    }
+    (data.filters.processes || []).forEach(function(p) {
+        if (p === 'All') return;
+        var opt = document.createElement('option');
+        opt.value = p; opt.textContent = p;
+        procSel.appendChild(opt);
+    });
 
-    // Movement (from cube distinct values)
-    var mvSel = document.getElementById('filter-movement');
-    mvSel.innerHTML = '<option value="All">All</option>';
+    // Movement from cube
     if (CUBE && CUBE.length) {
+        var mvSel = document.getElementById('filter-movement');
+        mvSel.innerHTML = '<option value="All">All</option>';
         var mvs = [...new Set(CUBE.map(function(r) { return r.mv; }))].filter(Boolean).sort();
         mvs.forEach(function(m) {
             var opt = document.createElement('option');
             opt.value = m; opt.textContent = m;
             mvSel.appendChild(opt);
         });
-    }
 
-    // Hour (0-23)
-    var hrSel = document.getElementById('filter-hour');
-    hrSel.innerHTML = '<option value="All">All</option>';
-    if (CUBE && CUBE.length) {
-        var hrs = [...new Set(CUBE.map(function(r) { return r.hr; }))].sort(function(a, b) { return a - b; });
+        var wkSel = document.getElementById('filter-week');
+        wkSel.innerHTML = '<option value="All">All</option>';
+        var weeks = [...new Set(CUBE.map(function(r) { return r.wk; }))].filter(Boolean).sort();
+        weeks.forEach(function(w) {
+            var opt = document.createElement('option');
+            opt.value = w; opt.textContent = w;
+            wkSel.appendChild(opt);
+        });
+
+        var hrSel = document.getElementById('filter-hour');
+        hrSel.innerHTML = '<option value="All">All</option>';
+        var hrs = [...new Set(CUBE.map(function(r) { return r.hr; }))].sort(function(a,b){return a-b;});
         hrs.forEach(function(h) {
             var opt = document.createElement('option');
             opt.value = h; opt.textContent = h + ':00';
@@ -258,81 +253,84 @@ function populateFilters(data) {
 }
 
 // ================================================================
-// FETCH DATA
+// SEARCH (FETCH DATA)
 // ================================================================
 
-function fetchData(useCache) {
-    if (useCache) {
-        try {
-            var cached = sessionStorage.getItem(CACHE_KEY);
-            if (cached) {
-                var parsed = JSON.parse(cached);
-                if (Date.now() - parsed.ts < 30 * 60 * 1000) {
-                    CUBE = JSON.parse(parsed.data.cube_json);
-                    populateFilters(parsed.data);
-                    renderAll();
-                    fetchData(false); // background refresh
-                    return;
-                }
-            }
-        } catch(e) {}
+function doSearch() {
+    var sup = document.getElementById('filter-supervisor').value;
+    var shift = document.getElementById('filter-shift').value;
+    var name = document.getElementById('filter-name').value.trim();
+    var proc = document.getElementById('filter-process').value;
+    var mv = document.getElementById('filter-movement').value;
+    var df = document.getElementById('filter-date-from').value;
+    var dt = document.getElementById('filter-date-to').value;
+
+    var hasFilter = (sup && sup !== 'All') || name || (proc && proc !== 'All') ||
+                   (mv && mv !== 'All') || (shift && shift !== 'All');
+
+    if (!hasFilter) {
+        alert('Please select at least one filter (Supervisor, Name, Process, Movement, or Shift) before searching.');
+        return;
     }
 
     showLoading();
-    var df = document.getElementById('filter-date-from').value;
-    var dt = document.getElementById('filter-date-to').value;
     var params = new URLSearchParams();
     if (df) params.set('date_from', df);
     if (dt) params.set('date_to', dt);
+    if (sup && sup !== 'All') params.set('supervisor', sup);
+    if (name) params.set('user_name', name);
+    if (proc && proc !== 'All') params.set('process', proc);
+    if (mv && mv !== 'All') params.set('movement', mv);
+    if (shift && shift !== 'All') params.set('shift', shift);
 
     fetch('/api/userperformance/?' + params.toString())
         .then(function(r) { return r.json(); })
         .then(function(data) {
             CUBE = JSON.parse(data.cube_json);
+            filtered = CUBE.slice();
+            currentPage = 1;
             populateFilters(data);
-            renderAll();
-            try {
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: data }));
-            } catch(e) {}
+            renderPage();
+            updateBanner();
+            hideLoading();
+
+            if (data.capped) {
+                var countEl = document.getElementById('row-count');
+                countEl.textContent += ' (capped at ' + data.max_rows.toLocaleString() + ' \u2014 narrow filters for full data)';
+            }
         })
         .catch(function(err) {
             console.error('[UserPerf] Fetch error:', err);
             hideLoading();
+            alert('Error loading data. Check connection and try again.');
         });
+}
+
+// ================================================================
+// INITIAL LOAD (filters only, no heavy query)
+// ================================================================
+
+function loadFiltersOnly() {
+    fetch('/api/userperformance/')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            populateFilters(data);
+            if (data.selected.date_from) document.getElementById('filter-date-from').value = data.selected.date_from;
+            if (data.selected.date_to) document.getElementById('filter-date-to').value = data.selected.date_to;
+            updateBanner();
+        })
+        .catch(function(err) { console.error('[UserPerf] Filter load error:', err); });
 }
 
 // ================================================================
 // EVENT HANDLERS
 // ================================================================
 
-document.getElementById('filter-week').addEventListener('change', renderAll);
-document.getElementById('filter-shift').addEventListener('change', renderAll);
-document.getElementById('filter-supervisor').addEventListener('change', renderAll);
-document.getElementById('filter-process').addEventListener('change', renderAll);
-document.getElementById('filter-movement').addEventListener('change', renderAll);
-document.getElementById('filter-hour').addEventListener('change', renderAll);
+document.getElementById('btn-search').addEventListener('click', doSearch);
+document.getElementById('filter-name').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
+document.getElementById('filter-week').addEventListener('change', applyClientFilter);
+document.getElementById('filter-hour').addEventListener('change', applyClientFilter);
 
-var _nameTimeout = null;
-document.getElementById('filter-name').addEventListener('input', function() {
-    clearTimeout(_nameTimeout);
-    _nameTimeout = setTimeout(renderAll, 300);
-});
-var _fnTimeout = null;
-document.getElementById('filter-fullname').addEventListener('input', function() {
-    clearTimeout(_fnTimeout);
-    _fnTimeout = setTimeout(renderAll, 300);
-});
-
-// Date range change -> server reload
-function reloadForDate() {
-    showLoading();
-    sessionStorage.removeItem(CACHE_KEY);
-    fetchData(false);
-}
-document.getElementById('filter-date-from').addEventListener('change', reloadForDate);
-document.getElementById('filter-date-to').addEventListener('change', reloadForDate);
-
-// Reset
 document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('filter-week').value = 'All';
     document.getElementById('filter-shift').value = 'All';
@@ -342,19 +340,15 @@ document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('filter-process').value = 'All';
     document.getElementById('filter-movement').value = 'All';
     document.getElementById('filter-hour').value = 'All';
-    renderAll();
+    CUBE = null; filtered = []; currentPage = 1;
+    document.getElementById('detail-tbody').innerHTML = '<tr><td colspan="19" style="text-align:center;padding:24px;color:#6b7280;">Select filters and click Search</td></tr>';
+    document.getElementById('row-count').textContent = '';
+    document.getElementById('pagination-controls').innerHTML = '';
+    updateBanner();
 });
 
-// Refresh
-document.getElementById('btn-refresh').addEventListener('click', function() {
-    sessionStorage.removeItem(CACHE_KEY);
-    fetchData(false);
-});
-
-// Export
 document.getElementById('btn-export').addEventListener('click', function() {
-    var filtered = getFiltered();
-    if (!filtered.length) return;
+    if (!filtered || !filtered.length) return;
     var headers = COLUMNS.map(function(c) { return c.label; });
     var rows = [headers.join(',')];
     filtered.forEach(function(r) {
@@ -373,26 +367,7 @@ document.getElementById('btn-export').addEventListener('click', function() {
     a.click();
 });
 
-// Auto-refresh timer
-var _timerKey = 'lms_timer_userperf';
-var _timerStart = parseInt(sessionStorage.getItem(_timerKey) || '0') || Math.floor(Date.now() / 1000);
-sessionStorage.setItem(_timerKey, _timerStart);
-setInterval(function() {
-    var elapsed = Math.floor(Date.now() / 1000) - _timerStart;
-    var remaining = REFRESH_INTERVAL - elapsed;
-    if (remaining <= 0) {
-        _timerStart = Math.floor(Date.now() / 1000);
-        sessionStorage.setItem(_timerKey, _timerStart);
-        fetchData(false);
-        return;
-    }
-    var m = Math.floor(remaining / 60);
-    var s = remaining % 60;
-    var el = document.getElementById('refresh-timer');
-    if (el) el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
-}, 1000);
-
 // ================================================================
 // INIT
 // ================================================================
-fetchData(true);
+loadFiltersOnly();
