@@ -121,9 +121,9 @@ function updateFiltersBanner() {
 // ================================================================
 
 function getUphPctColor(pct) {
-    if (pct >= 90) return '#22c55e';  // Green (Power BI: >= 0.9)
-    if (pct >= 70) return '#eab308';  // Yellow (Power BI: >= 0.7)
-    return '#dc2626';                 // Red (Power BI: < 0.7)
+    if (pct >= 95) return '#22c55e';  // Green (Power BI: >= 0.95)
+    if (pct >= 80) return '#eab308';  // Yellow (Power BI: >= 0.8)
+    return '#dc2626';                 // Red (Power BI: < 0.8)
 }
 
 function getProductivityColor(pct) {
@@ -209,9 +209,9 @@ function renderGauge(uph, target) {
     var gaugeMax = Math.max(target, uph) * 1.2;
     gaugeMax = Math.ceil(gaugeMax / 50) * 50; // Round up to nearest 50
 
-    // Color bar based on Power BI rules: >=0.9 green, >=0.7 yellow, <0.7 red
+    // Color bar based on Power BI UPH rules: >=0.95 green, >=0.8 yellow, <0.8 red
     var uphPct = target > 0 ? (uph / target * 100) : 0;
-    var barColor = uphPct >= 90 ? '#22c55e' : uphPct >= 70 ? '#eab308' : '#dc2626';
+    var barColor = uphPct >= 95 ? '#22c55e' : uphPct >= 80 ? '#eab308' : '#dc2626';
 
     Plotly.react('gauge-container', [{
         type: 'indicator',
@@ -234,9 +234,9 @@ function renderGauge(uph, target) {
             bgcolor: '#f3f4f6',
             borderwidth: 0,
             steps: [
-                { range: [0, target * 0.7], color: '#fef2f2' },
-                { range: [target * 0.7, target * 0.9], color: '#fef9c3' },
-                { range: [target * 0.9, gaugeMax], color: '#dcfce7' }
+                { range: [0, target * 0.8], color: '#fef2f2' },
+                { range: [target * 0.8, target * 0.95], color: '#fef9c3' },
+                { range: [target * 0.95, gaugeMax], color: '#dcfce7' }
             ],
             threshold: {
                 line: { color: '#1d4ed8', width: 3 },
@@ -300,9 +300,9 @@ function renderTargetChart(entries) {
         textposition: 'outside',
         marker: {
             color: values.map(v => {
-                if (v >= 90) return '#22c55e';  // Green (Power BI: >= 0.9)
-                if (v >= 70) return '#eab308';  // Yellow (Power BI: >= 0.7)
-                return '#dc2626';               // Red (Power BI: < 0.7)
+                if (v >= 95) return '#86efac';  // Green (Power BI: >= 0.95)
+                if (v >= 80) return '#fde047';  // Yellow (Power BI: >= 0.8)
+                return '#fca5a5';               // Red/Pink (Power BI: < 0.8)
             }),
             line: { width: 0 }
         },
