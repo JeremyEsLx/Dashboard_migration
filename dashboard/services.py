@@ -1013,7 +1013,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
 
 def get_strongfinish_data(supervisor='All', shift='All',
                           date_from=None, date_to=None):
-    """Returns data for the Strong Finish page."""
+    """Returns data for the Strong Finish page."""  # noqa: E501
     if date_from or date_to:
         if not date_to:
             date_to = date.today().strftime('%Y-%m-%d')
@@ -1045,6 +1045,165 @@ def get_strongfinish_data(supervisor='All', shift='All',
             cube = future_cube.result(timeout=30)
         except Exception as e:
             print(f"[LMS]   x SQL Server error (Strong Finish Cube): {type(e).__name__}: {e}")
+
+    print(f"{'='*60}\n")
+
+    return {
+        'cube_json': json.dumps(cube),
+        'filters': {
+            'supervisors': filter_options['supervisors'],
+            'shifts': ['All', 'A', 'B', 'C', 'D'],
+        },
+        'selected': {
+            'supervisor': supervisor,
+            'shift': shift,
+            'date_from': date_from or '',
+            'date_to': date_to or '',
+        },
+    }
+
+
+# ============================================================
+# NO ACTIVITY BETWEEN - Detail-level cube
+# ============================================================
+
+_NOACTIVITY_EXCLUDED_SUPERVISORS = ('Galan Knoell, Luis Enrique',)
+
+
+def get_noactivity_cube(date_from=None, date_to=None):
+    """Query No Activity Between detail rows.
+
+    Power BI filters:
+      - Employee Type = DIRECT (via roster join)
+      - Previous Process = 'CLOCK IN'
+      - Process = 'CLOCK OUT'
+      - Supervisor Full Name is NOT 'Galan Knoell, Luis Enrique'
+
+    Columns:
+      [Previous Scan Day] -> Clock In time
+      [Time] -> Clock Out time
+      Duration = [Line Day Activity] / 60
+    """
+    print(f"[LMS] --- Loading No Activity Between Cube ---")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    excl_sup = ", ".join(f"'{s}'" for s in _NOACTIVITY_EXCLUDED_SUPERVISORS)
+
+    where = f"""
+    WHERE [Previous Process] = 'CLOCK IN'
+      AND [Process] = 'CLOCK OUT'
+      AND [Supervisor Full Name] NOT IN ({excl_sup})
+"""
+    if date_from and date_to:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
+    elif date_from:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        print(f"[LMS]   Mode: DATE FROM = {date_from}")
+    elif date_to:
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        print(f"[LMS]   Mode: DATE TO = {date_to}")
+    else:
+        print(f"[LMS]   Mode: NO DATE FILTER")
+
+    where += f"  AND [User Name] IN ({users_str})\n"
+
+    query = f"""
+        SELECT
+            CONVERT(VARCHAR(10), CAST([Date] AS DATE), 23) AS [date],
+            [User Name] AS [user_name],
+            ISNULL([Full Name], [User Name]) AS [full_name],
+            [Supervisor Full Name] AS [supervisor],
+            [SHIFT2] AS [shift],
+            CAST(DATEPART(HOUR, [Previous Scan Day]) AS VARCHAR) + ':' +
+                RIGHT('0' + CAST(DATEPART(MINUTE, [Previous Scan Day]) AS VARCHAR), 2) + ':' +
+                RIGHT('0' + CAST(DATEPART(SECOND, [Previous Scan Day]) AS VARCHAR), 2) AS [clock_in_time],
+            CAST(DATEPART(HOUR, [Time]) AS VARCHAR) + ':' +
+                RIGHT('0' + CAST(DATEPART(MINUTE, [Time]) AS VARCHAR), 2) + ':' +
+                RIGHT('0' + CAST(DATEPART(SECOND, [Time]) AS VARCHAR), 2) AS [clock_out_time],
+            CAST([Line Day Activity] AS FLOAT) AS [line_day]
+        FROM ({_base_subquery()}) AS LMS
+        {where}
+        ORDER BY CAST([Date] AS DATE) DESC, [User Name]
+    """
+
+    df = run_query(query)
+    elapsed = time.time() - start
+
+    if df.empty:
+        print(f"[LMS]   x No data returned ({elapsed:.2f}s)")
+        return []
+
+    def _to_12h(val):
+        if not val or str(val).strip() == '':
+            return ''
+        s = str(val).strip()
+        if 'AM' in s.upper() or 'PM' in s.upper():
+            return s
+        try:
+            parts = s.split(':')
+            h = int(parts[0])
+            m = int(parts[1]) if len(parts) > 1 else 0
+            sec = int(parts[2].split('.')[0]) if len(parts) > 2 else 0
+            period = 'AM' if h < 12 else 'PM'
+            h12 = h % 12 or 12
+            return f'{h12}:{m:02d}:{sec:02d} {period}'
+        except Exception:
+            return s
+
+    cube = []
+    for _, row in df.iterrows():
+        cube.append({
+            'd': row['date'] or '',
+            'u': row['user_name'] or '',
+            'fn': row['full_name'] or '',
+            's': row['supervisor'] or '',
+            'sh': row['shift'] or '',
+            'cit': _to_12h(row['clock_in_time']),
+            'cot': _to_12h(row['clock_out_time']),
+            'ld': round(float(row['line_day'] or 0), 4),
+        })
+
+    print(f"[LMS]   Done {len(cube)} rows in no activity cube ({elapsed:.2f}s)")
+    return cube
+
+
+def get_noactivity_data(supervisor='All', shift='All',
+                        date_from=None, date_to=None):
+    """Returns data for the No Activity Between page."""
+    if date_from or date_to:
+        if not date_to:
+            date_to = date.today().strftime('%Y-%m-%d')
+        if not date_from:
+            date_from = date_to
+    else:
+        today = date.today()
+        date_from = (today - timedelta(days=21)).strftime('%Y-%m-%d')
+        date_to = today.strftime('%Y-%m-%d')
+
+    print(f"\n{'='*60}")
+    print(f"[LMS] NO ACTIVITY BETWEEN REQUEST")
+    print(f"[LMS]   Date Range: {date_from or '(none)'} -> {date_to or '(none)'} | "
+          f"Supervisor: {supervisor} | Shift: {shift}")
+    print(f"{'='*60}")
+
+    filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
+    cube = []
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_filters = executor.submit(get_filter_options)
+        future_cube = executor.submit(get_noactivity_cube, date_from, date_to)
+        try:
+            filter_options = future_filters.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x Filters error: {e}")
+        try:
+            cube = future_cube.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x No Activity Cube error: {type(e).__name__}: {e}")
 
     print(f"{'='*60}\n")
 

@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data
+from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data, get_noactivity_data
 
 
 # ============================================================
@@ -144,6 +144,33 @@ def strongfinish_data(request):
     """API: returns strong finish cube as JSON."""
     try:
         data = get_strongfinish_data(
+            supervisor=request.GET.get('supervisor', 'All'),
+            shift=request.GET.get('shift', 'All'),
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e), 'cube_json': '[]'}, status=200)
+
+
+def noactivity(request):
+    """Render No Activity Between shell (instant, no SQL) — JS hydrates via /api/noactivity/."""
+    data = {
+        'selected': {
+            'supervisor': request.GET.get('supervisor', 'All'),
+            'shift': request.GET.get('shift', 'All'),
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/noactivity.html', {'data': data})
+
+
+def noactivity_data(request):
+    """API: returns no activity between cube as JSON."""
+    try:
+        data = get_noactivity_data(
             supervisor=request.GET.get('supervisor', 'All'),
             shift=request.GET.get('shift', 'All'),
             date_from=request.GET.get('date_from'),
