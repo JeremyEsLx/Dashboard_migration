@@ -83,11 +83,11 @@ def get_userperformance_cube(date_from=None, date_to=None):
             ISNULL([Flow_Type_Map], '') AS [flow_type_map],
             ISNULL([Cart Type], '') AS [cart_type],
             CASE
-                WHEN ISNULL(CAST([Target] AS FLOAT), 0) = 0 THEN 0.0000001
-                ELSE CAST([Quantity] AS FLOAT) / CAST([Target] AS FLOAT)
+                WHEN ISNULL(TRY_CAST([Target] AS FLOAT), 0) = 0 THEN 0.0000001
+                ELSE ISNULL(TRY_CAST([Quantity] AS FLOAT), 0) / TRY_CAST([Target] AS FLOAT)
             END AS [target_time],
-            CAST(ISNULL([Line Day Activity], 0) AS FLOAT) AS [line_day],
-            CAST(ISNULL([Idle Time Day], 0) AS FLOAT) AS [idle_time],
+            ISNULL(TRY_CAST([Line Day Activity] AS FLOAT), 0) AS [line_day],
+            ISNULL(TRY_CAST([Idle Time Day] AS FLOAT), 0) AS [idle_time],
             DATEPART(HOUR, [Time]) AS [hour]
         FROM ({_base_subquery()}) AS LMS
         {where}
