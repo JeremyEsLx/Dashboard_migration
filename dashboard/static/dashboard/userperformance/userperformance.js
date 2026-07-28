@@ -160,17 +160,11 @@ function updateBanner() {
     var mv = document.getElementById('filter-movement').value;
     var shift = document.getElementById('filter-shift').value;
     var name = document.getElementById('filter-name').value.trim();
-    var wk = document.getElementById('filter-week').value;
-    var hr = document.getElementById('filter-hour').value;
-    var fn = document.getElementById('filter-fullname').value;
     if (sup && sup !== 'All') chips.push({ label: 'Supervisor', value: sup });
     if (proc && proc !== 'All') chips.push({ label: 'Process', value: proc });
     if (mv && mv !== 'All') chips.push({ label: 'Movement', value: mv });
     if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
     if (name) chips.push({ label: 'Name', value: name });
-    if (wk && wk !== 'All') chips.push({ label: 'Week', value: wk });
-    if (hr && hr !== 'All') chips.push({ label: 'Hour', value: hr + ':00' });
-    if (fn && fn !== 'All') chips.push({ label: 'Full Name', value: fn });
 
     if (!chips.length) {
         bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">No filter \u2014 select at least one</span>';
@@ -319,15 +313,13 @@ function loadFiltersOnly() {
 
 document.getElementById('btn-search').addEventListener('click', doSearch);
 document.getElementById('filter-name').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
-document.getElementById('filter-week').addEventListener('change', applyClientFilter);
-document.getElementById('filter-hour').addEventListener('change', applyClientFilter);
 
 document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('filter-week').value = 'All';
     document.getElementById('filter-shift').value = 'All';
     document.getElementById('filter-name').value = '';
     document.getElementById('filter-supervisor').value = 'All';
-    document.getElementById('filter-fullname').value = '';
+    document.getElementById('filter-fullname').value = 'All';
     document.getElementById('filter-process').value = 'All';
     document.getElementById('filter-movement').value = 'All';
     document.getElementById('filter-hour').value = 'All';
