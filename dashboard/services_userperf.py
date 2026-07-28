@@ -25,6 +25,36 @@ from .services import (
 
 _MAX_ROWS = 10000  # Safety cap per request
 
+# Full Names cache (1 hour TTL — avoids scanning entire LMS table on every request)
+_fullname_cache = {'data': None, 'timestamp': 0}
+_FULLNAME_CACHE_TTL = 3600  # 1 hour
+
+
+def _get_full_names():
+    """Cached query for distinct Full Names (DIRECT users, last 60 days)."""
+    now = time.time()
+    if _fullname_cache['data'] and (now - _fullname_cache['timestamp']) < _FULLNAME_CACHE_TTL:
+        return _fullname_cache['data']
+
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+    sixty_days_ago = (date.today() - timedelta(days=60)).strftime('%Y-%m-%d')
+
+    df_fn = run_query(f"""
+        SELECT DISTINCT ISNULL([Full Name], [User Name]) AS [full_name]
+        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+        WHERE [User Name] IN ({users_str})
+          AND [Full Name] IS NOT NULL
+          AND [Full Name] != ''
+          AND CAST([Date] AS DATE) >= '{sixty_days_ago}'
+        ORDER BY [full_name]
+    """)
+    result = ['All'] + df_fn['full_name'].tolist()
+    _fullname_cache['data'] = result
+    _fullname_cache['timestamp'] = time.time()
+    print(f"[LMS]   Full Names loaded: {len(result) - 1} entries (cached 1h)")
+    return result
+
 
 def _default_date_range():
     """26th of last month to today."""
@@ -205,6 +235,8 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         movement and movement != 'All',
         shift and shift != 'All',
         hour is not None and hour != '' and hour != 'All',
+        week and week != 'All',
+        full_name and full_name != 'All',
     ])
 
     print(f"\n{'='*60}")
@@ -219,6 +251,13 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         filter_options = get_filter_options()
     except Exception as e:
         print(f"[LMS]   x Filters error: {e}")
+
+    # Load Full Names dropdown (cached 1h, scoped to last 60 days)
+    full_names_list = ['All']
+    try:
+        full_names_list = _get_full_names()
+    except Exception as e:
+        print(f"[LMS]   x Full Names error: {e}")
 
     # Only run the heavy cube query if user provided at least one filter
     cube = []
