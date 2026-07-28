@@ -6,7 +6,7 @@
 {% block nav_userperformance %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/userperformance/userperformance.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'dashboard/userperformance/userperformance.css' %}?v=3">
 {% endblock %}
 
 {% block page_title %}
@@ -54,7 +54,7 @@
     </div>
     <div class="filter-group">
         <label>Full Name</label>
-        <input type="text" id="filter-fullname" placeholder="Full name..." autocomplete="off">
+        <select id="filter-fullname"><option value="All" selected>All</option></select>
     </div>
     <div class="filter-actions">
         <button class="btn-filter btn-search" id="btn-search">
@@ -119,5 +119,5 @@
 
 {% block scripts %}
 <script>var CUBE = null;</script>
-<script src="{% static 'dashboard/userperformance/userperformance.js' %}?v=2"></script>
+<script src="{% static 'dashboard/userperformance/userperformance.js' %}?v=3"></script>
 {% endblock %}

@@ -205,6 +205,8 @@ def userperformance_data(request):
             movement=request.GET.get('movement'),
             shift=request.GET.get('shift'),
             hour=request.GET.get('hour'),
+            week=request.GET.get('week'),
+            full_name=request.GET.get('full_name'),
         )
         return JsonResponse(data)
     except Exception as e:

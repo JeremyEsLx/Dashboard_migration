@@ -134,23 +134,8 @@ function renderPage() {
 }
 
 // ================================================================
-// CLIENT-SIDE FILTER (post-search narrowing by week/hour)
+// CLIENT-SIDE FILTER (no longer used — Week/Hour are server-side)
 // ================================================================
-
-function applyClientFilter() {
-    if (!CUBE || !CUBE.length) { filtered = []; renderPage(); return; }
-    var wk = document.getElementById('filter-week').value;
-    var hr = document.getElementById('filter-hour').value;
-
-    filtered = CUBE.filter(function(r) {
-        if (wk && wk !== 'All' && r.wk !== wk) return false;
-        if (hr && hr !== 'All' && r.hr !== parseInt(hr, 10)) return false;
-        return true;
-    });
-    currentPage = 1;
-    renderPage();
-    updateBanner();
-}
 
 // ================================================================
 // BANNER
@@ -175,11 +160,17 @@ function updateBanner() {
     var mv = document.getElementById('filter-movement').value;
     var shift = document.getElementById('filter-shift').value;
     var name = document.getElementById('filter-name').value.trim();
+    var wk = document.getElementById('filter-week').value;
+    var hr = document.getElementById('filter-hour').value;
+    var fn = document.getElementById('filter-fullname').value;
     if (sup && sup !== 'All') chips.push({ label: 'Supervisor', value: sup });
     if (proc && proc !== 'All') chips.push({ label: 'Process', value: proc });
     if (mv && mv !== 'All') chips.push({ label: 'Movement', value: mv });
     if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
     if (name) chips.push({ label: 'Name', value: name });
+    if (wk && wk !== 'All') chips.push({ label: 'Week', value: wk });
+    if (hr && hr !== 'All') chips.push({ label: 'Hour', value: hr + ':00' });
+    if (fn && fn !== 'All') chips.push({ label: 'Full Name', value: fn });
 
     if (!chips.length) {
         bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">No filter \u2014 select at least one</span>';

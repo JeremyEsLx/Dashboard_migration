@@ -38,7 +38,7 @@ def _default_date_range():
 
 def get_userperformance_cube(date_from=None, date_to=None, supervisor=None,
                              user_name=None, process=None, movement=None,
-                             shift=None, hour=None):
+                             shift=None, hour=None, week=None, full_name=None):
     """Query raw LMS rows with server-side filters.
 
     All filters narrow the SQL WHERE clause so only relevant rows are returned.
@@ -90,6 +90,12 @@ def get_userperformance_cube(date_from=None, date_to=None, supervisor=None,
     if hour is not None and hour != '' and hour != 'All':
         where += f"      AND DATEPART(HOUR, [Time]) = {int(hour)}\n"
         print(f"[LMS]   Hour: {hour}")
+    if week and week != 'All':
+        where += f"      AND [Fiscal Week] = '{week.replace(chr(39), chr(39)+chr(39))}'\n"
+        print(f"[LMS]   Week: {week}")
+    if full_name and full_name != 'All':
+        where += f"      AND [Full Name] = '{full_name.replace(chr(39), chr(39)+chr(39))}'\n"
+        print(f"[LMS]   Full Name: {full_name}")
 
     query = f"""
         SELECT TOP {_MAX_ROWS}
@@ -177,7 +183,7 @@ def get_userperformance_cube(date_from=None, date_to=None, supervisor=None,
 
 def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
                              user_name=None, process=None, movement=None,
-                             shift=None, hour=None):
+                             shift=None, hour=None, week=None, full_name=None):
     """Returns data for the User Performance page (search-first).
 
     If no filters beyond date are provided, returns only filter options
@@ -187,7 +193,7 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         date_from, date_to = _default_date_range()
     else:
         if not date_to:
-            date_to = date.today().strftime('%Y-%m-%d')
+            date_to = date_from  # Single-date search: same day
         if not date_from:
             date_from = date_to
 
@@ -225,6 +231,7 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
                 supervisor=supervisor, user_name=user_name,
                 process=process, movement=movement,
                 shift=shift, hour=hour,
+                week=week, full_name=full_name,
             )
             capped = total >= _MAX_ROWS
         except Exception as e:
@@ -244,6 +251,7 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
             'weeks': filter_options['weeks'],
             'processes': filter_options['processes'],
             'shifts': ['All', 'A', 'B', 'C', 'D'],
+            'full_names': full_names_list,
         },
         'selected': {
             'date_from': date_from or '',
