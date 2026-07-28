@@ -31,28 +31,50 @@ _FULLNAME_CACHE_TTL = 3600  # 1 hour
 
 
 def _get_full_names():
-    """Cached query for distinct Full Names (DIRECT users, last 60 days)."""
+    """Cached query for distinct Full Names from Roster table (instant, ~152 users)."""
     now = time.time()
     if _fullname_cache['data'] and (now - _fullname_cache['timestamp']) < _FULLNAME_CACHE_TTL:
         return _fullname_cache['data']
 
-    direct_users = get_direct_users()
-    users_str = ", ".join(f"'{u}'" for u in direct_users)
-    sixty_days_ago = (date.today() - timedelta(days=60)).strftime('%Y-%m-%d')
+    print("[LMS]   Loading Full Names from Roster...")
+    start = time.time()
+
+    # Query Roster for employee names — much faster than scanning LMS table
+    from .services import DIRECT_ROLES
+    roles_str = ", ".join(f"'{r}'" for r in DIRECT_ROLES)
 
     df_fn = run_query(f"""
-        SELECT DISTINCT ISNULL([Full Name], [User Name]) AS [full_name]
-        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
-        WHERE [User Name] IN ({users_str})
-          AND [Full Name] IS NOT NULL
-          AND [Full Name] != ''
-          AND CAST([Date] AS DATE) >= '{sixty_days_ago}'
+        SELECT DISTINCT
+            ISNULL([Nombre_Completo],
+                ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50)))
+            ) AS [full_name]
+        FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
+        WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
+          AND [Estacion_de_Trabajo] IN ({roles_str})
+          AND [Nombre_Completo] IS NOT NULL
+          AND [Nombre_Completo] != ''
         ORDER BY [full_name]
     """)
+
+    if df_fn.empty:
+        # Fallback: get names from LMS table (last 14 days only)
+        direct_users = get_direct_users()
+        users_str = ", ".join(f"'{u}'" for u in direct_users)
+        df_fn = run_query(f"""
+            SELECT DISTINCT TOP 200 ISNULL([Full Name], [User Name]) AS [full_name]
+            FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+            WHERE [User Name] IN ({users_str})
+              AND [Full Name] IS NOT NULL
+              AND [Full Name] != ''
+              AND [Date] >= DATEADD(DAY, -14, GETDATE())
+            ORDER BY [full_name]
+        """)
+
     result = ['All'] + df_fn['full_name'].tolist()
     _fullname_cache['data'] = result
     _fullname_cache['timestamp'] = time.time()
-    print(f"[LMS]   Full Names loaded: {len(result) - 1} entries (cached 1h)")
+    elapsed = time.time() - start
+    print(f"[LMS]   Full Names loaded: {len(result) - 1} entries ({elapsed:.2f}s, cached 1h)")
     return result
 
 
@@ -235,8 +257,6 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         movement and movement != 'All',
         shift and shift != 'All',
         hour is not None and hour != '' and hour != 'All',
-        week and week != 'All',
-        full_name and full_name != 'All',
     ])
 
     print(f"\n{'='*60}")
