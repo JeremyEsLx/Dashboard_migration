@@ -68,10 +68,6 @@
     <div class="filters-section-label">Narrow Results</div>
     <div class="filters-row">
         <div class="filter-group">
-            <label>Name (Nickname)</label>
-            <input type="text" id="filter-name" placeholder="User alias..." autocomplete="off">
-        </div>
-        <div class="filter-group">
             <label>Process</label>
             <select id="filter-process"><option value="All" selected>All</option></select>
         </div>
@@ -146,5 +142,5 @@
 
 {% block scripts %}
 <script>var CUBE = null;</script>
-<script src="{% static 'dashboard/userperformance/userperformance.js' %}?v=7"></script>
+<script src="{% static 'dashboard/userperformance/userperformance.js' %}?v=8"></script>
 {% endblock %}

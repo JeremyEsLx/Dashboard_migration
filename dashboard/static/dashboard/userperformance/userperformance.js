@@ -181,24 +181,29 @@ function updateBanner() {
 
 function populateFilters(data) {
     // Helper: populate a <select> from an array, preserving current selection
-    function fillSelect(id, items) {
+    // placeholder: text to show for the "All" option (primary = "— Select —", secondary = "All")
+    function fillSelect(id, items, placeholder) {
         var sel = document.getElementById(id);
         var cur = sel.value;
         sel.innerHTML = '';
         (items || ['All']).forEach(function(v) {
             var opt = document.createElement('option');
-            opt.value = v; opt.textContent = v;
+            opt.value = v;
+            opt.textContent = (v === 'All') ? (placeholder || 'All') : v;
             sel.appendChild(opt);
         });
         if (cur && cur !== 'All') sel.value = cur;
     }
 
-    fillSelect('filter-supervisor', data.filters.supervisors);
-    fillSelect('filter-shift', data.filters.shifts);
+    // Primary filters: show "— Select —" as placeholder
+    fillSelect('filter-supervisor', data.filters.supervisors, '\u2014 Select \u2014');
+    fillSelect('filter-shift', data.filters.shifts, '\u2014 Select \u2014');
+    fillSelect('filter-fullname', data.filters.full_names, '\u2014 Select \u2014');
+
+    // Secondary filters: show "All" (genuine "no filter" option)
     fillSelect('filter-process', data.filters.processes);
     fillSelect('filter-movement', data.filters.movements);
     fillSelect('filter-week', data.filters.weeks);
-    fillSelect('filter-fullname', data.filters.full_names);
 
     // Hours: show as "6:00", "7:00" etc.
     var hrSel = document.getElementById('filter-hour');
@@ -290,7 +295,10 @@ function loadFiltersOnly() {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             populateFilters(data);
-            if (data.selected.date_from) document.getElementById('filter-date-from').value = data.selected.date_from;
+            if (data.selected.date_from) {
+                document.getElementById('filter-date-from').value = data.selected.date_from;
+                document.getElementById('filter-date-single').value = data.selected.date_from;
+            }
             if (data.selected.date_to) document.getElementById('filter-date-to').value = data.selected.date_to;
             updateBanner();
         })
@@ -313,10 +321,6 @@ document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('filter-process').value = 'All';
     document.getElementById('filter-movement').value = 'All';
     document.getElementById('filter-hour').value = 'All';
-    document.getElementById('filter-date-single').value = '';
-    document.getElementById('filter-date-from').value = '';
-    document.getElementById('filter-date-to').value = '';
-    setDateMode('single');
     CUBE = null; filtered = []; currentPage = 1;
     document.getElementById('detail-tbody').innerHTML = '<tr><td colspan="19" style="text-align:center;padding:24px;color:#6b7280;">Select filters and click Search</td></tr>';
     document.getElementById('row-count').textContent = '';
