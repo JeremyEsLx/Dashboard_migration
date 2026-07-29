@@ -117,16 +117,11 @@ function renderAll() {
 function loadData() {
     var df = document.getElementById('filter-date-from').value;
     var dt = document.getElementById('filter-date-to').value;
-    var delivery = document.getElementById('filter-delivery').value.trim();
-    var po = document.getElementById('filter-packing-object').value.trim();
-    var user = document.getElementById('filter-username').value.trim();
 
+    // Only dates go to server — text filters are client-side
     var params = new URLSearchParams();
     if (df) params.set('date_from', df);
     if (dt) params.set('date_to', dt);
-    if (delivery) params.set('delivery', delivery);
-    if (po) params.set('packing_object', po);
-    if (user) params.set('user_name', user);
 
     // Show loading state
     document.getElementById('picking-tbody').innerHTML = '<tr><td colspan="12" class="dd-loading">Loading\u2026</td></tr>';
@@ -141,17 +136,18 @@ function loadData() {
                 console.error('[DeliveryDD] Server error:', data.error);
             }
 
-            var picking = JSON.parse(data.picking_json);
-            var packing = JSON.parse(data.packing_json);
-
-            renderTable('picking-tbody', picking, PICKING_COLS, 'picking-count');
-            renderTable('packing-tbody', packing, PACKING_COLS, 'packing-count');
+            // Store full server data in globals
+            PICKING_RAW = JSON.parse(data.picking_json);
+            PACKING_RAW = JSON.parse(data.packing_json);
 
             // Update dates from server response
             var sel = data.selected || {};
             if (sel.date_from) document.getElementById('filter-date-from').value = sel.date_from;
             if (sel.date_to) document.getElementById('filter-date-to').value = sel.date_to;
             updateBanner(sel.date_from, sel.date_to);
+
+            // Render with current text filters applied client-side
+            renderAll();
         })
         .catch(function(err) {
             console.error('[DeliveryDD] Fetch error:', err);
@@ -164,20 +160,11 @@ function loadData() {
 // EVENT HANDLERS
 // ================================================================
 
-// Filters auto-trigger reload (like Strong Start/Finish)
+// Date changes: reload from server (only dates trigger server query)
 document.getElementById('filter-date-from').addEventListener('change', loadData);
 document.getElementById('filter-date-to').addEventListener('change', loadData);
 
-document.getElementById('btn-reset').addEventListener('click', function() {
-    document.getElementById('filter-date-from').value = '';
-    document.getElementById('filter-date-to').value = '';
-    document.getElementById('filter-delivery').value = '';
-    document.getElementById('filter-packing-object').value = '';
-    document.getElementById('filter-username').value = '';
-    loadData();
-});
-
-// Text inputs: client-side filter with debounce (like Strong Start employee)
+// Text inputs: CLIENT-SIDE filter with 300ms debounce (like Strong Start employee)
 var _filterTimeout = null;
 function filterWithDebounce() {
     clearTimeout(_filterTimeout);
@@ -187,7 +174,17 @@ function filterWithDebounce() {
     document.getElementById(id).addEventListener('input', filterWithDebounce);
 });
 
-// Refresh: clear cache, reload page
+// Reset: clear all filters, reload from server with defaults
+document.getElementById('btn-reset').addEventListener('click', function() {
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value = '';
+    document.getElementById('filter-delivery').value = '';
+    document.getElementById('filter-packing-object').value = '';
+    document.getElementById('filter-username').value = '';
+    loadData();
+});
+
+// Refresh: clear timer cache, full page reload
 document.getElementById('btn-refresh').addEventListener('click', function() {
     try { sessionStorage.removeItem('lms_timer_deliverydeepdive'); } catch(e) {}
     window.location.reload();
