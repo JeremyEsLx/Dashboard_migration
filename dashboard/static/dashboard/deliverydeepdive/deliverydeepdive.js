@@ -153,7 +153,6 @@ function loadData(skipCache) {
     if (!skipCache) {
         var cached = getCachedData();
         if (cached) {
-            console.log('[DeliveryDD] Cache HIT:', cached.picking.length, 'pick +', cached.packing.length, 'pack rows');
             PICKING_RAW = cached.picking || [];
             PACKING_RAW = cached.packing || [];
             SELECTED_STATE = cached.selected || {};
@@ -264,34 +263,43 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
     window.location.reload();
 });
 
-// Export: CSV with both tables (filtered view)
+// Export: Excel with two sheets (Picking + Packing)
 document.getElementById('btn-export').addEventListener('click', function() {
-    var rows = [];
-    rows.push(['--- PICKING ---']);
-    rows.push(PICKING_COLS.map(function(c) { return c.label; }));
+    // Build Picking sheet
+    var pickRows = [PICKING_COLS.map(function(c) { return c.label; })];
     (window._pickingData || []).forEach(function(r) {
-        rows.push(PICKING_COLS.map(function(c) {
+        pickRows.push(PICKING_COLS.map(function(c) {
             var v = r[c.key];
             if (c.key === 'd') v = fmtDate(v);
-            return '"' + String(v || '').replace(/"/g, '""') + '"';
+            return (v !== null && v !== undefined) ? v : '';
         }));
     });
-    rows.push([]);
-    rows.push(['--- PACKING ---']);
-    rows.push(PACKING_COLS.map(function(c) { return c.label; }));
+
+    // Build Packing sheet
+    var packRows = [PACKING_COLS.map(function(c) { return c.label; })];
     (window._packingData || []).forEach(function(r) {
-        rows.push(PACKING_COLS.map(function(c) {
+        packRows.push(PACKING_COLS.map(function(c) {
             var v = r[c.key];
             if (c.key === 'd') v = fmtDate(v);
-            return '"' + String(v || '').replace(/"/g, '""') + '"';
+            return (v !== null && v !== undefined) ? v : '';
         }));
     });
-    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
-    var blob = new Blob([csv], { type: 'text/csv' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'LMS_DeliveryDeepDive.csv';
-    a.click();
+
+    // Create workbook with two sheets
+    var wb = XLSX.utils.book_new();
+    var wsPick = XLSX.utils.aoa_to_sheet(pickRows);
+    var wsPack = XLSX.utils.aoa_to_sheet(packRows);
+    XLSX.utils.book_append_sheet(wb, wsPick, 'Picking');
+    XLSX.utils.book_append_sheet(wb, wsPack, 'Packing');
+
+    // Filename with date range
+    var df = SELECTED_STATE.date_from || '';
+    var dt = SELECTED_STATE.date_to || '';
+    var filename = 'LMS_DeliveryDeepDive';
+    if (df && dt) filename += '_' + df + '_to_' + dt;
+    filename += '.xlsx';
+
+    XLSX.writeFile(wb, filename);
 });
 
 // ================================================================
