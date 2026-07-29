@@ -63,18 +63,12 @@
     gap: 4px;
     white-space: nowrap;
 }
+.btn-search { background: #2563eb; color: white; border-color: #2563eb; }
+.btn-search:hover { background: #1d4ed8; }
 .btn-export { background: #059669; color: white; border-color: #059669; }
 .btn-export:hover { background: #047857; }
 .btn-reset { background: white; color: #6b7280; }
 .btn-reset:hover { background: #f3f4f6; color: #374151; border-color: #9ca3af; }
-.btn-refresh { background: #0f172a; color: white; border-color: #0f172a; }
-.btn-refresh:hover { background: #1e293b; }
-.refresh-timer {
-    font-size: 11px;
-    color: #9ca3af;
-    margin-left: 4px;
-    font-variant-numeric: tabular-nums;
-}
 
 /* === BANNER === */
 .active-filters-banner {

@@ -1,4 +1,11 @@
 /* ============================================================
+   DELIVERY DEEP DIVE — Search-First (like User Performance)
+   User enters a Delivery or Packing Object, clicks Search.
+   No auto-load, no cache, no timer.
+   ============================================================ */
+
+// THIS FILE REPLACES THE PREVIOUS AUTO-LOAD VERSION
+/* ============================================================
    DELIVERY DEEP DIVE — JavaScript
    Auto-loads with default date range. Two tables: Picking + Packing.
    ============================================================ */
@@ -65,6 +72,146 @@ function renderTable(tbodyId, data, cols, countId) {
     });
     tbody.innerHTML = html;
 }
+
+function showLoading() {
+    var banner = document.getElementById('active-filters-banner');
+    var bannerIcon = document.getElementById('banner-icon');
+    var bannerDate = document.getElementById('banner-date-range');
+    if (banner) banner.classList.add('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = '<div class="inline-spinner"></div>';
+    if (bannerDate) bannerDate.innerHTML = 'Searching\u2026';
+}
+
+function hideLoading() {
+    var banner = document.getElementById('active-filters-banner');
+    var bannerIcon = document.getElementById('banner-icon');
+    if (banner) banner.classList.remove('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>';
+}
+
+// ================================================================
+// SEARCH (server-side query)
+// ================================================================
+
+function doSearch() {
+    var delivery = document.getElementById('filter-delivery').value.trim();
+    var po = document.getElementById('filter-packing-object').value.trim();
+
+    // Validate: at least one filter required
+    if (!delivery && !po) {
+        alert('Please enter a Delivery or Packing Object to search.');
+        return;
+    }
+
+    showLoading();
+    document.getElementById('picking-tbody').innerHTML = '';
+    document.getElementById('packing-tbody').innerHTML = '';
+    document.getElementById('picking-count').textContent = '';
+    document.getElementById('packing-count').textContent = '';
+
+    var params = new URLSearchParams();
+    if (delivery) params.set('delivery', delivery);
+    if (po) params.set('packing_object', po);
+
+    fetch('/api/deliverydeepdive/?' + params.toString())
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                console.error('[DeliveryDD] Server error:', data.error);
+            }
+
+            var picking = (typeof data.picking_json === 'string') ? JSON.parse(data.picking_json) : (data.picking_json || []);
+            var packing = (typeof data.packing_json === 'string') ? JSON.parse(data.packing_json) : (data.packing_json || []);
+            window._pickingData = picking;
+            window._packingData = packing;
+
+            renderTable('picking-tbody', picking, PICKING_COLS, 'picking-count');
+            renderTable('packing-tbody', packing, PACKING_COLS, 'packing-count');
+
+            // Update banner with search info
+            var bannerDate = document.getElementById('banner-date-range');
+            var chips = [];
+            if (delivery) chips.push('<strong>Delivery:</strong> ' + delivery);
+            if (po) chips.push('<strong>Packing Object:</strong> ' + po);
+            bannerDate.innerHTML = chips.join(' &nbsp;|&nbsp; ') +
+                ' &nbsp;\u2014&nbsp; Picking: ' + picking.length + ' | Packing: ' + packing.length;
+            hideLoading();
+        })
+        .catch(function(err) {
+            console.error('[DeliveryDD] Fetch error:', err);
+            hideLoading();
+            var bannerDate = document.getElementById('banner-date-range');
+            bannerDate.innerHTML = '<span style="color:#dc2626;">Error loading data. Try again.</span>';
+        });
+}
+
+// ================================================================
+// EVENT HANDLERS
+// ================================================================
+
+// Search button
+document.getElementById('btn-search').addEventListener('click', doSearch);
+
+// Enter key on text inputs triggers search
+['filter-delivery', 'filter-packing-object'].forEach(function(id) {
+    document.getElementById(id).addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') doSearch();
+    });
+});
+
+// Reset: clear filters, reset page to initial state
+document.getElementById('btn-reset').addEventListener('click', function() {
+    document.getElementById('filter-delivery').value = '';
+    document.getElementById('filter-packing-object').value = '';
+    document.getElementById('picking-tbody').innerHTML = '';
+    document.getElementById('packing-tbody').innerHTML = '';
+    document.getElementById('picking-count').textContent = '';
+    document.getElementById('packing-count').textContent = '';
+    window._pickingData = [];
+    window._packingData = [];
+    var bannerDate = document.getElementById('banner-date-range');
+    bannerDate.innerHTML = 'Enter a <strong>Delivery</strong> or <strong>Packing Object</strong> and click Search';
+});
+
+// Export: Excel with two sheets (Picking + Packing)
+document.getElementById('btn-export').addEventListener('click', function() {
+    if ((!window._pickingData || !window._pickingData.length) && (!window._packingData || !window._packingData.length)) {
+        alert('No data to export. Run a search first.');
+        return;
+    }
+
+    var pickRows = [PICKING_COLS.map(function(c) { return c.label; })];
+    (window._pickingData || []).forEach(function(r) {
+        pickRows.push(PICKING_COLS.map(function(c) {
+            var v = r[c.key];
+            if (c.key === 'd') v = fmtDate(v);
+            return (v !== null && v !== undefined) ? v : '';
+        }));
+    });
+
+    var packRows = [PACKING_COLS.map(function(c) { return c.label; })];
+    (window._packingData || []).forEach(function(r) {
+        packRows.push(PACKING_COLS.map(function(c) {
+            var v = r[c.key];
+            if (c.key === 'd') v = fmtDate(v);
+            return (v !== null && v !== undefined) ? v : '';
+        }));
+    });
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pickRows), 'Picking');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(packRows), 'Packing');
+
+    var delivery = document.getElementById('filter-delivery').value.trim();
+    var po = document.getElementById('filter-packing-object').value.trim();
+    var filename = 'LMS_DeliveryDeepDive';
+    if (delivery) filename += '_' + delivery;
+    if (po) filename += '_' + po;
+    filename += '.xlsx';
+
+    XLSX.writeFile(wb, filename);
+});
+
 
 function updateBanner(df, dt) {
     var banner = document.getElementById('banner-date-range');

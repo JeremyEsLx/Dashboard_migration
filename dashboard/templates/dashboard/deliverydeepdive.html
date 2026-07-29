@@ -18,43 +18,33 @@
 <div class="filters-bar">
     <div class="filters-row">
         <div class="filter-group">
-            <label>Date From</label>
-            <input type="date" id="filter-date-from">
-        </div>
-        <div class="filter-group">
-            <label>Date To</label>
-            <input type="date" id="filter-date-to">
-        </div>
-        <div class="filter-group">
             <label>Delivery</label>
-            <input type="text" id="filter-delivery" placeholder="Delivery #..." autocomplete="off">
+            <input type="text" id="filter-delivery" placeholder="e.g. 80012345" autocomplete="off">
         </div>
         <div class="filter-group">
             <label>Packing Object</label>
-            <input type="text" id="filter-packing-object" placeholder="Packing Obj..." autocomplete="off">
-        </div>
-        <div class="filter-group">
-            <label>User Name</label>
-            <input type="text" id="filter-username" placeholder="User alias..." autocomplete="off">
+            <input type="text" id="filter-packing-object" placeholder="e.g. 900123456" autocomplete="off">
         </div>
         <div class="filter-actions">
-            <button class="btn-filter btn-export" id="btn-export">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            <button class="btn-filter btn-search" id="btn-search">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+                Search
+            </button>
+            <button class="btn-filter btn-export" id="btn-export" title="Export to Excel">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
                 Export
             </button>
-            <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">&#8634; Reset Filters</button>
-            <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data">&#8635; Refresh</button>
-            <span class="refresh-timer" id="refresh-timer"></span>
+            <button class="btn-filter btn-reset" id="btn-reset" title="Clear filters">&#8634; Reset</button>
         </div>
     </div>
 </div>
 
 <!-- BANNER -->
 <div class="active-filters-banner" id="active-filters-banner">
-    <span class="banner-icon">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>
+    <span class="banner-icon" id="banner-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
     </span>
-    <span class="banner-date-range" id="banner-date-range">Loading…</span>
+    <span class="banner-date-range" id="banner-date-range">Enter a <strong>Delivery</strong> or <strong>Packing Object</strong> and click Search</span>
 </div>
 
 <!-- PICKING TABLE -->
@@ -113,5 +103,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/deliverydeepdive/deliverydeepdive.js' %}?v=7"></script>
+<script src="{% static 'dashboard/deliverydeepdive/deliverydeepdive.js' %}?v=8"></script>
 {% endblock %}
