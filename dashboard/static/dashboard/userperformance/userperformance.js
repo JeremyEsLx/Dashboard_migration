@@ -165,12 +165,6 @@ function updateBanner() {
     if (mv && mv !== 'All') chips.push({ label: 'Movement', value: mv });
     if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
     if (name) chips.push({ label: 'Name', value: name });
-    var wk = document.getElementById('filter-week').value;
-    var hr = document.getElementById('filter-hour').value;
-    var fn = document.getElementById('filter-fullname').value;
-    if (wk && wk !== 'All') chips.push({ label: 'Week', value: wk });
-    if (hr && hr !== 'All') chips.push({ label: 'Hour', value: hr + ':00' });
-    if (fn && fn !== 'All') chips.push({ label: 'Full Name', value: fn });
 
     if (!chips.length) {
         bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">No filter \u2014 select at least one</span>';
@@ -229,14 +223,25 @@ function doSearch() {
     var name = document.getElementById('filter-name').value.trim();
     var proc = document.getElementById('filter-process').value;
     var mv = document.getElementById('filter-movement').value;
+    var wk = document.getElementById('filter-week').value;
+    var hr = document.getElementById('filter-hour').value;
+    var fn = document.getElementById('filter-fullname').value;
     var df = document.getElementById('filter-date-from').value;
     var dt = document.getElementById('filter-date-to').value;
 
+    // Single-date: if Date From is set but Date To is empty, use same day
+    if (df && !dt) {
+        dt = df;
+        document.getElementById('filter-date-to').value = dt;
+    }
+
     var hasFilter = (sup && sup !== 'All') || name || (proc && proc !== 'All') ||
-                   (mv && mv !== 'All') || (shift && shift !== 'All');
+                   (mv && mv !== 'All') || (shift && shift !== 'All') ||
+                   (wk && wk !== 'All') || (hr && hr !== 'All') ||
+                   (fn && fn !== 'All');
 
     if (!hasFilter) {
-        alert('Please select at least one filter (Supervisor, Name, Process, Movement, or Shift) before searching.');
+        alert('Please select at least one filter before searching.');
         return;
     }
 
@@ -249,6 +254,9 @@ function doSearch() {
     if (proc && proc !== 'All') params.set('process', proc);
     if (mv && mv !== 'All') params.set('movement', mv);
     if (shift && shift !== 'All') params.set('shift', shift);
+    if (wk && wk !== 'All') params.set('week', wk);
+    if (hr && hr !== 'All') params.set('hour', hr);
+    if (fn && fn !== 'All') params.set('full_name', fn);
 
     fetch('/api/userperformance/?' + params.toString())
         .then(function(r) { return r.json(); })
