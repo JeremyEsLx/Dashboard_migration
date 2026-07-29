@@ -314,6 +314,8 @@ function loadFiltersOnly() {
     fetch('/api/userperformance/')
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            console.log('[UserPerf] API response:', data);
+            if (data.error) console.error('[UserPerf] Server error:', data.error);
             populateFilters(data);
             if (data.selected.date_from) {
                 document.getElementById('filter-date-from').value = data.selected.date_from;
