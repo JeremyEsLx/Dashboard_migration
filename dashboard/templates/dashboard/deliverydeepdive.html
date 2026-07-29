@@ -47,6 +47,21 @@
     <span class="banner-date-range" id="banner-date-range">Enter a <strong>Delivery</strong> or <strong>Packing Object</strong> and click Search</span>
 </div>
 
+<!-- EMPTY STATE (shown before first search) -->
+<div class="dd-empty-state" id="dd-empty-state">
+    <svg class="dd-empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <h3 class="dd-empty-state-title">Search for a Delivery or Packing Object</h3>
+    <p class="dd-empty-state-text">
+        Enter a <strong>Delivery</strong> number or <strong>Packing Object</strong> in the filters above,<br>
+        then click <strong>Search</strong> to view detailed picking and packing data.
+    </p>
+</div>
+
+<!-- RESULTS (hidden until search) -->
+<div class="dd-results" id="dd-results">
+
 <!-- PICKING TABLE -->
 <div class="dd-section">
     <h2 class="dd-section-title">Picking</h2>
@@ -103,5 +118,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/deliverydeepdive/deliverydeepdive.js' %}?v=8"></script>
+<script src="{% static 'dashboard/deliverydeepdive/deliverydeepdive.js' %}?v=7"></script>
 {% endblock %}
