@@ -16,4 +16,6 @@ urlpatterns = [
     path('api/noactivity/', views.noactivity_data, name='noactivity_data'),
     path('userperformance/', views.userperformance, name='userperformance'),
     path('api/userperformance/', views.userperformance_data, name='userperformance_data'),
+    path('deliverydeepdive/', views.deliverydeepdive, name='deliverydeepdive'),
+    path('api/deliverydeepdive/', views.deliverydeepdive_data, name='deliverydeepdive_data'),
 ]

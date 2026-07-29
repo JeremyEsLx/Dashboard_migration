@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data, get_noactivity_data
 from .services_userperf import get_userperformance_data
+from .services_delivery import get_delivery_data
 
 
 # ============================================================
@@ -223,4 +224,37 @@ def userperformance_data(request):
             },
             'selected': {'date_from': '', 'date_to': ''},
             'has_filter': False,
+        }, status=200)
+
+
+# ============================================================
+# DELIVERY DEEP DIVE
+# ============================================================
+
+def deliverydeepdive(request):
+    """Render Delivery Deep Dive shell."""
+    return render(request, 'dashboard/deliverydeepdive.html', {'data': {'selected': {}}})
+
+
+def deliverydeepdive_data(request):
+    """API: returns Picking + Packing cubes as JSON."""
+    try:
+        data = get_delivery_data(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+            delivery=request.GET.get('delivery'),
+            packing_object=request.GET.get('packing_object'),
+            user_name=request.GET.get('user_name'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'picking_json': '[]',
+            'packing_json': '[]',
+            'picking_total': 0,
+            'packing_total': 0,
+            'selected': {'date_from': '', 'date_to': ''},
         }, status=200)
