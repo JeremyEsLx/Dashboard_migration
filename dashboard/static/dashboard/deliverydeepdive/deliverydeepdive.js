@@ -78,11 +78,45 @@ function updateBanner(df, dt) {
 }
 
 // ================================================================
-// GLOBALS
+// CACHE + GLOBALS (Stale-While-Revalidate like Strong Start)
 // ================================================================
+
+var CACHE_KEY = 'lms_deliverydeepdive_cache';
+var TIMER_KEY = 'lms_timer_deliverydeepdive';
+var CACHE_MAX_AGE = 30 * 60 * 1000; // 30 min
+var REFRESH_INTERVAL = 15 * 60;     // 15 min auto-refresh
 
 var PICKING_RAW = [];
 var PACKING_RAW = [];
+var SELECTED_STATE = {};
+
+var CALENDAR_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
+
+function showLoading() {
+    var banner = document.getElementById('active-filters-banner');
+    var bannerIcon = document.getElementById('banner-icon');
+    var bannerDate = document.getElementById('banner-date-range');
+    if (banner) banner.classList.add('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = '<div class="inline-spinner"></div>';
+    if (bannerDate) bannerDate.innerHTML = 'Loading new data\u2026';
+}
+
+function hideLoading() {
+    var banner = document.getElementById('active-filters-banner');
+    var bannerIcon = document.getElementById('banner-icon');
+    if (banner) banner.classList.remove('is-loading');
+    if (bannerIcon) bannerIcon.innerHTML = CALENDAR_SVG;
+}
+
+function getCachedData() {
+    try {
+        var r = sessionStorage.getItem(CACHE_KEY);
+        if (!r) return null;
+        var c = JSON.parse(r);
+        if (Date.now() - c.timestamp > CACHE_MAX_AGE) return null;
+        return c;
+    } catch(e) { return null; }
+}
 
 // ================================================================
 // CLIENT-SIDE FILTER (instant, no server round-trip)
@@ -114,7 +148,26 @@ function renderAll() {
 // FETCH DATA (server — only on date change or initial load)
 // ================================================================
 
-function loadData() {
+function loadData(skipCache) {
+    // 1. Try cache first (instant render)
+    if (!skipCache) {
+        var cached = getCachedData();
+        if (cached) {
+            PICKING_RAW = cached.picking || [];
+            PACKING_RAW = cached.packing || [];
+            SELECTED_STATE = cached.selected || {};
+            if (SELECTED_STATE.date_from) document.getElementById('filter-date-from').value = SELECTED_STATE.date_from;
+            if (SELECTED_STATE.date_to) document.getElementById('filter-date-to').value = SELECTED_STATE.date_to;
+            updateBanner(SELECTED_STATE.date_from, SELECTED_STATE.date_to);
+            renderAll();
+        } else {
+            showLoading();
+        }
+    } else {
+        showLoading();
+    }
+
+    // 2. Always fetch fresh from server (revalidate)
     var df = document.getElementById('filter-date-from').value;
     var dt = document.getElementById('filter-date-to').value;
 
@@ -136,23 +189,36 @@ function loadData() {
                 console.error('[DeliveryDD] Server error:', data.error);
             }
 
-            // Store full server data in globals
-            PICKING_RAW = JSON.parse(data.picking_json);
-            PACKING_RAW = JSON.parse(data.packing_json);
+            // Parse server data
+            var picking = (typeof data.picking_json === 'string') ? JSON.parse(data.picking_json) : (data.picking_json || []);
+            var packing = (typeof data.packing_json === 'string') ? JSON.parse(data.packing_json) : (data.packing_json || []);
 
-            // Update dates from server response
-            var sel = data.selected || {};
-            if (sel.date_from) document.getElementById('filter-date-from').value = sel.date_from;
-            if (sel.date_to) document.getElementById('filter-date-to').value = sel.date_to;
-            updateBanner(sel.date_from, sel.date_to);
+            // Store to sessionStorage (stale-while-revalidate)
+            try {
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                    picking: picking,
+                    packing: packing,
+                    selected: data.selected || {},
+                    timestamp: Date.now()
+                }));
+            } catch(e) { /* quota exceeded */ }
 
-            // Render with current text filters applied client-side
+            PICKING_RAW = picking;
+            PACKING_RAW = packing;
+            SELECTED_STATE = data.selected || {};
+            if (SELECTED_STATE.date_from) document.getElementById('filter-date-from').value = SELECTED_STATE.date_from;
+            if (SELECTED_STATE.date_to) document.getElementById('filter-date-to').value = SELECTED_STATE.date_to;
+            updateBanner(SELECTED_STATE.date_from, SELECTED_STATE.date_to);
+            hideLoading();
             renderAll();
         })
         .catch(function(err) {
             console.error('[DeliveryDD] Fetch error:', err);
-            document.getElementById('picking-tbody').innerHTML = '<tr><td colspan="12" class="dd-loading">Error loading data</td></tr>';
-            document.getElementById('packing-tbody').innerHTML = '<tr><td colspan="10" class="dd-loading">Error loading data</td></tr>';
+            hideLoading();
+            if (!PICKING_RAW.length && !PACKING_RAW.length) {
+                document.getElementById('picking-tbody').innerHTML = '<tr><td colspan="12" class="dd-loading">Error loading data. Try refreshing.</td></tr>';
+                document.getElementById('packing-tbody').innerHTML = '<tr><td colspan="10" class="dd-loading">Error loading data. Try refreshing.</td></tr>';
+            }
         });
 }
 
@@ -160,9 +226,9 @@ function loadData() {
 // EVENT HANDLERS
 // ================================================================
 
-// Date changes: reload from server (only dates trigger server query)
-document.getElementById('filter-date-from').addEventListener('change', loadData);
-document.getElementById('filter-date-to').addEventListener('change', loadData);
+// Date changes: skip cache, re-fetch from server
+document.getElementById('filter-date-from').addEventListener('change', function() { loadData(true); });
+document.getElementById('filter-date-to').addEventListener('change', function() { loadData(true); });
 
 // Text inputs: CLIENT-SIDE filter with 300ms debounce (like Strong Start employee)
 var _filterTimeout = null;
@@ -174,19 +240,20 @@ function filterWithDebounce() {
     document.getElementById(id).addEventListener('input', filterWithDebounce);
 });
 
-// Reset: clear all filters, reload from server with defaults
+// Reset: clear all, navigate back to clean state
 document.getElementById('btn-reset').addEventListener('click', function() {
-    document.getElementById('filter-date-from').value = '';
-    document.getElementById('filter-date-to').value = '';
-    document.getElementById('filter-delivery').value = '';
-    document.getElementById('filter-packing-object').value = '';
-    document.getElementById('filter-username').value = '';
-    loadData();
+    showLoading();
+    try { sessionStorage.removeItem(CACHE_KEY); } catch(e) {}
+    window.location.href = '/deliverydeepdive/';
 });
 
-// Refresh: clear timer cache, full page reload
+// Refresh: clear cache + timer, full reload
 document.getElementById('btn-refresh').addEventListener('click', function() {
-    try { sessionStorage.removeItem('lms_timer_deliverydeepdive'); } catch(e) {}
+    showLoading();
+    try {
+        sessionStorage.removeItem(CACHE_KEY);
+        sessionStorage.removeItem(TIMER_KEY);
+    } catch(e) {}
     window.location.reload();
 });
 
@@ -224,9 +291,7 @@ document.getElementById('btn-export').addEventListener('click', function() {
 // AUTO-REFRESH TIMER (15 min)
 // ================================================================
 
-var REFRESH_INTERVAL = 15 * 60;
 var timerEl = document.getElementById('refresh-timer');
-var TIMER_KEY = 'lms_timer_deliverydeepdive';
 
 function getTimerStart() {
     try {
@@ -236,6 +301,7 @@ function getTimerStart() {
             var elapsed = Math.floor((Date.now() - ts) / 1000);
             if (elapsed >= REFRESH_INTERVAL) {
                 sessionStorage.setItem(TIMER_KEY, String(Date.now()));
+                try { sessionStorage.removeItem(CACHE_KEY); } catch(e) {}
                 window.location.reload();
                 return Date.now();
             }
@@ -248,16 +314,21 @@ function getTimerStart() {
 }
 
 var timerStart = getTimerStart();
-setInterval(function() {
-    var elapsed = Math.floor((Date.now() - timerStart) / 1000);
-    var remaining = REFRESH_INTERVAL - elapsed;
-    if (remaining <= 0) { window.location.reload(); return; }
-    var min = Math.floor(remaining / 60);
-    var sec = remaining % 60;
-    if (timerEl) timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
-}, 1000);
+function updateTimer() {
+    var left = Math.max(0, REFRESH_INTERVAL - Math.floor((Date.now() - timerStart) / 1000));
+    if (left <= 0) {
+        try { sessionStorage.setItem(TIMER_KEY, String(Date.now())); sessionStorage.removeItem(CACHE_KEY); } catch(e) {}
+        window.location.reload();
+        return;
+    }
+    var mins = Math.floor(left / 60);
+    var secs = left % 60;
+    if (timerEl) timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+}
+updateTimer();
+setInterval(updateTimer, 1000);
 
 // ================================================================
-// INIT — auto-load with default date range
+// INIT — Stale-While-Revalidate
 // ================================================================
-loadData();
+loadData(false);

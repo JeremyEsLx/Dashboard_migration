@@ -91,6 +91,15 @@
     min-height: 36px;
 }
 .banner-icon { display: flex; align-items: center; }
+.active-filters-banner.is-loading { background: #fef9c3; border-color: #fde68a; color: #92400e; }
+.inline-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid #d1d5db;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* === SECTIONS === */
 .dd-section {
