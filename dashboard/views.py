@@ -210,4 +210,17 @@ def userperformance_data(request):
         )
         return JsonResponse(data)
     except Exception as e:
-        return JsonResponse({'error': str(e), 'cube_json': '[]', 'total': 0}, status=200)
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'cube_json': '[]',
+            'total': 0,
+            'filters': {
+                'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All'],
+                'shifts': ['All', 'A', 'B', 'C', 'D'], 'full_names': [],
+                'movements': ['All'], 'hours': ['All'],
+            },
+            'selected': {'date_from': '', 'date_to': ''},
+            'has_filter': False,
+        }, status=200)

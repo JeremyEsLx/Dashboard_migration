@@ -823,7 +823,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
         cube.append({
             'd': row['date'] or '',
             'u': row['user_name'] or '',
-            'fn': row['full_name'] or '',
+            'fn': format_name(row['full_name'] or ''),
             's': row['supervisor'] or '',
             'p': row['process'] or '',
             'cit': row['clock_in_time'] or '',
@@ -1009,7 +1009,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
         cube.append({
             'd': row['date'] or '',
             'u': row['user_name'] or '',
-            'fn': row['full_name'] or '',
+            'fn': format_name(row['full_name'] or ''),
             's': row['supervisor'] or '',
             'pp': row['previous_process'] or '',
             'sh': row['shift'] or '',
@@ -1176,7 +1176,7 @@ def get_noactivity_cube(date_from=None, date_to=None):
         cube.append({
             'd': row['date'] or '',
             'u': row['user_name'] or '',
-            'fn': format_name(row['full_name'] or ''),
+            'fn': row['full_name'] or '',
             's': row['supervisor'] or '',
             'sh': row['shift'] or '',
             'cit': _to_12h(row['clock_in_time']),

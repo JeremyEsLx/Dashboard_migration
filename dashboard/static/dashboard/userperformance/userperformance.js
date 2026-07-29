@@ -180,6 +180,10 @@ function updateBanner() {
 // ================================================================
 
 function populateFilters(data) {
+    if (!data || !data.filters) {
+        console.warn('[UserPerf] No filters in response:', data && data.error);
+        return;
+    }
     // Helper: populate a <select> from an array, preserving current selection
     // placeholder: text to show for the "All" option (primary = "— Select —", secondary = "All")
     function fillSelect(id, items, placeholder) {
