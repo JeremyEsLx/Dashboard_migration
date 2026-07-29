@@ -101,6 +101,22 @@ def run_query(query: str) -> pd.DataFrame:
 
 
 # ============================================================
+# NAME FORMATTING HELPER
+# ============================================================
+
+
+def format_name(name):
+    """Format Full Name: remove comma, Title Case.
+
+    'ADELA, MANUEL PARRA' -> 'Adela Manuel Parra'
+    'JUAN CARLOS, ARTEAGA SERRANO' -> 'Juan Carlos Arteaga Serrano'
+    """
+    if not name:
+        return name
+    return name.replace(',', '').title()
+
+
+# ============================================================
 # HEADCOUNT / EMPLOYEE TYPE FILTER
 # ============================================================
 
@@ -1160,7 +1176,7 @@ def get_noactivity_cube(date_from=None, date_to=None):
         cube.append({
             'd': row['date'] or '',
             'u': row['user_name'] or '',
-            'fn': row['full_name'] or '',
+            'fn': format_name(row['full_name'] or ''),
             's': row['supervisor'] or '',
             'sh': row['shift'] or '',
             'cit': _to_12h(row['clock_in_time']),

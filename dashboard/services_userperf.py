@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .services import (
     get_direct_users, get_filter_options,
-    _base_subquery, run_query,
+    _base_subquery, run_query, format_name,
 )
 
 
@@ -52,12 +52,15 @@ def _get_full_names():
         ORDER BY [full_name]
     """)
 
-    result = ['All'] + df_fn['full_name'].tolist()
-    _fullname_cache['data'] = result
+    # Return objects: {v: original DB value, t: formatted display text}
+    items = [{'v': 'All', 't': '\u2014 Select \u2014'}]
+    for name in df_fn['full_name'].tolist():
+        items.append({'v': name, 't': format_name(name)})
+    _fullname_cache['data'] = items
     _fullname_cache['timestamp'] = time.time()
     elapsed = time.time() - start
-    print(f"[LMS]   Full Names loaded: {len(result) - 1} entries ({elapsed:.2f}s, cached 1h)")
-    return result
+    print(f"[LMS]   Full Names loaded: {len(items) - 1} entries ({elapsed:.2f}s, cached 1h)")
+    return items
 
 
 def _get_movements():
@@ -268,8 +271,6 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         movement and movement != 'All',
         shift and shift != 'All',
         hour is not None and hour != '' and hour != 'All',
-        week and week != 'All',
-        full_name and full_name != 'All',
     ])
 
     print(f"\n{'='*60}")
@@ -285,19 +286,12 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
     except Exception as e:
         print(f"[LMS]   x Filters error: {e}")
 
-    # Load Full Names dropdown (cached 1h, scoped to last 30 days)
+    # Load Full Names dropdown (cached 1h, scoped to last 60 days)
     full_names_list = ['All']
     try:
         full_names_list = _get_full_names()
     except Exception as e:
         print(f"[LMS]   x Full Names error: {e}")
-
-    # Load Movements dropdown (cached 1h, scoped to last 30 days)
-    movements_list = ['All']
-    try:
-        movements_list = _get_movements()
-    except Exception as e:
-        print(f"[LMS]   x Movements error: {e}")
 
     # Only run the heavy cube query if user provided at least one filter
     cube = []
@@ -331,6 +325,8 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
             'processes': filter_options['processes'],
             'shifts': ['All', 'A', 'B', 'C', 'D'],
             'full_names': full_names_list,
+            'movements': movements_list,
+            'hours': ['All'] + [str(h) for h in range(0, 24)],
         },
         'selected': {
             'date_from': date_from or '',

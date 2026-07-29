@@ -198,7 +198,23 @@ function populateFilters(data) {
     // Primary filters: show "— Select —" as placeholder
     fillSelect('filter-supervisor', data.filters.supervisors, '\u2014 Select \u2014');
     fillSelect('filter-shift', data.filters.shifts, '\u2014 Select \u2014');
-    fillSelect('filter-fullname', data.filters.full_names, '\u2014 Select \u2014');
+
+    // Full Name dropdown: items are objects {v: dbValue, t: displayText}
+    var fnSel = document.getElementById('filter-fullname');
+    var curFn = fnSel.value;
+    fnSel.innerHTML = '';
+    (data.filters.full_names || []).forEach(function(item) {
+        var opt = document.createElement('option');
+        if (typeof item === 'object') {
+            opt.value = item.v;
+            opt.textContent = item.t;
+        } else {
+            opt.value = item;
+            opt.textContent = (item === 'All') ? '\u2014 Select \u2014' : item;
+        }
+        fnSel.appendChild(opt);
+    });
+    if (curFn && curFn !== 'All') fnSel.value = curFn;
 
     // Secondary filters: show "All" (genuine "no filter" option)
     fillSelect('filter-process', data.filters.processes);
