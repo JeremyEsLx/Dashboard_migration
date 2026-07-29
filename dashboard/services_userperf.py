@@ -268,6 +268,8 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         movement and movement != 'All',
         shift and shift != 'All',
         hour is not None and hour != '' and hour != 'All',
+        week and week != 'All',
+        full_name and full_name != 'All',
     ])
 
     print(f"\n{'='*60}")
