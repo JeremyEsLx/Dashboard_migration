@@ -78,7 +78,40 @@ function updateBanner(df, dt) {
 }
 
 // ================================================================
-// FETCH DATA
+// GLOBALS
+// ================================================================
+
+var PICKING_RAW = [];
+var PACKING_RAW = [];
+
+// ================================================================
+// CLIENT-SIDE FILTER (instant, no server round-trip)
+// ================================================================
+
+function filterData(data) {
+    var delivery = document.getElementById('filter-delivery').value.trim().toUpperCase();
+    var po = document.getElementById('filter-packing-object').value.trim().toUpperCase();
+    var user = document.getElementById('filter-username').value.trim().toUpperCase();
+    if (!delivery && !po && !user) return data;
+    return data.filter(function(row) {
+        if (delivery && String(row.dl || '').toUpperCase().indexOf(delivery) === -1) return false;
+        if (po && String(row.po || '').toUpperCase().indexOf(po) === -1) return false;
+        if (user && String(row.u || '').toUpperCase().indexOf(user) === -1) return false;
+        return true;
+    });
+}
+
+function renderAll() {
+    var pickFiltered = filterData(PICKING_RAW);
+    var packFiltered = filterData(PACKING_RAW);
+    window._pickingData = pickFiltered;
+    window._packingData = packFiltered;
+    renderTable('picking-tbody', pickFiltered, PICKING_COLS, 'picking-count');
+    renderTable('packing-tbody', packFiltered, PACKING_COLS, 'packing-count');
+}
+
+// ================================================================
+// FETCH DATA (server — only on date change or initial load)
 // ================================================================
 
 function loadData() {
@@ -110,8 +143,6 @@ function loadData() {
 
             var picking = JSON.parse(data.picking_json);
             var packing = JSON.parse(data.packing_json);
-            window._pickingData = picking;
-            window._packingData = packing;
 
             renderTable('picking-tbody', picking, PICKING_COLS, 'picking-count');
             renderTable('packing-tbody', packing, PACKING_COLS, 'packing-count');
@@ -146,12 +177,88 @@ document.getElementById('btn-reset').addEventListener('click', function() {
     loadData();
 });
 
-// Enter key on text inputs triggers search
+// Text inputs: client-side filter with debounce (like Strong Start employee)
+var _filterTimeout = null;
+function filterWithDebounce() {
+    clearTimeout(_filterTimeout);
+    _filterTimeout = setTimeout(renderAll, 300);
+}
 ['filter-delivery', 'filter-packing-object', 'filter-username'].forEach(function(id) {
-    document.getElementById(id).addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') loadData();
-    });
+    document.getElementById(id).addEventListener('input', filterWithDebounce);
 });
+
+// Refresh: clear cache, reload page
+document.getElementById('btn-refresh').addEventListener('click', function() {
+    try { sessionStorage.removeItem('lms_timer_deliverydeepdive'); } catch(e) {}
+    window.location.reload();
+});
+
+// Export: CSV with both tables (filtered view)
+document.getElementById('btn-export').addEventListener('click', function() {
+    var rows = [];
+    rows.push(['--- PICKING ---']);
+    rows.push(PICKING_COLS.map(function(c) { return c.label; }));
+    (window._pickingData || []).forEach(function(r) {
+        rows.push(PICKING_COLS.map(function(c) {
+            var v = r[c.key];
+            if (c.key === 'd') v = fmtDate(v);
+            return '"' + String(v || '').replace(/"/g, '""') + '"';
+        }));
+    });
+    rows.push([]);
+    rows.push(['--- PACKING ---']);
+    rows.push(PACKING_COLS.map(function(c) { return c.label; }));
+    (window._packingData || []).forEach(function(r) {
+        rows.push(PACKING_COLS.map(function(c) {
+            var v = r[c.key];
+            if (c.key === 'd') v = fmtDate(v);
+            return '"' + String(v || '').replace(/"/g, '""') + '"';
+        }));
+    });
+    var csv = rows.map(function(r) { return r.join(','); }).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'LMS_DeliveryDeepDive.csv';
+    a.click();
+});
+
+// ================================================================
+// AUTO-REFRESH TIMER (15 min)
+// ================================================================
+
+var REFRESH_INTERVAL = 15 * 60;
+var timerEl = document.getElementById('refresh-timer');
+var TIMER_KEY = 'lms_timer_deliverydeepdive';
+
+function getTimerStart() {
+    try {
+        var stored = sessionStorage.getItem(TIMER_KEY);
+        if (stored) {
+            var ts = parseInt(stored, 10);
+            var elapsed = Math.floor((Date.now() - ts) / 1000);
+            if (elapsed >= REFRESH_INTERVAL) {
+                sessionStorage.setItem(TIMER_KEY, String(Date.now()));
+                window.location.reload();
+                return Date.now();
+            }
+            return ts;
+        }
+    } catch(e) {}
+    var now = Date.now();
+    try { sessionStorage.setItem(TIMER_KEY, String(now)); } catch(e) {}
+    return now;
+}
+
+var timerStart = getTimerStart();
+setInterval(function() {
+    var elapsed = Math.floor((Date.now() - timerStart) / 1000);
+    var remaining = REFRESH_INTERVAL - elapsed;
+    if (remaining <= 0) { window.location.reload(); return; }
+    var min = Math.floor(remaining / 60);
+    var sec = remaining % 60;
+    if (timerEl) timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+}, 1000);
 
 // ================================================================
 // INIT — auto-load with default date range
