@@ -153,6 +153,7 @@ function loadData(skipCache) {
     if (!skipCache) {
         var cached = getCachedData();
         if (cached) {
+            console.log('[DeliveryDD] Cache HIT:', cached.picking.length, 'pick +', cached.packing.length, 'pack rows');
             PICKING_RAW = cached.picking || [];
             PACKING_RAW = cached.packing || [];
             SELECTED_STATE = cached.selected || {};
@@ -176,11 +177,13 @@ function loadData(skipCache) {
     if (df) params.set('date_from', df);
     if (dt) params.set('date_to', dt);
 
-    // Show loading state
-    document.getElementById('picking-tbody').innerHTML = '<tr><td colspan="12" class="dd-loading">Loading\u2026</td></tr>';
-    document.getElementById('packing-tbody').innerHTML = '<tr><td colspan="10" class="dd-loading">Loading\u2026</td></tr>';
-    document.getElementById('picking-count').textContent = '';
-    document.getElementById('packing-count').textContent = '';
+    // Show loading only if no cached data rendered above
+    if (!PICKING_RAW.length && !PACKING_RAW.length) {
+        document.getElementById('picking-tbody').innerHTML = '<tr><td colspan="12" class="dd-loading">Loading\u2026</td></tr>';
+        document.getElementById('packing-tbody').innerHTML = '<tr><td colspan="10" class="dd-loading">Loading\u2026</td></tr>';
+        document.getElementById('picking-count').textContent = '';
+        document.getElementById('packing-count').textContent = '';
+    }
 
     fetch('/api/deliverydeepdive/?' + params.toString())
         .then(function(r) { return r.json(); })
@@ -189,11 +192,11 @@ function loadData(skipCache) {
                 console.error('[DeliveryDD] Server error:', data.error);
             }
 
-            // Parse server data
+            // Parse response
             var picking = (typeof data.picking_json === 'string') ? JSON.parse(data.picking_json) : (data.picking_json || []);
             var packing = (typeof data.packing_json === 'string') ? JSON.parse(data.packing_json) : (data.packing_json || []);
 
-            // Store to sessionStorage (stale-while-revalidate)
+            // Write to sessionStorage (stale-while-revalidate)
             try {
                 sessionStorage.setItem(CACHE_KEY, JSON.stringify({
                     picking: picking,
@@ -201,8 +204,12 @@ function loadData(skipCache) {
                     selected: data.selected || {},
                     timestamp: Date.now()
                 }));
-            } catch(e) { /* quota exceeded */ }
+                console.log('[DeliveryDD] Cache stored:', picking.length, 'pick +', packing.length, 'pack rows');
+            } catch(e) {
+                console.warn('[DeliveryDD] Cache write failed (quota?):', e.message);
+            }
 
+            // Update globals
             PICKING_RAW = picking;
             PACKING_RAW = packing;
             SELECTED_STATE = data.selected || {};
