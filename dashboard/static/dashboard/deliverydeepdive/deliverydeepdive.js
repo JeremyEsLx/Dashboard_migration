@@ -110,6 +110,8 @@ function loadData() {
 
             var picking = JSON.parse(data.picking_json);
             var packing = JSON.parse(data.packing_json);
+            window._pickingData = picking;
+            window._packingData = packing;
 
             renderTable('picking-tbody', picking, PICKING_COLS, 'picking-count');
             renderTable('packing-tbody', packing, PACKING_COLS, 'packing-count');
@@ -131,7 +133,9 @@ function loadData() {
 // EVENT HANDLERS
 // ================================================================
 
-document.getElementById('btn-search').addEventListener('click', loadData);
+// Filters auto-trigger reload (like Strong Start/Finish)
+document.getElementById('filter-date-from').addEventListener('change', loadData);
+document.getElementById('filter-date-to').addEventListener('change', loadData);
 
 document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('filter-date-from').value = '';
