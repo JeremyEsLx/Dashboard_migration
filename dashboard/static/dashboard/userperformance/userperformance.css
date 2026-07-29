@@ -4,16 +4,63 @@
 
 /* === FILTERS BAR === */
 .filters-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    padding: 12px 14px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 3px;
+    border-radius: 4px;
+    position: relative;
 }
+.filters-bar--primary {
+    border-left: 3px solid #2563eb;
+}
+.filters-bar--secondary {
+    border-left: 3px solid #d1d5db;
+    background: #fafbfc;
+}
+.filters-section-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+.filters-bar--primary .filters-section-label { color: #2563eb; }
+.filters-bar--secondary .filters-section-label { color: #9ca3af; }
+.filters-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+/* Date mode toggle */
+.date-mode-toggle {
+    display: flex;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.date-mode-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    font-family: inherit;
+    border: none;
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+}
+.date-mode-btn.active {
+    background: #2563eb;
+    color: white;
+}
+.date-mode-btn:hover:not(.active) { background: #f3f4f6; }
+
+/* Hidden filter groups */
+.filter-group.hidden { display: none; }
 .filter-group { display: flex; flex-direction: column; gap: 3px; }
 .filter-group label {
     font-size: 10px;

@@ -313,6 +313,10 @@ document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('filter-process').value = 'All';
     document.getElementById('filter-movement').value = 'All';
     document.getElementById('filter-hour').value = 'All';
+    document.getElementById('filter-date-single').value = '';
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value = '';
+    setDateMode('single');
     CUBE = null; filtered = []; currentPage = 1;
     document.getElementById('detail-tbody').innerHTML = '<tr><td colspan="19" style="text-align:center;padding:24px;color:#6b7280;">Select filters and click Search</td></tr>';
     document.getElementById('row-count').textContent = '';
@@ -339,6 +343,51 @@ document.getElementById('btn-export').addEventListener('click', function() {
     a.download = 'user_performance.csv';
     a.click();
 });
+
+// ================================================================
+// DATE MODE TOGGLE
+// ================================================================
+
+var dateMode = 'single'; // 'single' or 'range'
+
+function setDateMode(mode) {
+    dateMode = mode;
+    var btnSingle = document.getElementById('btn-mode-single');
+    var btnRange = document.getElementById('btn-mode-range');
+    var grpSingle = document.getElementById('group-date-single');
+    var grpFrom = document.getElementById('group-date-from');
+    var grpTo = document.getElementById('group-date-to');
+
+    if (mode === 'single') {
+        btnSingle.classList.add('active');
+        btnRange.classList.remove('active');
+        grpSingle.classList.remove('hidden');
+        grpFrom.classList.add('hidden');
+        grpTo.classList.add('hidden');
+    } else {
+        btnRange.classList.add('active');
+        btnSingle.classList.remove('active');
+        grpSingle.classList.add('hidden');
+        grpFrom.classList.remove('hidden');
+        grpTo.classList.remove('hidden');
+    }
+}
+
+document.getElementById('btn-mode-single').addEventListener('click', function() { setDateMode('single'); });
+document.getElementById('btn-mode-range').addEventListener('click', function() { setDateMode('range'); });
+
+// Helper: get effective date_from and date_to based on mode
+function getDateParams() {
+    if (dateMode === 'single') {
+        var d = document.getElementById('filter-date-single').value;
+        return { date_from: d, date_to: d };
+    } else {
+        var df = document.getElementById('filter-date-from').value;
+        var dt = document.getElementById('filter-date-to').value;
+        if (df && !dt) dt = df; // fallback single day
+        return { date_from: df, date_to: dt };
+    }
+}
 
 // ================================================================
 // INIT
