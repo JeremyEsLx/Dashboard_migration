@@ -165,6 +165,12 @@ function updateBanner() {
     if (mv && mv !== 'All') chips.push({ label: 'Movement', value: mv });
     if (shift && shift !== 'All') chips.push({ label: 'Shift', value: shift });
     if (name) chips.push({ label: 'Name', value: name });
+    var wk = document.getElementById('filter-week').value;
+    var hr = document.getElementById('filter-hour').value;
+    var fn = document.getElementById('filter-fullname').value;
+    if (wk && wk !== 'All') chips.push({ label: 'Week', value: wk });
+    if (hr && hr !== 'All') chips.push({ label: 'Hour', value: hr + ':00' });
+    if (fn && fn !== 'All') chips.push({ label: 'Full Name', value: fn });
 
     if (!chips.length) {
         bannerChips.innerHTML = '<span class="banner-chip banner-chip-all">No filter \u2014 select at least one</span>';
@@ -180,61 +186,37 @@ function updateBanner() {
 // ================================================================
 
 function populateFilters(data) {
-    var supSel = document.getElementById('filter-supervisor');
-    supSel.innerHTML = '<option value="All">All</option>';
-    (data.filters.supervisors || []).forEach(function(s) {
-        if (s === 'All') return;
-        var opt = document.createElement('option');
-        opt.value = s; opt.textContent = s;
-        supSel.appendChild(opt);
-    });
-
-    var shiftSel = document.getElementById('filter-shift');
-    shiftSel.innerHTML = '';
-    (data.filters.shifts || ['All','A','B','C','D']).forEach(function(s) {
-        var opt = document.createElement('option');
-        opt.value = s; opt.textContent = s;
-        shiftSel.appendChild(opt);
-    });
-
-    var procSel = document.getElementById('filter-process');
-    procSel.innerHTML = '<option value="All">All</option>';
-    (data.filters.processes || []).forEach(function(p) {
-        if (p === 'All') return;
-        var opt = document.createElement('option');
-        opt.value = p; opt.textContent = p;
-        procSel.appendChild(opt);
-    });
-
-    // Movement from cube
-    if (CUBE && CUBE.length) {
-        var mvSel = document.getElementById('filter-movement');
-        mvSel.innerHTML = '<option value="All">All</option>';
-        var mvs = [...new Set(CUBE.map(function(r) { return r.mv; }))].filter(Boolean).sort();
-        mvs.forEach(function(m) {
+    // Helper: populate a <select> from an array, preserving current selection
+    function fillSelect(id, items) {
+        var sel = document.getElementById(id);
+        var cur = sel.value;
+        sel.innerHTML = '';
+        (items || ['All']).forEach(function(v) {
             var opt = document.createElement('option');
-            opt.value = m; opt.textContent = m;
-            mvSel.appendChild(opt);
+            opt.value = v; opt.textContent = v;
+            sel.appendChild(opt);
         });
-
-        var wkSel = document.getElementById('filter-week');
-        wkSel.innerHTML = '<option value="All">All</option>';
-        var weeks = [...new Set(CUBE.map(function(r) { return r.wk; }))].filter(Boolean).sort();
-        weeks.forEach(function(w) {
-            var opt = document.createElement('option');
-            opt.value = w; opt.textContent = w;
-            wkSel.appendChild(opt);
-        });
-
-        var hrSel = document.getElementById('filter-hour');
-        hrSel.innerHTML = '<option value="All">All</option>';
-        var hrs = [...new Set(CUBE.map(function(r) { return r.hr; }))].sort(function(a,b){return a-b;});
-        hrs.forEach(function(h) {
-            var opt = document.createElement('option');
-            opt.value = h; opt.textContent = h + ':00';
-            hrSel.appendChild(opt);
-        });
+        if (cur && cur !== 'All') sel.value = cur;
     }
+
+    fillSelect('filter-supervisor', data.filters.supervisors);
+    fillSelect('filter-shift', data.filters.shifts);
+    fillSelect('filter-process', data.filters.processes);
+    fillSelect('filter-movement', data.filters.movements);
+    fillSelect('filter-week', data.filters.weeks);
+    fillSelect('filter-fullname', data.filters.full_names);
+
+    // Hours: show as "6:00", "7:00" etc.
+    var hrSel = document.getElementById('filter-hour');
+    var curHr = hrSel.value;
+    hrSel.innerHTML = '';
+    (data.filters.hours || ['All']).forEach(function(h) {
+        var opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = (h === 'All') ? 'All' : h + ':00';
+        hrSel.appendChild(opt);
+    });
+    if (curHr && curHr !== 'All') hrSel.value = curHr;
 }
 
 // ================================================================

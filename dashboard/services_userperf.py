@@ -25,56 +25,67 @@ from .services import (
 
 _MAX_ROWS = 10000  # Safety cap per request
 
-# Full Names cache (1 hour TTL — avoids scanning entire LMS table on every request)
+# Caches for dropdown options (1 hour TTL)
 _fullname_cache = {'data': None, 'timestamp': 0}
-_FULLNAME_CACHE_TTL = 3600  # 1 hour
+_movement_cache = {'data': None, 'timestamp': 0}
+_DROPDOWN_CACHE_TTL = 3600  # 1 hour
 
 
 def _get_full_names():
-    """Cached query for distinct Full Names from Roster table (instant, ~152 users)."""
+    """Cached: distinct Full Names for DIRECT users (last 30 days of LMS data)."""
     now = time.time()
-    if _fullname_cache['data'] and (now - _fullname_cache['timestamp']) < _FULLNAME_CACHE_TTL:
+    if _fullname_cache['data'] and (now - _fullname_cache['timestamp']) < _DROPDOWN_CACHE_TTL:
         return _fullname_cache['data']
 
-    print("[LMS]   Loading Full Names from Roster...")
+    print("[LMS]   Loading Full Names...")
     start = time.time()
-
-    # Query Roster for employee names — much faster than scanning LMS table
-    from .services import DIRECT_ROLES
-    roles_str = ", ".join(f"'{r}'" for r in DIRECT_ROLES)
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
 
     df_fn = run_query(f"""
-        SELECT DISTINCT
-            ISNULL([Nombre_Completo],
-                ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50)))
-            ) AS [full_name]
-        FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
-        WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
-          AND [Estacion_de_Trabajo] IN ({roles_str})
-          AND [Nombre_Completo] IS NOT NULL
-          AND [Nombre_Completo] != ''
+        SELECT DISTINCT ISNULL([Full Name], [User Name]) AS [full_name]
+        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+        WHERE [User Name] IN ({users_str})
+          AND [Full Name] IS NOT NULL
+          AND [Full Name] != ''
+          AND [Date] >= DATEADD(DAY, -30, GETDATE())
         ORDER BY [full_name]
     """)
-
-    if df_fn.empty:
-        # Fallback: get names from LMS table (last 14 days only)
-        direct_users = get_direct_users()
-        users_str = ", ".join(f"'{u}'" for u in direct_users)
-        df_fn = run_query(f"""
-            SELECT DISTINCT TOP 200 ISNULL([Full Name], [User Name]) AS [full_name]
-            FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
-            WHERE [User Name] IN ({users_str})
-              AND [Full Name] IS NOT NULL
-              AND [Full Name] != ''
-              AND [Date] >= DATEADD(DAY, -14, GETDATE())
-            ORDER BY [full_name]
-        """)
 
     result = ['All'] + df_fn['full_name'].tolist()
     _fullname_cache['data'] = result
     _fullname_cache['timestamp'] = time.time()
     elapsed = time.time() - start
     print(f"[LMS]   Full Names loaded: {len(result) - 1} entries ({elapsed:.2f}s, cached 1h)")
+    return result
+
+
+def _get_movements():
+    """Cached: distinct Movements for DIRECT users (last 30 days)."""
+    now = time.time()
+    if _movement_cache['data'] and (now - _movement_cache['timestamp']) < _DROPDOWN_CACHE_TTL:
+        return _movement_cache['data']
+
+    print("[LMS]   Loading Movements...")
+    start = time.time()
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    df_mv = run_query(f"""
+        SELECT DISTINCT [Movement]
+        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+        WHERE [User Name] IN ({users_str})
+          AND [Movement] IS NOT NULL
+          AND [Movement] != ''
+          AND [Date] >= DATEADD(DAY, -30, GETDATE())
+        ORDER BY [Movement]
+    """)
+
+    result = ['All'] + df_mv['Movement'].tolist()
+    _movement_cache['data'] = result
+    _movement_cache['timestamp'] = time.time()
+    elapsed = time.time() - start
+    print(f"[LMS]   Movements loaded: {len(result) - 1} entries ({elapsed:.2f}s, cached 1h)")
     return result
 
 
@@ -257,6 +268,8 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         movement and movement != 'All',
         shift and shift != 'All',
         hour is not None and hour != '' and hour != 'All',
+        week and week != 'All',
+        full_name and full_name != 'All',
     ])
 
     print(f"\n{'='*60}")
@@ -272,12 +285,19 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
     except Exception as e:
         print(f"[LMS]   x Filters error: {e}")
 
-    # Load Full Names dropdown (cached 1h, scoped to last 60 days)
+    # Load Full Names dropdown (cached 1h, scoped to last 30 days)
     full_names_list = ['All']
     try:
         full_names_list = _get_full_names()
     except Exception as e:
         print(f"[LMS]   x Full Names error: {e}")
+
+    # Load Movements dropdown (cached 1h, scoped to last 30 days)
+    movements_list = ['All']
+    try:
+        movements_list = _get_movements()
+    except Exception as e:
+        print(f"[LMS]   x Movements error: {e}")
 
     # Only run the heavy cube query if user provided at least one filter
     cube = []
