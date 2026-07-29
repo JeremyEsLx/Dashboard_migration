@@ -196,6 +196,7 @@ function populateFilters(data) {
             opt.textContent = (v === 'All') ? (placeholder || 'All') : v;
             sel.appendChild(opt);
         });
+        sel.disabled = false;
         if (cur && cur !== 'All') sel.value = cur;
     }
 

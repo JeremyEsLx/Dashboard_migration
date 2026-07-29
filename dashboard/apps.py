@@ -12,10 +12,13 @@ class DashboardConfig(AppConfig):
         def _warm_caches():
             try:
                 from .services import get_direct_users, get_filter_options
+                from .services_userperf import _get_full_names, _get_movements
                 print("[LMS] Pre-warming caches (background thread)...")
                 get_direct_users()
                 get_filter_options()
-                print("[LMS] Caches warmed successfully.")
+                _get_full_names()
+                _get_movements()
+                print("[LMS] All caches warmed successfully.")
             except Exception as e:
                 print(f"[LMS] Cache pre-warm failed (non-fatal): {e}")
 

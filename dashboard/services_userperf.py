@@ -268,8 +268,6 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
         movement and movement != 'All',
         shift and shift != 'All',
         hour is not None and hour != '' and hour != 'All',
-        week and week != 'All',
-        full_name and full_name != 'All',
     ])
 
     print(f"\n{'='*60}")
@@ -278,26 +276,28 @@ def get_userperformance_data(date_from=None, date_to=None, supervisor=None,
     print(f"[LMS]   Has narrowing filter: {has_filter}")
     print(f"{'='*60}")
 
-    # Always load filter options (lightweight)
+    # Load all filter options in PARALLEL (3 queries at once instead of sequential)
     filter_options = {'supervisors': ['All'], 'weeks': ['All'], 'processes': ['All']}
-    try:
-        filter_options = get_filter_options()
-    except Exception as e:
-        print(f"[LMS]   x Filters error: {e}")
-
-    # Load Full Names dropdown (cached 1h, scoped to last 60 days)
     full_names_list = ['All']
-    try:
-        full_names_list = _get_full_names()
-    except Exception as e:
-        print(f"[LMS]   x Full Names error: {e}")
-
-    # Load Movements dropdown (cached 1h)
     movements_list = ['All']
-    try:
-        movements_list = _get_movements()
-    except Exception as e:
-        print(f"[LMS]   x Movements error: {e}")
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        f_filters = executor.submit(get_filter_options)
+        f_fullnames = executor.submit(_get_full_names)
+        f_movements = executor.submit(_get_movements)
+
+        try:
+            filter_options = f_filters.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x Filters error: {e}")
+        try:
+            full_names_list = f_fullnames.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x Full Names error: {e}")
+        try:
+            movements_list = f_movements.result(timeout=30)
+        except Exception as e:
+            print(f"[LMS]   x Movements error: {e}")
 
     # Only run the heavy cube query if user provided at least one filter
     cube = []

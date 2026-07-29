@@ -40,7 +40,7 @@
         </div>
         <div class="filter-group">
             <label>Supervisor</label>
-            <select id="filter-supervisor"><option value="All" selected>All</option></select>
+            <select id="filter-supervisor" disabled><option value="" selected>Loading…</option></select>
         </div>
         <div class="filter-group">
             <label>Full Name</label>
@@ -142,5 +142,5 @@
 
 {% block scripts %}
 <script>var CUBE = null;</script>
-<script src="{% static 'dashboard/userperformance/userperformance.js' %}?v=11"></script>
+<script src="{% static 'dashboard/userperformance/userperformance.js' %}?v=12"></script>
 {% endblock %}
