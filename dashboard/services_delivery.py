@@ -111,6 +111,11 @@ def _build_packing_cube(date_from, date_to, delivery=None,
     where = """
     WHERE [Activity Type] = 'DIRECT'
       AND [Process] = 'PACKING'
+      AND ISNULL([Flow_Type_Map], '') NOT IN (
+          'AUDIT', 'DECASING', 'LAB', 'LABELLING',
+          'MATERIALS HANDLER', 'PACKING EXCEPTIONS', 'VAS EXCEPTIONS')
+      AND ISNULL(TRY_CAST([Quantity] AS INT), 0) != 0
+      AND [User Name] NOT IN ('756777', 'CONTROLM', 'RFCDWP', 'WSDLWCS3')
 """
     if date_from and date_to:
         where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
