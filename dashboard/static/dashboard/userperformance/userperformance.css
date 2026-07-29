@@ -171,12 +171,10 @@
     padding: 10px 14px;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 240px);
-    min-height: 300px;
 }
 .up-table-card .table-scroll {
     overflow: auto;
-    flex: 1;
+    max-height: 400px;
 }
 
 .perf-table {
