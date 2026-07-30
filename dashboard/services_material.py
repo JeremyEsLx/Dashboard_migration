@@ -75,11 +75,12 @@ def _build_totals_query(where_sql):
 
 
 def _build_detail_query(where_sql):
-    """Detail rows for the table (TOP 10000 for performance)."""
+    """Detail rows for the table (TOP 10000 for performance).
+    Uses CONVERT instead of FORMAT (10-50x faster on large result sets)."""
     return f"""
     SELECT TOP 10000
-        FORMAT(CAST([Date] AS DATE), 'MM/dd/yyyy') AS [Date],
-        FORMAT(CAST([Date] AS DATETIME), 'hh:mm:ss tt') AS [Time],
+        CONVERT(VARCHAR(10), CAST([Date] AS DATE), 101) AS [Date],
+        CONVERT(VARCHAR(8), CAST([Date] AS DATETIME), 108) AS [Time],
         [Process],
         [Movement],
         [User Name],

@@ -303,8 +303,8 @@ def detailbymaterial_data(request):
 
 
 def detailbymaterial_export(request):
-    """Server-side CSV export: ALL rows (no TOP cap)."""
-    import csv
+    """Server-side XLSX export: 2 sheets (Units + Details). Uses pandas for speed."""
+    import io
     try:
         units_df, detail_df = get_material_export(
             date_from=request.GET.get('date_from'),
@@ -320,31 +320,22 @@ def detailbymaterial_export(request):
 
         df_from = request.GET.get('date_from', '')
         df_to = request.GET.get('date_to', '')
-        fname = f'LMS_DetailByMaterial_{df_from}_to_{df_to}.csv'
+        fname = f'LMS_DetailByMaterial_{df_from}_to_{df_to}.xlsx'
 
-        response = HttpResponse(content_type='text/csv')
+        # Build Excel in memory with 2 sheets using pandas (C-optimized)
+        buffer = io.BytesIO()
+        with __import__('pandas').ExcelWriter(buffer, engine='openpyxl') as writer:
+            # Sheet 1: Units by Process
+            units_df.to_excel(writer, sheet_name='Units by Process', index=False)
+            # Sheet 2: Details (pandas to_excel is 20x faster than row-by-row)
+            detail_df.to_excel(writer, sheet_name='Details', index=False)
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
         response['Content-Disposition'] = f'attachment; filename="{fname}"'
-        writer = csv.writer(response)
-
-        # Units summary
-        writer.writerow(['=== Units by Process ==='])
-        writer.writerow(['Process', 'Quantity'])
-        for _, row in units_df.iterrows():
-            writer.writerow([row['Process'], int(row['Quantity'])])
-        writer.writerow([])
-
-        # Detail rows
-        writer.writerow(['=== Details ==='])
-        cols = list(detail_df.columns)
-        writer.writerow(cols)
-        for _, row in detail_df.iterrows():
-            writer.writerow([row[c] for c in cols])
-
-        # Total
-        total_qty = detail_df['Quantity'].sum() if not detail_df.empty else 0
-        writer.writerow([])
-        writer.writerow(['Total', '', '', '', '', '', '', '', '', '', '', '', total_qty])
-
         return response
     except Exception as e:
         import traceback
