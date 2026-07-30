@@ -11,6 +11,8 @@ var REFRESH_INTERVAL = 15 * 60;
 var UNITS_RAW = [];
 var DETAIL_RAW = [];
 var DETAIL_FILTERED = [];
+var TOTAL_ROWS = 0;
+var TOTAL_QTY = 0;
 
 var CALENDAR_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
 
@@ -136,26 +138,30 @@ function renderDetailTable() {
         tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color:#6b7280; padding:20px;">No data</td></tr>';
     } else {
         var html = '';
-        var totalQty = 0;
         DETAIL_FILTERED.forEach(function(row) {
             html += '<tr>';
             DETAIL_COLS.forEach(function(col) {
                 html += '<td>' + (row[col] != null ? row[col] : '') + '</td>';
             });
             html += '</tr>';
-            totalQty += (parseInt(row['Quantity'], 10) || 0);
         });
-        // Total row
+        // Total row (server-side total qty)
         html += '<tr class="total-row">';
         html += '<td colspan="12"><strong>Total</strong></td>';
-        html += '<td><strong>' + totalQty.toLocaleString() + '</strong></td>';
+        html += '<td><strong>' + TOTAL_QTY.toLocaleString() + '</strong></td>';
         html += '</tr>';
         tbody.innerHTML = html;
     }
 
     // Update count
     var countEl = document.getElementById('detail-count');
-    if (countEl) countEl.textContent = DETAIL_FILTERED.length.toLocaleString() + ' rows';
+    if (countEl) {
+        if (TOTAL_ROWS > DETAIL_FILTERED.length) {
+            countEl.textContent = 'Showing ' + DETAIL_FILTERED.length.toLocaleString() + ' of ' + TOTAL_ROWS.toLocaleString() + ' rows';
+        } else {
+            countEl.textContent = DETAIL_FILTERED.length.toLocaleString() + ' rows';
+        }
+    }
 }
 
 // ================================================================
@@ -169,6 +175,8 @@ function loadData(skipCache) {
             UNITS_RAW = cached.units || [];
             DETAIL_RAW = cached.detail || [];
             DETAIL_FILTERED = DETAIL_RAW;
+            TOTAL_ROWS = cached.total_rows || DETAIL_RAW.length;
+            TOTAL_QTY = cached.total_qty || 0;
             if (cached.selected) {
                 if (cached.selected.date_from) document.getElementById('filter-date-from').value = cached.selected.date_from;
                 if (cached.selected.date_to) document.getElementById('filter-date-to').value = cached.selected.date_to;
@@ -196,11 +204,12 @@ function loadData(skipCache) {
             var units = (typeof data.units_json === 'string') ? JSON.parse(data.units_json) : (data.units_json || []);
             UNITS_RAW = units;
 
-            // Detail table
+            // Detail table + totals
             var detail = (typeof data.detail_json === 'string') ? JSON.parse(data.detail_json) : (data.detail_json || []);
             DETAIL_RAW = detail;
             DETAIL_FILTERED = detail;
-            CURRENT_PAGE = 1;
+            TOTAL_ROWS = data.total_rows || detail.length;
+            TOTAL_QTY = data.total_qty || 0;
             renderDetailTable();
 
             // Populate filter dropdowns

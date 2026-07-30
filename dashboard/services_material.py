@@ -63,10 +63,21 @@ def _build_units_query(where_sql):
     """
 
 
-def _build_detail_query(where_sql):
-    """Detail rows for the table (TOP 10000)."""
+def _build_totals_query(where_sql):
+    """Fast aggregate: total row count + total quantity."""
     return f"""
     SELECT
+        COUNT(*) AS total_rows,
+        SUM(ISNULL(TRY_CAST([Quantity] AS INT), 0)) AS total_qty
+    FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+    WHERE {where_sql}
+    """
+
+
+def _build_detail_query(where_sql):
+    """Detail rows for the table (TOP 10000 for performance)."""
+    return f"""
+    SELECT TOP 10000
         FORMAT(CAST([Date] AS DATE), 'MM/dd/yyyy') AS [Date],
         FORMAT(CAST([Date] AS DATETIME), 'hh:mm:ss tt') AS [Time],
         [Process],
@@ -107,11 +118,16 @@ def get_material_data(date_from=None, date_to=None, process=None,
             'qty': int(row['Quantity']),
         })
 
-    # 2. Detail rows (raw data for table)
+    # 2. Totals (fast aggregate - 1 row)
+    totals_df = run_query(_build_totals_query(where_sql))
+    total_rows = int(totals_df.iloc[0]['total_rows']) if not totals_df.empty else 0
+    total_qty = int(totals_df.iloc[0]['total_qty']) if not totals_df.empty else 0
+
+    # 3. Detail rows (TOP 10000 for browser performance)
     detail_df = run_query(_build_detail_query(where_sql))
     detail_data = detail_df.to_dict(orient='records')
 
-    # 3. Filter options from the detail data
+    # 4. Filter options
     filter_opts = {
         'processes': sorted(units_df['Process'].dropna().unique().tolist()),
         'movements': sorted(detail_df['Movement'].dropna().unique().tolist()) if not detail_df.empty else [],
@@ -121,6 +137,8 @@ def get_material_data(date_from=None, date_to=None, process=None,
         'units_json': json.dumps(units_data),
         'detail_json': json.dumps(detail_data, default=str),
         'detail_total': len(detail_data),
+        'total_rows': total_rows,
+        'total_qty': total_qty,
         'filters': filter_opts,
         'selected': {
             'date_from': date_from,
