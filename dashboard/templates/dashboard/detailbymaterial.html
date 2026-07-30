@@ -1,12 +1,12 @@
 {% extends "dashboard/base.html" %}
 {% load static %}
 
-{% block title %}Detail by Material — Tijuana LMS{% endblock %}
+{% block title %}Detail by Material - Tijuana LMS{% endblock %}
 
 {% block nav_detailbymaterial %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/detailbymaterial/detailbymaterial.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'dashboard/detailbymaterial/detailbymaterial.css' %}?v=2">
 {% endblock %}
 
 {% block page_title %}
@@ -93,8 +93,57 @@
         </div>
     </div>
 </div>
+
+<!-- DETAILS TABLE -->
+<div class="dm-section">
+    <div class="table-card">
+        <div class="table-card-header">
+            <h3>Details</h3>
+            <div class="table-meta">
+                <span id="detail-count"></span>
+                <button class="btn-export-small" id="btn-export-detail" title="Export details to Excel">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+                    Export
+                </button>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table" id="detail-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Process</th>
+                        <th>Movement</th>
+                        <th>User Name</th>
+                        <th>Source Storage Type</th>
+                        <th>Source Storage Bin</th>
+                        <th>Destination Storage Type</th>
+                        <th>Destination Storage Bin</th>
+                        <th>Material</th>
+                        <th>Grid Value</th>
+                        <th>Stock Category</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="detail-tbody">
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination" id="pagination">
+            <button id="page-prev" disabled>&laquo; Prev</button>
+            <span id="page-info">Page 1</span>
+            <button id="page-next" disabled>Next &raquo;</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/detailbymaterial/detailbymaterial.js' %}?v=1"></script>
+<script src="{% static 'dashboard/detailbymaterial/detailbymaterial.js' %}?v=2"></script>
 {% endblock %}

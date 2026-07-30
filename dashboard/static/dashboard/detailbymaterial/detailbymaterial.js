@@ -9,6 +9,10 @@ var CACHE_MAX_AGE = 30 * 60 * 1000;
 var REFRESH_INTERVAL = 15 * 60;
 
 var UNITS_RAW = [];
+var DETAIL_RAW = [];
+var DETAIL_FILTERED = [];
+var PAGE_SIZE = 100;
+var CURRENT_PAGE = 1;
 
 var CALENDAR_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
 
@@ -96,6 +100,70 @@ function renderUnitsChart(data) {
 }
 
 // ================================================================
+// DETAIL TABLE + PAGINATION
+// ================================================================
+
+var DETAIL_COLS = ['Date', 'Time', 'Process', 'Movement', 'User Name',
+    'Source Storage Type', 'Source Storage Bin',
+    'Destination Storage Type', 'Destination Storage Bin',
+    'Material', 'Grid Value', 'Stock Category', 'Quantity'];
+
+function applyClientFilters() {
+    var proc = document.getElementById('filter-process').value;
+    var mov = document.getElementById('filter-movement').value;
+    var mat = (document.getElementById('filter-material').value || '').toLowerCase();
+    var grid = (document.getElementById('filter-grid').value || '').toLowerCase();
+    var stockCat = (document.getElementById('filter-stock-cat').value || '').toLowerCase();
+    var destBin = (document.getElementById('filter-dest-bin').value || '').toLowerCase();
+    var srcBin = (document.getElementById('filter-source-bin').value || '').toLowerCase();
+
+    DETAIL_FILTERED = DETAIL_RAW.filter(function(r) {
+        if (proc !== 'All' && r['Process'] !== proc) return false;
+        if (mov !== 'All' && r['Movement'] !== mov) return false;
+        if (mat && (r['Material'] || '').toLowerCase().indexOf(mat) === -1) return false;
+        if (grid && (r['Grid Value'] || '').toLowerCase().indexOf(grid) === -1) return false;
+        if (stockCat && (r['Stock Category'] || '').toLowerCase().indexOf(stockCat) === -1) return false;
+        if (destBin && (r['Destination Storage Bin'] || '').toLowerCase().indexOf(destBin) === -1) return false;
+        if (srcBin && (r['Source Storage Bin'] || '').toLowerCase().indexOf(srcBin) === -1) return false;
+        return true;
+    });
+
+    CURRENT_PAGE = 1;
+    renderDetailPage();
+}
+
+function renderDetailPage() {
+    var tbody = document.getElementById('detail-tbody');
+    var start = (CURRENT_PAGE - 1) * PAGE_SIZE;
+    var end = start + PAGE_SIZE;
+    var page = DETAIL_FILTERED.slice(start, end);
+
+    if (!page.length) {
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color:#6b7280; padding:20px;">No data</td></tr>';
+    } else {
+        var html = '';
+        page.forEach(function(row) {
+            html += '<tr>';
+            DETAIL_COLS.forEach(function(col) {
+                html += '<td>' + (row[col] != null ? row[col] : '') + '</td>';
+            });
+            html += '</tr>';
+        });
+        tbody.innerHTML = html;
+    }
+
+    // Update count
+    var countEl = document.getElementById('detail-count');
+    if (countEl) countEl.textContent = DETAIL_FILTERED.length.toLocaleString() + ' rows';
+
+    // Pagination controls
+    var totalPages = Math.ceil(DETAIL_FILTERED.length / PAGE_SIZE) || 1;
+    document.getElementById('page-info').textContent = 'Page ' + CURRENT_PAGE + ' of ' + totalPages;
+    document.getElementById('page-prev').disabled = (CURRENT_PAGE <= 1);
+    document.getElementById('page-next').disabled = (CURRENT_PAGE >= totalPages);
+}
+
+// ================================================================
 // FETCH DATA
 // ================================================================
 
@@ -104,11 +172,14 @@ function loadData(skipCache) {
         var cached = getCachedData();
         if (cached) {
             UNITS_RAW = cached.units || [];
+            DETAIL_RAW = cached.detail || [];
+            DETAIL_FILTERED = DETAIL_RAW;
             if (cached.selected) {
                 if (cached.selected.date_from) document.getElementById('filter-date-from').value = cached.selected.date_from;
                 if (cached.selected.date_to) document.getElementById('filter-date-to').value = cached.selected.date_to;
             }
             renderUnitsChart(UNITS_RAW);
+            renderDetailPage();
             hideLoading(cached.selected.date_from, cached.selected.date_to);
         } else {
             showLoading();
@@ -130,6 +201,13 @@ function loadData(skipCache) {
             var units = (typeof data.units_json === 'string') ? JSON.parse(data.units_json) : (data.units_json || []);
             UNITS_RAW = units;
 
+            // Detail table
+            var detail = (typeof data.detail_json === 'string') ? JSON.parse(data.detail_json) : (data.detail_json || []);
+            DETAIL_RAW = detail;
+            DETAIL_FILTERED = detail;
+            CURRENT_PAGE = 1;
+            renderDetailPage();
+
             // Populate filter dropdowns
             if (data.filters && data.filters.processes) {
                 var sel = document.getElementById('filter-process');
@@ -139,6 +217,15 @@ function loadData(skipCache) {
                     sel.innerHTML += '<option value="' + p + '">' + p + '</option>';
                 });
                 sel.value = current;
+            }
+            if (data.filters && data.filters.movements) {
+                var movSel = document.getElementById('filter-movement');
+                var movCur = movSel.value;
+                movSel.innerHTML = '<option value="All">All</option>';
+                data.filters.movements.forEach(function(m) {
+                    movSel.innerHTML += '<option value="' + m + '">' + m + '</option>';
+                });
+                movSel.value = movCur;
             }
 
             // Set dates
@@ -151,6 +238,7 @@ function loadData(skipCache) {
             try {
                 sessionStorage.setItem(CACHE_KEY, JSON.stringify({
                     units: units,
+                    detail: detail,
                     selected: data.selected || {},
                     filters: data.filters || {},
                     timestamp: Date.now()
@@ -199,6 +287,41 @@ document.getElementById('btn-export').addEventListener('click', function() {
     var df = document.getElementById('filter-date-from').value || '';
     var dt = document.getElementById('filter-date-to').value || '';
     var filename = 'LMS_DetailByMaterial';
+    if (df && dt) filename += '_' + df + '_to_' + dt;
+    filename += '.xlsx';
+    XLSX.writeFile(wb, filename);
+});
+
+// Pagination
+document.getElementById('page-prev').addEventListener('click', function() {
+    if (CURRENT_PAGE > 1) { CURRENT_PAGE--; renderDetailPage(); }
+});
+document.getElementById('page-next').addEventListener('click', function() {
+    var totalPages = Math.ceil(DETAIL_FILTERED.length / PAGE_SIZE);
+    if (CURRENT_PAGE < totalPages) { CURRENT_PAGE++; renderDetailPage(); }
+});
+
+// Client-side filter narrowing (dropdowns + text inputs)
+document.getElementById('filter-process').addEventListener('change', applyClientFilters);
+document.getElementById('filter-movement').addEventListener('change', applyClientFilters);
+document.getElementById('filter-material').addEventListener('input', applyClientFilters);
+document.getElementById('filter-grid').addEventListener('input', applyClientFilters);
+document.getElementById('filter-stock-cat').addEventListener('input', applyClientFilters);
+document.getElementById('filter-dest-bin').addEventListener('input', applyClientFilters);
+document.getElementById('filter-source-bin').addEventListener('input', applyClientFilters);
+
+// Export detail table
+document.getElementById('btn-export-detail').addEventListener('click', function() {
+    if (!DETAIL_FILTERED.length) { alert('No data to export.'); return; }
+    var rows = [DETAIL_COLS];
+    DETAIL_FILTERED.forEach(function(r) {
+        rows.push(DETAIL_COLS.map(function(c) { return r[c] != null ? r[c] : ''; }));
+    });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Details');
+    var df = document.getElementById('filter-date-from').value || '';
+    var dt = document.getElementById('filter-date-to').value || '';
+    var filename = 'LMS_DetailByMaterial_Details';
     if (df && dt) filename += '_' + df + '_to_' + dt;
     filename += '.xlsx';
     XLSX.writeFile(wb, filename);

@@ -1,8 +1,9 @@
-"""Detail by Material — service layer.
+"""Detail by Material - service layer.
 
 Queries LMS table for material-level detail with filters.
 Returns:
   - units_chart: Quantity aggregated by Process (for bar chart)
+  - detail_rows: raw rows for the Details table (TOP 10000)
   - filter_options: distinct values for each dropdown filter
 """
 import json
@@ -22,14 +23,14 @@ def _default_date_range():
     return str(date_from), str(today)
 
 
-def _build_units_query(date_from, date_to, process=None, movement=None,
-                       material=None, grid=None, stock_cat=None,
-                       dest_bin=None, source_bin=None):
-    """Aggregate Quantity by Process for the Units chart."""
+def _build_where(date_from, date_to, process=None, movement=None,
+                 material=None, grid=None, stock_cat=None,
+                 dest_bin=None, source_bin=None):
+    """Shared WHERE clauses for both queries."""
     users = get_direct_users()
     users_str = ','.join(f"'{u}'" for u in users)
 
-    where_clauses = [
+    clauses = [
         "[Activity Type] = 'DIRECT'",
         f"[User Name] IN ({users_str})",
         f"CAST([Date] AS DATE) >= '{date_from}'",
@@ -37,22 +38,25 @@ def _build_units_query(date_from, date_to, process=None, movement=None,
     ]
 
     if process:
-        where_clauses.append(f"[Process] = '{process}'")
+        clauses.append(f"[Process] = '{process}'")
     if movement:
-        where_clauses.append(f"[Movement] = '{movement}'")
+        clauses.append(f"[Movement] = '{movement}'")
     if material:
-        where_clauses.append(f"[Material] = '{material}'")
+        clauses.append(f"[Material] = '{material}'")
     if grid:
-        where_clauses.append(f"[Grid Value] = '{grid}'")
+        clauses.append(f"[Grid Value] = '{grid}'")
     if stock_cat:
-        where_clauses.append(f"[Stock Category] = '{stock_cat}'")
+        clauses.append(f"[Stock Category] = '{stock_cat}'")
     if dest_bin:
-        where_clauses.append(f"[Destination Storage Bin] = '{dest_bin}'")
+        clauses.append(f"[Destination Storage Bin] = '{dest_bin}'")
     if source_bin:
-        where_clauses.append(f"[Source Storage Bin] = '{source_bin}'")
+        clauses.append(f"[Source Storage Bin] = '{source_bin}'")
 
-    where_sql = ' AND '.join(where_clauses)
+    return ' AND '.join(clauses)
 
+
+def _build_units_query(where_sql):
+    """Aggregate Quantity by Process for the Units chart."""
     return f"""
     SELECT
         [Process],
@@ -64,37 +68,43 @@ def _build_units_query(date_from, date_to, process=None, movement=None,
     """
 
 
-def _build_filter_options_query(date_from, date_to):
-    """Get distinct filter values within the date range."""
-    users = get_direct_users()
-    users_str = ','.join(f"'{u}'" for u in users)
-
+def _build_detail_query(where_sql):
+    """Detail rows for the table (TOP 10000)."""
     return f"""
-    SELECT DISTINCT
-        ISNULL([Process], '') AS [Process],
-        ISNULL([Movement], '') AS [Movement]
+    SELECT TOP 10000
+        FORMAT(CAST([Date] AS DATE), 'MM/dd/yyyy') AS [Date],
+        FORMAT(CAST([Date] AS DATETIME), 'hh:mm:ss tt') AS [Time],
+        [Process],
+        [Movement],
+        [User Name],
+        ISNULL([Source Storage Type], '') AS [Source Storage Type],
+        ISNULL([Source Storage Bin], '') AS [Source Storage Bin],
+        ISNULL([Destination Storage Type], '') AS [Destination Storage Type],
+        ISNULL([Destination Storage Bin], '') AS [Destination Storage Bin],
+        ISNULL([Material], '') AS [Material],
+        ISNULL([Grid Value], '') AS [Grid Value],
+        ISNULL([Stock Category], '') AS [Stock Category],
+        ISNULL(TRY_CAST([Quantity] AS INT), 0) AS [Quantity]
     FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
-    WHERE [Activity Type] = 'DIRECT'
-      AND [User Name] IN ({users_str})
-      AND CAST([Date] AS DATE) >= '{date_from}'
-      AND CAST([Date] AS DATE) <= '{date_to}'
+    WHERE {where_sql}
+    ORDER BY CAST([Date] AS DATETIME) ASC
     """
 
 
 def get_material_data(date_from=None, date_to=None, process=None,
                       movement=None, material=None, grid=None,
                       stock_cat=None, dest_bin=None, source_bin=None):
-    """Main entry point — returns Units chart data + filter options."""
+    """Main entry point - returns Units chart + Detail rows + filters."""
     if not date_from or not date_to:
         date_from, date_to = _default_date_range()
 
-    # 1. Units chart (Quantity by Process)
-    units_query = _build_units_query(
+    where_sql = _build_where(
         date_from, date_to, process, movement,
         material, grid, stock_cat, dest_bin, source_bin
     )
-    units_df = run_query(units_query)
 
+    # 1. Units chart (Quantity by Process)
+    units_df = run_query(_build_units_query(where_sql))
     units_data = []
     for _, row in units_df.iterrows():
         units_data.append({
@@ -102,13 +112,20 @@ def get_material_data(date_from=None, date_to=None, process=None,
             'qty': int(row['Quantity']),
         })
 
-    # 2. Filter options from the units result (quick)
+    # 2. Detail rows (raw data for table)
+    detail_df = run_query(_build_detail_query(where_sql))
+    detail_data = detail_df.to_dict(orient='records')
+
+    # 3. Filter options from the detail data
     filter_opts = {
         'processes': sorted(units_df['Process'].dropna().unique().tolist()),
+        'movements': sorted(detail_df['Movement'].dropna().unique().tolist()) if not detail_df.empty else [],
     }
 
     return {
         'units_json': json.dumps(units_data),
+        'detail_json': json.dumps(detail_data, default=str),
+        'detail_total': len(detail_data),
         'filters': filter_opts,
         'selected': {
             'date_from': date_from,
