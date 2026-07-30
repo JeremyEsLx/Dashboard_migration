@@ -258,3 +258,44 @@ def deliverydeepdive_data(request):
             'packing_total': 0,
             'selected': {'date_from': '', 'date_to': ''},
         }, status=200)
+
+
+# ============================================================
+# DETAIL BY MATERIAL
+# ============================================================
+
+def detailbymaterial(request):
+    """Render Detail by Material shell (instant, no SQL)."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/detailbymaterial.html', {'data': data})
+
+
+def detailbymaterial_data(request):
+    """API: returns Units chart data as JSON."""
+    try:
+        data = get_material_data(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+            process=request.GET.get('process'),
+            movement=request.GET.get('movement'),
+            material=request.GET.get('material'),
+            grid=request.GET.get('grid'),
+            stock_cat=request.GET.get('stock_cat'),
+            dest_bin=request.GET.get('dest_bin'),
+            source_bin=request.GET.get('source_bin'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'units_json': '[]',
+            'filters': {},
+            'selected': {'date_from': '', 'date_to': ''},
+        }, status=200)
