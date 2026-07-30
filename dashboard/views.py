@@ -300,3 +300,53 @@ def detailbymaterial_data(request):
             'filters': {},
             'selected': {'date_from': '', 'date_to': ''},
         }, status=200)
+
+
+def detailbymaterial_export(request):
+    """Server-side CSV export: ALL rows (no TOP cap)."""
+    import csv
+    try:
+        units_df, detail_df = get_material_export(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+            process=request.GET.get('process'),
+            movement=request.GET.get('movement'),
+            material=request.GET.get('material'),
+            grid=request.GET.get('grid'),
+            stock_cat=request.GET.get('stock_cat'),
+            dest_bin=request.GET.get('dest_bin'),
+            source_bin=request.GET.get('source_bin'),
+        )
+
+        df_from = request.GET.get('date_from', '')
+        df_to = request.GET.get('date_to', '')
+        fname = f'LMS_DetailByMaterial_{df_from}_to_{df_to}.csv'
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{fname}"'
+        writer = csv.writer(response)
+
+        # Units summary
+        writer.writerow(['=== Units by Process ==='])
+        writer.writerow(['Process', 'Quantity'])
+        for _, row in units_df.iterrows():
+            writer.writerow([row['Process'], int(row['Quantity'])])
+        writer.writerow([])
+
+        # Detail rows
+        writer.writerow(['=== Details ==='])
+        cols = list(detail_df.columns)
+        writer.writerow(cols)
+        for _, row in detail_df.iterrows():
+            writer.writerow([row[c] for c in cols])
+
+        # Total
+        total_qty = detail_df['Quantity'].sum() if not detail_df.empty else 0
+        writer.writerow([])
+        writer.writerow(['Total', '', '', '', '', '', '', '', '', '', '', '', total_qty])
+
+        return response
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(f'Export error: {e}', status=500)
