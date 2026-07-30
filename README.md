@@ -57,6 +57,7 @@ Exception: **User Performance** uses a **search-first** pattern (see below).
 | Strong Start | `/strongstart/` | `/api/strongstart/` | First scan after clock-in metrics |
 | Strong Finish | `/strongfinish/` | `/api/strongfinish/` | Last scan before clock-out metrics |
 | No Activity | `/noactivity/` | `/api/noactivity/` | Clock-in to clock-out with no scans |
+| Delivery Deep Dive | `/deliverydeepdive/` | `/api/deliverydeepdive/` | Picking/packing detail by delivery (search-first) |
 
 ## User Performance — Search-First Pattern
 
