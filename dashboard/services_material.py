@@ -97,6 +97,46 @@ def _build_detail_query(where_sql):
     """
 
 
+def _build_export_query(where_sql):
+    """All detail rows (no TOP cap) for server-side export."""
+    return f"""
+    SELECT
+        FORMAT(CAST([Date] AS DATE), 'MM/dd/yyyy') AS [Date],
+        FORMAT(CAST([Date] AS DATETIME), 'hh:mm:ss tt') AS [Time],
+        [Process],
+        [Movement],
+        [User Name],
+        ISNULL([Source Storage Type], '') AS [Source Storage Type],
+        ISNULL([Source Storage Bin], '') AS [Source Storage Bin],
+        ISNULL([Destination Storage Type], '') AS [Destination Storage Type],
+        ISNULL([Destination Storage Bin], '') AS [Destination Storage Bin],
+        ISNULL([Material], '') AS [Material],
+        ISNULL([Grid Value], '') AS [Grid Value],
+        ISNULL([Stock Category], '') AS [Stock Category],
+        ISNULL(TRY_CAST([Quantity] AS INT), 0) AS [Quantity]
+    FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+    WHERE {where_sql}
+    ORDER BY CAST([Date] AS DATETIME) ASC
+    """
+
+
+def get_material_export(date_from=None, date_to=None, process=None,
+                        movement=None, material=None, grid=None,
+                        stock_cat=None, dest_bin=None, source_bin=None):
+    """Server-side export: returns units_df + full detail_df (no row cap)."""
+    if not date_from or not date_to:
+        date_from, date_to = _default_date_range()
+
+    where_sql = _build_where(
+        date_from, date_to, process, movement,
+        material, grid, stock_cat, dest_bin, source_bin
+    )
+
+    units_df = run_query(_build_units_query(where_sql))
+    detail_df = run_query(_build_export_query(where_sql))
+    return units_df, detail_df
+
+
 def get_material_data(date_from=None, date_to=None, process=None,
                       movement=None, material=None, grid=None,
                       stock_cat=None, dest_bin=None, source_bin=None):

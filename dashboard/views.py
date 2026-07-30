@@ -1,9 +1,9 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data, get_noactivity_data
 from .services_userperf import get_userperformance_data
 from .services_delivery import get_delivery_data
-from .services_material import get_material_data
+from .services_material import get_material_data, get_material_export
 
 
 # ============================================================

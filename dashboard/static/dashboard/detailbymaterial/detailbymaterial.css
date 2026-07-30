@@ -74,9 +74,13 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* === CHART SECTION === */
+/* === SECTIONS === */
 .dm-section {
-    margin-bottom: 16px;
+    margin-bottom: 0;
+}
+
+.dm-section + .dm-section {
+    border-top: 1px solid #e5e7eb;
 }
 
 .chart-card {

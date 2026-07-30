@@ -281,26 +281,31 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
     window.location.reload();
 });
 
-// Export (both Units + Details in one file)
+// Export (server-side CSV with ALL rows)
 document.getElementById('btn-export').addEventListener('click', function() {
-    if (!UNITS_RAW.length && !DETAIL_FILTERED.length) { alert('No data to export.'); return; }
-    var wb = XLSX.utils.book_new();
-    // Sheet 1: Units by Process
-    var unitsRows = [['Process', 'Quantity']];
-    UNITS_RAW.forEach(function(r) { unitsRows.push([r.process, r.qty]); });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unitsRows), 'Units by Process');
-    // Sheet 2: Details
-    var detailRows = [DETAIL_COLS];
-    DETAIL_FILTERED.forEach(function(r) {
-        detailRows.push(DETAIL_COLS.map(function(c) { return r[c] != null ? r[c] : ''; }));
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), 'Details');
     var df = document.getElementById('filter-date-from').value || '';
     var dt = document.getElementById('filter-date-to').value || '';
-    var filename = 'LMS_DetailByMaterial';
-    if (df && dt) filename += '_' + df + '_to_' + dt;
-    filename += '.xlsx';
-    XLSX.writeFile(wb, filename);
+    if (!df || !dt) { alert('Select a date range first.'); return; }
+    var params = new URLSearchParams();
+    params.set('date_from', df);
+    params.set('date_to', dt);
+    // Pass active filters
+    var proc = document.getElementById('filter-process').value;
+    var mov = document.getElementById('filter-movement').value;
+    if (proc !== 'All') params.set('process', proc);
+    if (mov !== 'All') params.set('movement', mov);
+    var mat = document.getElementById('filter-material').value;
+    if (mat) params.set('material', mat);
+    var grid = document.getElementById('filter-grid').value;
+    if (grid) params.set('grid', grid);
+    var stockCat = document.getElementById('filter-stock-cat').value;
+    if (stockCat) params.set('stock_cat', stockCat);
+    var destBin = document.getElementById('filter-dest-bin').value;
+    if (destBin) params.set('dest_bin', destBin);
+    var srcBin = document.getElementById('filter-source-bin').value;
+    if (srcBin) params.set('source_bin', srcBin);
+    // Trigger server-side download (opens in new tab)
+    window.open('/api/detailbymaterial/export/?' + params.toString(), '_blank');
 });
 
 

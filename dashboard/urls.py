@@ -20,4 +20,5 @@ urlpatterns = [
     path('api/deliverydeepdive/', views.deliverydeepdive_data, name='deliverydeepdive_data'),
     path('detailbymaterial/', views.detailbymaterial, name='detailbymaterial'),
     path('api/detailbymaterial/', views.detailbymaterial_data, name='detailbymaterial_data'),
+    path('api/detailbymaterial/export/', views.detailbymaterial_export, name='detailbymaterial_export'),
 ]
