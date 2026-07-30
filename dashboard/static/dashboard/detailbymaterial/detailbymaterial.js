@@ -304,8 +304,8 @@ document.getElementById('btn-export').addEventListener('click', function() {
     if (destBin) params.set('dest_bin', destBin);
     var srcBin = document.getElementById('filter-source-bin').value;
     if (srcBin) params.set('source_bin', srcBin);
-    // Trigger server-side download (opens in new tab)
-    window.open('/api/detailbymaterial/export/?' + params.toString(), '_blank');
+    // Trigger server-side download (background, no new tab)
+    window.location.href = '/api/detailbymaterial/export/?' + params.toString();
 });
 
 
