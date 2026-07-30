@@ -11,8 +11,6 @@ var REFRESH_INTERVAL = 15 * 60;
 var UNITS_RAW = [];
 var DETAIL_RAW = [];
 var DETAIL_FILTERED = [];
-var PAGE_SIZE = 100;
-var CURRENT_PAGE = 1;
 
 var CALENDAR_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
 
@@ -128,39 +126,36 @@ function applyClientFilters() {
         return true;
     });
 
-    CURRENT_PAGE = 1;
-    renderDetailPage();
+    renderDetailTable();
 }
 
-function renderDetailPage() {
+function renderDetailTable() {
     var tbody = document.getElementById('detail-tbody');
-    var start = (CURRENT_PAGE - 1) * PAGE_SIZE;
-    var end = start + PAGE_SIZE;
-    var page = DETAIL_FILTERED.slice(start, end);
 
-    if (!page.length) {
+    if (!DETAIL_FILTERED.length) {
         tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; color:#6b7280; padding:20px;">No data</td></tr>';
     } else {
         var html = '';
-        page.forEach(function(row) {
+        var totalQty = 0;
+        DETAIL_FILTERED.forEach(function(row) {
             html += '<tr>';
             DETAIL_COLS.forEach(function(col) {
                 html += '<td>' + (row[col] != null ? row[col] : '') + '</td>';
             });
             html += '</tr>';
+            totalQty += (parseInt(row['Quantity'], 10) || 0);
         });
+        // Total row
+        html += '<tr class="total-row">';
+        html += '<td colspan="12"><strong>Total</strong></td>';
+        html += '<td><strong>' + totalQty.toLocaleString() + '</strong></td>';
+        html += '</tr>';
         tbody.innerHTML = html;
     }
 
     // Update count
     var countEl = document.getElementById('detail-count');
     if (countEl) countEl.textContent = DETAIL_FILTERED.length.toLocaleString() + ' rows';
-
-    // Pagination controls
-    var totalPages = Math.ceil(DETAIL_FILTERED.length / PAGE_SIZE) || 1;
-    document.getElementById('page-info').textContent = 'Page ' + CURRENT_PAGE + ' of ' + totalPages;
-    document.getElementById('page-prev').disabled = (CURRENT_PAGE <= 1);
-    document.getElementById('page-next').disabled = (CURRENT_PAGE >= totalPages);
 }
 
 // ================================================================
@@ -179,7 +174,7 @@ function loadData(skipCache) {
                 if (cached.selected.date_to) document.getElementById('filter-date-to').value = cached.selected.date_to;
             }
             renderUnitsChart(UNITS_RAW);
-            renderDetailPage();
+            renderDetailTable();
             hideLoading(cached.selected.date_from, cached.selected.date_to);
         } else {
             showLoading();
@@ -206,7 +201,7 @@ function loadData(skipCache) {
             DETAIL_RAW = detail;
             DETAIL_FILTERED = detail;
             CURRENT_PAGE = 1;
-            renderDetailPage();
+            renderDetailTable();
 
             // Populate filter dropdowns
             if (data.filters && data.filters.processes) {
@@ -277,13 +272,20 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
     window.location.reload();
 });
 
-// Export
+// Export (both Units + Details in one file)
 document.getElementById('btn-export').addEventListener('click', function() {
-    if (!UNITS_RAW.length) { alert('No data to export.'); return; }
-    var rows = [['Process', 'Quantity']];
-    UNITS_RAW.forEach(function(r) { rows.push([r.process, r.qty]); });
+    if (!UNITS_RAW.length && !DETAIL_FILTERED.length) { alert('No data to export.'); return; }
     var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Units by Process');
+    // Sheet 1: Units by Process
+    var unitsRows = [['Process', 'Quantity']];
+    UNITS_RAW.forEach(function(r) { unitsRows.push([r.process, r.qty]); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unitsRows), 'Units by Process');
+    // Sheet 2: Details
+    var detailRows = [DETAIL_COLS];
+    DETAIL_FILTERED.forEach(function(r) {
+        detailRows.push(DETAIL_COLS.map(function(c) { return r[c] != null ? r[c] : ''; }));
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), 'Details');
     var df = document.getElementById('filter-date-from').value || '';
     var dt = document.getElementById('filter-date-to').value || '';
     var filename = 'LMS_DetailByMaterial';
@@ -292,14 +294,6 @@ document.getElementById('btn-export').addEventListener('click', function() {
     XLSX.writeFile(wb, filename);
 });
 
-// Pagination
-document.getElementById('page-prev').addEventListener('click', function() {
-    if (CURRENT_PAGE > 1) { CURRENT_PAGE--; renderDetailPage(); }
-});
-document.getElementById('page-next').addEventListener('click', function() {
-    var totalPages = Math.ceil(DETAIL_FILTERED.length / PAGE_SIZE);
-    if (CURRENT_PAGE < totalPages) { CURRENT_PAGE++; renderDetailPage(); }
-});
 
 // Client-side filter narrowing (dropdowns + text inputs)
 document.getElementById('filter-process').addEventListener('change', applyClientFilters);
@@ -310,22 +304,6 @@ document.getElementById('filter-stock-cat').addEventListener('input', applyClien
 document.getElementById('filter-dest-bin').addEventListener('input', applyClientFilters);
 document.getElementById('filter-source-bin').addEventListener('input', applyClientFilters);
 
-// Export detail table
-document.getElementById('btn-export-detail').addEventListener('click', function() {
-    if (!DETAIL_FILTERED.length) { alert('No data to export.'); return; }
-    var rows = [DETAIL_COLS];
-    DETAIL_FILTERED.forEach(function(r) {
-        rows.push(DETAIL_COLS.map(function(c) { return r[c] != null ? r[c] : ''; }));
-    });
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Details');
-    var df = document.getElementById('filter-date-from').value || '';
-    var dt = document.getElementById('filter-date-to').value || '';
-    var filename = 'LMS_DetailByMaterial_Details';
-    if (df && dt) filename += '_' + df + '_to_' + dt;
-    filename += '.xlsx';
-    XLSX.writeFile(wb, filename);
-});
 
 // ================================================================
 // AUTO-REFRESH TIMER (15 min)

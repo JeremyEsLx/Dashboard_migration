@@ -99,13 +99,7 @@
     <div class="table-card">
         <div class="table-card-header">
             <h3>Details</h3>
-            <div class="table-meta">
-                <span id="detail-count"></span>
-                <button class="btn-export-small" id="btn-export-detail" title="Export details to Excel">
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
-                    Export
-                </button>
-            </div>
+            <span id="detail-count" class="detail-count-label"></span>
         </div>
         <div class="table-scroll">
             <table class="data-table" id="detail-table">
@@ -134,11 +128,6 @@
                     <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
                 </tbody>
             </table>
-        </div>
-        <div class="pagination" id="pagination">
-            <button id="page-prev" disabled>&laquo; Prev</button>
-            <span id="page-info">Page 1</span>
-            <button id="page-next" disabled>Next &raquo;</button>
         </div>
     </div>
 </div>

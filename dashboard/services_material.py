@@ -12,14 +12,9 @@ from .services import run_query, get_direct_users
 
 
 def _default_date_range():
-    """Default: 26th of last month to today."""
+    """Default: today minus 21 days to today."""
     today = date.today()
-    if today.day >= 26:
-        date_from = today.replace(day=26) - timedelta(days=today.day)
-    else:
-        first_this = today.replace(day=1)
-        last_month = first_this - timedelta(days=1)
-        date_from = last_month.replace(day=26)
+    date_from = today - timedelta(days=21)
     return str(date_from), str(today)
 
 
@@ -71,7 +66,7 @@ def _build_units_query(where_sql):
 def _build_detail_query(where_sql):
     """Detail rows for the table (TOP 10000)."""
     return f"""
-    SELECT TOP 10000
+    SELECT
         FORMAT(CAST([Date] AS DATE), 'MM/dd/yyyy') AS [Date],
         FORMAT(CAST([Date] AS DATETIME), 'hh:mm:ss tt') AS [Time],
         [Process],
