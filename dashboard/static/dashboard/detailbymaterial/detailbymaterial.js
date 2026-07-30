@@ -281,6 +281,30 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
     window.location.reload();
 });
 
+// Export toast notification
+function showExportToast() {
+    var existing = document.getElementById('export-toast');
+    if (existing) existing.remove();
+
+    var rows = TOTAL_ROWS.toLocaleString();
+    var toast = document.createElement('div');
+    toast.id = 'export-toast';
+    toast.className = 'export-toast';
+    toast.innerHTML = '<div class="export-toast-icon"><div class="inline-spinner"></div></div>' +
+        '<div class="export-toast-text">' +
+        '<strong>Preparing your export</strong>' +
+        '<span>Gathering ' + rows + ' rows. This may take a moment depending on the data volume.</span>' +
+        '</div>' +
+        '<button class="export-toast-close" onclick="this.parentElement.remove()">&times;</button>';
+    document.body.appendChild(toast);
+
+    // Auto-dismiss after 45 seconds
+    setTimeout(function() {
+        var el = document.getElementById('export-toast');
+        if (el) el.remove();
+    }, 45000);
+}
+
 // Export (server-side CSV with ALL rows)
 document.getElementById('btn-export').addEventListener('click', function() {
     var df = document.getElementById('filter-date-from').value || '';
@@ -304,7 +328,8 @@ document.getElementById('btn-export').addEventListener('click', function() {
     if (destBin) params.set('dest_bin', destBin);
     var srcBin = document.getElementById('filter-source-bin').value;
     if (srcBin) params.set('source_bin', srcBin);
-    // Trigger server-side download (background, no new tab)
+    // Show toast and trigger download
+    showExportToast();
     window.location.href = '/api/detailbymaterial/export/?' + params.toString();
 });
 
