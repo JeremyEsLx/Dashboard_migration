@@ -56,6 +56,7 @@ function getCachedData() {
 
 function renderUnitsChart(data) {
     var container = document.getElementById('chart-units');
+    container.innerHTML = '';
     if (!data || !data.length) {
         container.innerHTML = '<p style="color:#6b7280; text-align:center; padding:40px;">No data found</p>';
         return;
