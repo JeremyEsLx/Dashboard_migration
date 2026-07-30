@@ -1,5 +1,80 @@
-/* Detail by Material — Styles */
+/* ============================================================
+   DETAIL BY MATERIAL - Page Styles
+   ============================================================ */
 
+/* === FILTERS BAR === */
+.filters-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    padding: 14px 16px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+}
+.filter-group { display: flex; flex-direction: column; gap: 3px; }
+.filter-group label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.filter-group select,
+.filter-group input {
+    padding: 7px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: inherit;
+    min-width: 130px;
+    background: #fafbfc;
+    color: #1f2937;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+.filter-group input[type="text"]::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+}
+.filter-actions {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+}
+.btn-filter {
+    padding: 7px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.btn-reset { background: white; color: #6b7280; }
+.btn-reset:hover { background: #f3f4f6; color: #374151; border-color: #9ca3af; }
+.btn-refresh { background: #0f172a; color: white; border-color: #0f172a; }
+.btn-refresh:hover { background: #1e293b; }
+.refresh-timer {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-left: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* === CHART SECTION === */
 .dm-section {
     margin-bottom: 16px;
 }
@@ -21,19 +96,4 @@
 .chart-container {
     min-height: 300px;
     position: relative;
-}
-
-/* Skeleton loading placeholder */
-.skeleton-chart {
-    width: 100%;
-    height: 280px;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 4px;
-}
-
-@keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
 }
