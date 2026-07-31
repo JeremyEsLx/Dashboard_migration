@@ -13,7 +13,7 @@ import time
 from datetime import date, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
-from .services import (
+from .services_base import (
     get_direct_users, get_filter_options,
     _base_subquery, run_query, format_name,
 )

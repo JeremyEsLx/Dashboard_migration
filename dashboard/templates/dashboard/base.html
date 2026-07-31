@@ -13,6 +13,7 @@
 
     <!-- Shared Styles -->
     <link rel="stylesheet" href="{% static 'dashboard/base.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'dashboard/shared/components.css' %}?v=1">
 
     <!-- Page-specific Styles -->
     {% block styles %}{% endblock %}
@@ -92,6 +93,9 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <!-- Shared Scripts -->
+    <script src="{% static 'dashboard/shared/lms-core.js' %}?v=1"></script>
 
     <!-- Page-specific Scripts -->
     {% block scripts %}{% endblock %}

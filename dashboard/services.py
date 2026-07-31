@@ -1,135 +1,32 @@
-"""Data service layer — queries SQL Server for LMS data.
+"""Data service layer — page-specific queries for Summary, Performance, Process,
+Strong Start, Strong Finish, and No Activity pages.
 
-Connects to SQL Server via pyodbc and translates Power BI DAX measures to SQL.
-LMS Table: [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03]
-Headcount Table: [Business_Intelligence].[dbo].[MX03_Roster] (same server, cross-DB query)
-
-Power BI relationship: LMS[User Name] → Headcount[User]
-Employee Type filter: Headcount[Estacion_de_Trabajo] IN (DIRECT roles)
-
-Architecture: "Hybrid Cube" — one SQL query per date loads a small aggregated
-cube (~200 rows). Supervisor/Shift filtering happens client-side in JavaScript
-for instant responsiveness. Only Date/Week changes trigger a server round-trip.
-
-Date vs Week: MUTUALLY EXCLUSIVE (Summary page).
-Performance page uses DATE RANGE (date_from, date_to) OR week.
-
-Optimizations applied:
-- Connection pooling (reuses connections instead of creating per query)
-- WITH (NOLOCK) on all reads (avoids lock waits)
-- Combined filter queries (1 round-trip instead of 3)
-- Parallel execution (filters + cube run simultaneously)
-- TTL cache for filter options (1 hour, not just per-restart)
+Shared utilities (pool, run_query, get_direct_users, etc.) live in services_base.py.
+This file imports them and defines page-specific cube/data functions.
 """
 import json
-import pyodbc
-import pandas as pd
-from django.conf import settings
 from datetime import date, timedelta
 from functools import lru_cache
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import time
-import threading
 
-
-# ============================================================
-# DATABASE CONNECTION POOL
-# ============================================================
-
-_pool_lock = threading.Lock()
-_connection_pool = []
-_POOL_MAX_SIZE = 4
-
-
-def _build_conn_str():
-    return (
-        f"DRIVER={settings.SQL_DRIVER};"
-        f"SERVER={settings.SQL_SERVER};"
-        f"DATABASE={settings.SQL_DATABASE};"
-        f"UID={settings.SQL_USERNAME};"
-        f"PWD={settings.SQL_PASSWORD};"
-        f"TrustServerCertificate=yes;"
-    )
-
-
-def get_connection():
-    """Get a connection from the pool (or create one if pool is empty)."""
-    with _pool_lock:
-        if _connection_pool:
-            conn = _connection_pool.pop()
-            try:
-                # Test if connection is still alive
-                conn.execute('SELECT 1')
-                return conn
-            except Exception:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
-    # Create new connection
-    return pyodbc.connect(_build_conn_str())
-
-
-def _return_connection(conn):
-    """Return a connection to the pool for reuse."""
-    with _pool_lock:
-        if len(_connection_pool) < _POOL_MAX_SIZE:
-            _connection_pool.append(conn)
-        else:
-            try:
-                conn.close()
-            except Exception:
-                pass
-
-
-def run_query(query: str) -> pd.DataFrame:
-    """Execute a SQL query and return results as a DataFrame (pooled connection)."""
-    conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(query)
-        columns = [desc[0] for desc in cursor.description]
-        rows = cursor.fetchall()
-        _return_connection(conn)
-        return pd.DataFrame.from_records(rows, columns=columns)
-    except Exception:
-        try:
-            conn.close()
-        except Exception:
-            pass
-        raise
-
-
-# ============================================================
-# NAME FORMATTING HELPER
-# ============================================================
-
-
-def format_name(name):
-    """Format Full Name: remove comma, Title Case.
-
-    'ADELA, MANUEL PARRA' -> 'Adela Manuel Parra'
-    'JUAN CARLOS, ARTEAGA SERRANO' -> 'Juan Carlos Arteaga Serrano'
-    """
-    if not name:
-        return name
-    return name.replace(',', '').title()
-
-
-# ============================================================
-# HEADCOUNT / EMPLOYEE TYPE FILTER
-# ============================================================
-
-DIRECT_ROLES = (
-    'Operador en Entrenamiento',
-    'Almacenista',
-    'Automation clerk I',
-    'DC clerk 1',
-    'Packing / VAS',
-    'Picking',
-    'Put away',
-    'Recibos',
+# Shared utilities (re-exported for backward compatibility)
+from .services_base import (
+    run_query, get_connection, _return_connection,
+    get_direct_users, format_name, DIRECT_ROLES,
+    _base_subquery, BASE_FILTERS,
+    _build_date_where, _build_date_range_where,
+    get_filter_options,
 )
+
+
+
+
+
+
+
+
+
 
 
 @lru_cache(maxsize=1)
