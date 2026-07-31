@@ -1,0 +1,245 @@
+/* ============================================================
+   PERFORMANCE BY USER — Page Styles
+   ============================================================ */
+
+/* === FILTERS BAR === */
+.filters-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    padding: 14px 16px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+}
+.filter-group { display: flex; flex-direction: column; gap: 3px; }
+.filter-group label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.filter-group select,
+.filter-group input {
+    padding: 7px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: inherit;
+    min-width: 130px;
+    background: #fafbfc;
+    color: #1f2937;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+.filter-actions {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+}
+.btn-filter {
+    padding: 7px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.btn-reset { background: white; color: #6b7280; }
+.btn-reset:hover { background: #f3f4f6; color: #374151; border-color: #9ca3af; }
+.btn-refresh { background: #0f172a; color: white; border-color: #0f172a; }
+.btn-refresh:hover { background: #1e293b; }
+.refresh-timer {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-left: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* === TABLES LAYOUT — fill viewport, no page scroll === */
+.tables-container {
+    display: flex;
+    flex-direction: column;
+    /* Fill remaining viewport: subtract header(49px) + page-title(52px) + filters(~72px) + padding */
+    height: calc(100vh - 200px);
+    gap: 12px;
+}
+
+/* === TABLE CARD === */
+.table-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Allow flex shrink */
+}
+.table-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
+/* When using table-card-header, h3 margin is handled by the flex container */
+.table-card-header + .table-scroll {
+    /* header already has margin-bottom via .table-card-header */
+}
+
+/* Process table: compact, doesn't scroll unless expanded */
+.table-card.process-card {
+    flex: 0 0 auto;
+    max-height: 45%;
+    overflow: hidden;
+}
+.table-card.process-card .table-scroll {
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* User table: takes remaining space, scrolls internally */
+.table-card.user-card {
+    flex: 1 1 0;
+    min-height: 200px;
+    overflow: hidden;
+}
+.table-card.user-card .table-scroll {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+/* === DATA TABLE === */
+.perf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+}
+.perf-table thead th {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.perf-table thead th.col-num {
+    text-align: right;
+}
+.perf-table tbody td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    white-space: nowrap;
+    font-size: 12px;
+}
+.perf-table tbody td.col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.perf-table tbody tr:hover {
+    background: #f0fdf4;
+}
+
+/* === ALTERNATING ROWS for user table === */
+.user-card .perf-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+.user-card .perf-table tbody tr:nth-child(even):hover {
+    background: #f0fdf4;
+}
+
+/* === HIERARCHY LEVELS === */
+.row-level-0 td:first-child {
+    font-weight: 600;
+    color: #111827;
+}
+.row-level-1 td:first-child {
+    padding-left: 28px;
+    font-weight: 500;
+    color: #374151;
+}
+.row-level-2 td:first-child {
+    padding-left: 48px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+/* Expand/Collapse toggle */
+.row-toggle {
+    cursor: pointer;
+    user-select: none;
+}
+.row-toggle .toggle-icon {
+    display: inline-block;
+    width: 14px;
+    font-size: 10px;
+    color: #9ca3af;
+    transition: transform 0.15s;
+}
+.row-toggle.expanded .toggle-icon {
+    transform: rotate(90deg);
+}
+.row-hidden {
+    display: none;
+}
+
+/* Level 0 row */
+.row-level-0 {
+    background: #fafbfc;
+}
+.row-level-0 td {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* === COLOR CODING === */
+/* Cell background colors — Power BI-style conditional formatting */
+.bg-green-strong { background-color: #c6efce; color: #1e6b35; font-weight: 600; }
+.bg-green-light { background-color: #e2f0d9; color: #2d7a3e; font-weight: 500; }
+.bg-yellow { background-color: #fff2cc; color: #7c6a12; font-weight: 500; }
+.bg-red-light { background-color: #fce4ec; color: #a3383e; font-weight: 500; }
+.bg-red-medium { background-color: #f8c4c8; color: #8b1a20; font-weight: 600; }
+.bg-red-strong { background-color: #f4a8ae; color: #6e1015; font-weight: 600; }
+
+/* === TOTALS ROW === */
+.row-total {
+    background: #f0fdf4;
+    font-weight: 700;
+}
+.row-total td {
+    border-top: 2px solid #10b981;
+    border-bottom: none;
+    color: #111827;
+}
+
+/* === USER TABLE specific — bold name column === */
+.user-card .perf-table tbody td:first-child {
+    font-weight: 500;
+    color: #111827;
+}
