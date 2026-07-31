@@ -21,6 +21,9 @@ urlpatterns = [
     path('detailbymaterial/', views.detailbymaterial, name='detailbymaterial'),
     path('api/detailbymaterial/', views.detailbymaterial_data, name='detailbymaterial_data'),
     path('api/detailbymaterial/export/', views.detailbymaterial_export, name='detailbymaterial_export'),
+    path('usersummary/', views.usersummary, name='usersummary'),
+    path('api/usersummary/', views.usersummary_data, name='usersummary_data'),
+    path('api/usersummary/filters/', views.usersummary_filters, name='usersummary_filters'),
 
     # Placeholder dashboards (WIP)
     path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),

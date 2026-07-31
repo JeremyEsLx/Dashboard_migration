@@ -91,9 +91,15 @@
             </a>
             <a href="/detailbymaterial/" class="{% block nav_detailbymaterial %}{% endblock %}">
                 <span class="sidebar-icon">
-                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13h10"/><path d="M5 13V8"/><path d="M8 13V5"/><path d="M11 13V3"/></svg>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6"/></svg>
                 </span>
                 Detail by Material
+            </a>
+            <a href="/usersummary/" class="{% block nav_usersummary %}{% endblock %}">
+                <span class="sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M3 14c0-3 2.5-5 5-5s5 2 5 5"/></svg>
+                </span>
+                User Summary
             </a>
             {% endblock %}
         </nav>

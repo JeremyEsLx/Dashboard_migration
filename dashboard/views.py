@@ -4,6 +4,7 @@ from .services import get_summary_data, get_performance_data, get_process_data, 
 from .services_userperf import get_userperformance_data
 from .services_delivery import get_delivery_data
 from .services_material import get_material_data, get_material_export
+from .services_usersummary import get_usersummary_data, get_usersummary_filters
 
 
 # ============================================================
@@ -347,6 +348,47 @@ def detailbymaterial_export(request):
 # PLACEHOLDER VIEWS — WIP dashboards (page not found -> WIP page)
 # ============================================================
 
+def usersummary(request):
+    from datetime import date
+    return render(request, 'dashboard/usersummary.html', {'today': str(date.today())})
+
+
+def usersummary_data(request):
+    """API: returns performance + by-hour + detail as JSON."""
+    try:
+        data = get_usersummary_data(
+            date_filter=request.GET.get('date_filter'),
+            week=request.GET.get('week'),
+            supervisor=request.GET.get('supervisor'),
+            user_name=request.GET.get('user_name'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'perf_json': '[]',
+            'hour_json': '[]',
+            'detail_json': '[]',
+            'filters': {},
+            'selected': {},
+        }, status=200)
+
+
+def usersummary_filters(request):
+    """API: returns supervisor-user mapping for cascading dropdowns."""
+    try:
+        data = get_usersummary_filters()
+        print(f"[UserSummary] filters endpoint returning: {len(data.get('supervisors',[]))} supervisors, {len(data.get('user_map',[]))} user_map entries")
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"[UserSummary] filters endpoint FAILED: {e}")
+        return JsonResponse({'supervisors': ['All'], 'weeks': ['All'], 'user_map': []}, status=200)
+
+
 _PLACEHOLDER_DASHBOARDS = {
     'frames': 'Frames Hourly WIP',
     'wearables': 'Wearables Hourly WIP',
@@ -362,33 +404,9 @@ _PLACEHOLDER_DASHBOARDS = {
 
 def placeholder_dashboard(request, dashboard_key):
     """Generic placeholder view for dashboards under development."""
-    from django.template import Template, Context
-    from django.template.loader import get_template
-
     name = _PLACEHOLDER_DASHBOARDS.get(dashboard_key, dashboard_key.title())
     url = f'/{dashboard_key}/'
-
-    # Render inline because editAsset can't write Django templates with {{ }}
-    tpl_str = '''{%% extends "dashboard/base.html" %%}
-{%% load static %%}
-{%% block title %%}%s - MX03 Warehouse{%% endblock %%}
-{%% block sidebar %%}
-<div class="sidebar-section">%s</div>
-<a href="%s" class="active">
-    <span class="sidebar-icon">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6"/></svg>
-    </span>
-    Dashboard
-</a>
-{%% endblock %%}
-{%% block content %%}
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;color:#64748b;">
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:24px;"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6"/><path d="M12 9v6"/></svg>
-    <h2 style="font-size:24px;font-weight:600;color:#334155;margin-bottom:8px;">%s</h2>
-    <p style="font-size:15px;max-width:400px;line-height:1.6;">This dashboard is under development.<br>Check back soon for updates.</p>
-</div>
-{%% endblock %%}''' % (name, name, url, name)
-
-    template = Template(tpl_str)
-    html = template.render(Context({'request': request}))
-    return HttpResponse(html)
+    return render(request, 'dashboard/placeholder.html', {
+        'dashboard_name': name,
+        'dashboard_url': url,
+    })
