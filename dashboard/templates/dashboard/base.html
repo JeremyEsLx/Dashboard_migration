@@ -110,6 +110,20 @@
 
     <!-- Shared Scripts -->
     <script src="{% static 'dashboard/shared/lms-core.js' %}?v=1"></script>
+    <script>
+    (function() {
+        var tabs = document.querySelectorAll('.dashboard-tabs .tab-item');
+        var path = window.location.pathname;
+        tabs.forEach(function(tab) {
+            var href = tab.getAttribute('href');
+            if (href === '/' && (path === '/' || path.match(/^\/(performance|userperformance|process|strongstart|strongfinish|noactivity|deliverydeepdive|detailbymaterial)/))) {
+                tab.classList.add('tab-active');
+            } else if (href !== '/' && path.startsWith(href)) {
+                tab.classList.add('tab-active');
+            }
+        });
+    })();
+    </script>
 
     <!-- Page-specific Scripts -->
     {% block scripts %}{% endblock %}

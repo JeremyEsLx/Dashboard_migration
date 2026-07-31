@@ -21,4 +21,15 @@ urlpatterns = [
     path('detailbymaterial/', views.detailbymaterial, name='detailbymaterial'),
     path('api/detailbymaterial/', views.detailbymaterial_data, name='detailbymaterial_data'),
     path('api/detailbymaterial/export/', views.detailbymaterial_export, name='detailbymaterial_export'),
+
+    # Placeholder dashboards (WIP)
+    path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),
+    path('wearables/', views.placeholder_dashboard, {'dashboard_key': 'wearables'}, name='wearables'),
+    path('c2s/', views.placeholder_dashboard, {'dashboard_key': 'c2s'}, name='c2s'),
+    path('c2b/', views.placeholder_dashboard, {'dashboard_key': 'c2b'}, name='c2b'),
+    path('merge/', views.placeholder_dashboard, {'dashboard_key': 'merge'}, name='merge'),
+    path('volume/', views.placeholder_dashboard, {'dashboard_key': 'volume'}, name='volume'),
+    path('cyclecount/', views.placeholder_dashboard, {'dashboard_key': 'cyclecount'}, name='cyclecount'),
+    path('allocation/', views.placeholder_dashboard, {'dashboard_key': 'allocation'}, name='allocation'),
+    path('hr/', views.placeholder_dashboard, {'dashboard_key': 'hr'}, name='hr'),
 ]
