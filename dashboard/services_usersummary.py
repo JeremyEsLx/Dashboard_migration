@@ -9,7 +9,7 @@ Widgets:
 import json
 from datetime import date, timedelta
 from concurrent.futures import ThreadPoolExecutor
-from .services_base import run_query, get_filter_options
+from .services_base import run_query, get_filter_options, get_direct_users
 
 DEBUG = True  # Set to False once working
 
