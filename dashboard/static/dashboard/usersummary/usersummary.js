@@ -40,7 +40,7 @@ function renderPerfChart(data) {
         yaxis: { title: '' },
         height: 200,
         plot_bgcolor: 'white', paper_bgcolor: 'white',
-        font: { family: 'Inter, sans-serif', size: 12 },git
+        font: { family: 'Inter, sans-serif', size: 12 },
     }, { responsive: true, displayModeBar: false });
 }
 
