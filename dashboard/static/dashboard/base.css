@@ -46,7 +46,7 @@ body {
     align-items: center;
     gap: 0;
     margin-left: 24px;
-    overflow-x: auto;
+    overflow: hidden;
 }
 .dashboard-tabs .tab-item {
     padding: 16px 14px;
