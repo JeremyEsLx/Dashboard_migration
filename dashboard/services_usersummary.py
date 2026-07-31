@@ -32,7 +32,7 @@ def get_usersummary_filters():
             WHERE [User Name] NOT IN ({_EXCLUDED_USERS_SQL})
               AND [User Name] IS NOT NULL AND [User Name] != ''
               AND [Supervisor Full Name] IS NOT NULL AND [Supervisor Full Name] != ''
-            ORDER BY [Supervisor Full Name], [User Name]
+            ORDER BY 1, 2
         """)
         user_map = []
         for _, row in df.iterrows():
