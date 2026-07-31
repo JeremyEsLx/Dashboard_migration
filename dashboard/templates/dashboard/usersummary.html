@@ -1,0 +1,121 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}User Summary - Tijuana LMS{% endblock %}
+
+{% block nav_usersummary %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/usersummary/usersummary.css' %}?v=1">
+{% endblock %}
+
+{% block page_title %}
+<h1 class="page-title">User Summary</h1>
+{% endblock %}
+
+{% block content %}
+<!-- FILTERS -->
+<div class="filters-bar">
+    <div class="filters-row">
+        <div class="filter-group">
+            <label>Supervisor</label>
+            <select id="filter-supervisor">
+                <option value="All" selected>All</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>User</label>
+            <select id="filter-user">
+                <option value="All" selected>All</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Week</label>
+            <select id="filter-week">
+                <option value="All" selected>All</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Date</label>
+            <input type="date" id="filter-date" value="{{ today }}">
+        </div>
+        <div class="filter-actions">
+            <button class="btn-filter btn-search" id="btn-search">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+                Search
+            </button>
+            <button class="btn-filter btn-export" id="btn-export" title="Export to Excel">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+                Export
+            </button>
+            <button class="btn-filter btn-reset" id="btn-reset">&#8634; Reset</button>
+        </div>
+    </div>
+</div>
+
+<!-- BANNER -->
+<div class="active-filters-banner" id="active-filters-banner">
+    <span class="banner-icon" id="banner-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+    </span>
+    <span class="banner-date-range" id="banner-date-range">Enter a <strong>Supervisor</strong> or <strong>User</strong> and click Search</span>
+</div>
+
+<!-- EMPTY STATE -->
+<div class="us-empty-state" id="us-empty-state">
+    <svg class="us-empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <h3 class="us-empty-state-title">Search for a Supervisor or User</h3>
+    <p class="us-empty-state-text">
+        Select a <strong>Supervisor</strong> or <strong>User</strong> from the dropdowns above,<br>
+        then click <strong>Search</strong> to view their performance summary.
+    </p>
+</div>
+
+<!-- RESULTS -->
+<div class="us-results" id="us-results">
+    <!-- Charts Row -->
+    <div class="us-charts-row">
+        <div class="chart-card">
+            <h3>Performance</h3>
+            <div id="chart-perf" class="chart-container"></div>
+        </div>
+        <div class="chart-card">
+            <h3>By Hour</h3>
+            <div id="chart-hour" class="chart-container"></div>
+        </div>
+    </div>
+
+    <!-- Detail Table -->
+    <div class="us-table-card">
+        <h3>Detail</h3>
+        <div class="us-row-count" id="us-row-count"></div>
+        <div class="us-table-scroll">
+            <table class="us-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Process</th>
+                        <th>Flow Type</th>
+                        <th>Quantity</th>
+                        <th>Source Storage Type</th>
+                        <th>Source Storage Bin</th>
+                        <th>Dest Storage Type</th>
+                        <th>Dest Storage Bin</th>
+                        <th>Line Day Activity</th>
+                        <th>Working Gap Min</th>
+                    </tr>
+                </thead>
+                <tbody id="us-detail-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/usersummary/usersummary.js' %}?v=1"></script>
+{% endblock %}
