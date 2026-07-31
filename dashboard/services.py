@@ -1,36 +1,183 @@
-"""Data service layer — queries SQL Server for LMS data.
+"""Data service layer — page-specific queries for Summary, Performance, Process,
+Strong Start, Strong Finish, and No Activity pages.
 
-Connects to SQL Server via pyodbc and translates Power BI DAX measures to SQL.
-LMS Table: [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03]
-Headcount Table: [Business_Intelligence].[dbo].[MX03_Roster] (same server, cross-DB query)
-
-Power BI relationship: LMS[User Name] → Headcount[User]
-Employee Type filter: Headcount[Estacion_de_Trabajo] IN (DIRECT roles)
-
-Architecture: "Hybrid Cube" — one SQL query per date loads a small aggregated
-cube (~200 rows). Supervisor/Shift filtering happens client-side in JavaScript
-for instant responsiveness. Only Date/Week changes trigger a server round-trip.
-
-Date vs Week: MUTUALLY EXCLUSIVE (Summary page).
-Performance page uses DATE RANGE (date_from, date_to) OR week.
-
-Optimizations applied:
-- Connection pooling (reuses connections instead of creating per query)
-- WITH (NOLOCK) on all reads (avoids lock waits)
-- Combined filter queries (1 round-trip instead of 3)
-- Parallel execution (filters + cube run simultaneously)
-- TTL cache for filter options (1 hour, not just per-restart)
+Shared utilities (pool, run_query, get_direct_users, etc.) live in services_base.py.
+This file imports them and defines page-specific cube/data functions.
 """
 import json
-import pyodbc
-import pandas as pd
-from django.conf import settings
 from datetime import date, timedelta
 from functools import lru_cache
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import time
-import threading
 
+# Shared utilities (re-exported for backward compatibility)
+from .services_base import (
+    run_query, get_connection, _return_connection,
+    get_direct_users, format_name, DIRECT_ROLES,
+    _base_subquery, BASE_FILTERS,
+    _build_date_where, _build_date_range_where,
+    get_filter_options,
+)
+
+
+
+
+
+
+
+
+
+
+
+@lru_cache(maxsize=1)
+def get_direct_users() -> set:
+    """Fetch DIRECT employee usernames from BI Roster (cached)."""
+    print("[LMS] ─── Loading DIRECT users from Headcount ───")
+    start = time.time()
+
+    roles_str = ", ".join(f"'{r}'" for r in DIRECT_ROLES)
+    query = f"""
+        SELECT ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50))) AS [User]
+        FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
+        WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
+          AND [Estacion_de_Trabajo] IN ({roles_str})
+    """
+    df = run_query(query)
+    users = set(df['User'].dropna().str.strip().tolist())
+
+    elapsed = time.time() - start
+    print(f"[LMS]   ✓ Found {len(users)} DIRECT users ({elapsed:.2f}s)")
+    print(f"[LMS]   (cached — won't query again until server restart)")
+    return users
+
+
+# ============================================================
+# BASE QUERY HELPERS
+# ============================================================
+
+BASE_FILTERS = """
+    WHERE [Activity Type] = 'DIRECT'
+      AND [Movement] NOT IN ('BIN2BIN', 'LOST&FOUND', 'RECASE', 'HOUSEKEEPING')
+      AND [Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
+"""
+
+
+def _base_subquery():
+    """Base SELECT with SHIFT2 computed column."""
+    return """
+        SELECT *,
+            CASE
+                WHEN [Shift] IN ('Turno A - Produccion', 'Lunes-Jueves 06:00 a 18:00', 'Lunes-Viernes 08:00 a 17:30') THEN 'A'
+                WHEN [Shift] = 'Turno B - Produccion' THEN 'B'
+                WHEN [Shift] = 'Turno C - Produccion' THEN 'C'
+                WHEN [Shift] = 'Turno D - Produccion' THEN 'D'
+                ELSE 'NO SHIFT MAPPED'
+            END AS [SHIFT2]
+        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+    """
+
+
+def _build_date_where(date_filter=None, week=None):
+    """WHERE clause builder for single-date or week filtering (Summary)."""
+    where = BASE_FILTERS
+    if date_filter:
+        where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+    elif week and week != 'All':
+        where += f"  AND [Fiscal Week] = '{week}'\n"
+    return where
+
+
+def _build_date_range_where(date_from=None, date_to=None, week=None):
+    """WHERE clause builder for date-range or week filtering (Performance)."""
+    where = BASE_FILTERS
+    if date_from and date_to:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+    elif date_from:
+        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+    elif date_to:
+        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+    elif week and week != 'All':
+        where += f"  AND [Fiscal Week] = '{week}'\n"
+    return where
+
+
+# ============================================================
+# FILTER OPTIONS (populate dropdowns — TTL cached 1 hour)
+# ============================================================
+
+_filter_cache = {'data': None, 'timestamp': 0}
+_FILTER_CACHE_TTL = 3600  # 1 hour
+
+
+def get_filter_options():
+    """Fetch distinct Supervisor, Week, and Process values (cached 1 hour).
+    Runs 3 sequential queries (simple, no nested threading)."""
+    now = time.time()
+    if _filter_cache['data'] and (now - _filter_cache['timestamp']) < _FILTER_CACHE_TTL:
+        return _filter_cache['data']
+
+    print("[LMS] ─── Loading filter options (sequential) ───")
+    start = time.time()
+
+    direct_users = get_direct_users()
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
+
+    supervisors = ['All']
+    weeks = ['All']
+    processes = ['All']
+
+    try:
+        df_sup = run_query(f"""
+            SELECT DISTINCT [Supervisor Full Name]
+            FROM ({_base_subquery()}) AS LMS
+            {BASE_FILTERS}
+              AND [User Name] IN ({users_str})
+              AND [Supervisor Full Name] IS NOT NULL
+              AND [Supervisor Full Name] != ''
+            ORDER BY [Supervisor Full Name]
+        """)
+        supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
+    except Exception as e:
+        print(f"[LMS]   ✗ Supervisor query failed: {e}")
+
+    try:
+        df_week = run_query(f"""
+            SELECT DISTINCT [Fiscal Week]
+            FROM ({_base_subquery()}) AS LMS
+            {BASE_FILTERS}
+              AND [User Name] IN ({users_str})
+              AND [Fiscal Week] IS NOT NULL
+              AND [Fiscal Week] != ''
+            ORDER BY [Fiscal Week] DESC
+        """)
+        weeks = ['All'] + df_week['Fiscal Week'].tolist()
+    except Exception as e:
+        print(f"[LMS]   ✗ Week query failed: {e}")
+
+    try:
+        df_proc = run_query(f"""
+            SELECT DISTINCT [Process]
+            FROM ({_base_subquery()}) AS LMS
+            {BASE_FILTERS}
+              AND [User Name] IN ({users_str})
+              AND [Process] IS NOT NULL
+              AND [Process] != ''
+            ORDER BY [Process]
+        """)
+        processes = ['All'] + df_proc['Process'].tolist()
+    except Exception as e:
+        print(f"[LMS]   ✗ Process query failed: {e}")
+
+    result = {'supervisors': supervisors, 'weeks': weeks, 'processes': processes}
+    if len(supervisors) > 1 or len(weeks) > 1 or len(processes) > 1:
+        _filter_cache['data'] = result
+        _filter_cache['timestamp'] = time.time()
+
+    elapsed = time.time() - start
+    print(f"[LMS]   ✓ {len(supervisors)-1} supervisors, {len(weeks)-1} weeks, "
+          f"{len(processes)-1} processes ({elapsed:.2f}s)")
+    return result
 
 
 # ============================================================
