@@ -1,58 +1,15 @@
 /* ============================================================
-   DETAIL BY MATERIAL — Auto-load + Stale-While-Revalidate
-   Horizontal bar chart: Quantity by Process (Plotly)
+   DETAIL BY MATERIAL - Page-specific logic
+   Uses LMS core library (lms-core.js) for shared utilities.
    ============================================================ */
 
-var CACHE_KEY = 'lms_detailbymaterial_cache';
-var TIMER_KEY = 'lms_timer_detailbymaterial';
-var CACHE_MAX_AGE = 30 * 60 * 1000;
-var REFRESH_INTERVAL = 15 * 60;
+var cache = new LMS.Cache('lms_detailbymaterial_cache', 30);
 
 var UNITS_RAW = [];
 var DETAIL_RAW = [];
 var DETAIL_FILTERED = [];
 var TOTAL_ROWS = 0;
 var TOTAL_QTY = 0;
-
-var CALENDAR_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>';
-
-function fmtDate(iso) {
-    if (!iso) return '';
-    var p = iso.split('-');
-    return p[1] + '/' + p[2] + '/' + p[0];
-}
-
-function showLoading() {
-    var banner = document.getElementById('active-filters-banner');
-    var icon = document.getElementById('banner-icon');
-    var dateEl = document.getElementById('banner-date-range');
-    if (banner) banner.classList.add('is-loading');
-    if (icon) icon.innerHTML = '<div class="inline-spinner"></div>';
-    if (dateEl) dateEl.innerHTML = 'Loading new data\u2026';
-}
-
-function hideLoading(df, dt) {
-    var banner = document.getElementById('active-filters-banner');
-    var icon = document.getElementById('banner-icon');
-    var dateEl = document.getElementById('banner-date-range');
-    if (banner) banner.classList.remove('is-loading');
-    if (icon) icon.innerHTML = CALENDAR_SVG;
-    if (dateEl) {
-        if (df && dt) {
-            dateEl.innerHTML = '<strong>Showing:</strong> ' + fmtDate(df) + ' \u2014 ' + fmtDate(dt);
-        }
-    }
-}
-
-function getCachedData() {
-    try {
-        var r = sessionStorage.getItem(CACHE_KEY);
-        if (!r) return null;
-        var c = JSON.parse(r);
-        if (Date.now() - c.timestamp > CACHE_MAX_AGE) return null;
-        return c;
-    } catch(e) { return null; }
-}
 
 // ================================================================
 // RENDER CHART (Plotly horizontal bar)
@@ -170,7 +127,7 @@ function renderDetailTable() {
 
 function loadData(skipCache) {
     if (!skipCache) {
-        var cached = getCachedData();
+        var cached = cache.get();
         if (cached) {
             UNITS_RAW = cached.units || [];
             DETAIL_RAW = cached.detail || [];
@@ -183,12 +140,12 @@ function loadData(skipCache) {
             }
             renderUnitsChart(UNITS_RAW);
             renderDetailTable();
-            hideLoading(cached.selected.date_from, cached.selected.date_to);
+            LMS.hideLoading(cached.selected.date_from, cached.selected.date_to);
         } else {
-            showLoading();
+            LMS.showLoading();
         }
     } else {
-        showLoading();
+        LMS.showLoading();
     }
 
     var df = document.getElementById('filter-date-from').value;
@@ -204,7 +161,6 @@ function loadData(skipCache) {
             var units = (typeof data.units_json === 'string') ? JSON.parse(data.units_json) : (data.units_json || []);
             UNITS_RAW = units;
 
-            // Detail table + totals
             var detail = (typeof data.detail_json === 'string') ? JSON.parse(data.detail_json) : (data.detail_json || []);
             DETAIL_RAW = detail;
             DETAIL_FILTERED = detail;
@@ -212,24 +168,10 @@ function loadData(skipCache) {
             TOTAL_QTY = data.total_qty || 0;
             renderDetailTable();
 
-            // Populate filter dropdowns
-            if (data.filters && data.filters.processes) {
-                var sel = document.getElementById('filter-process');
-                var current = sel.value;
-                sel.innerHTML = '<option value="All">All</option>';
-                data.filters.processes.forEach(function(p) {
-                    sel.innerHTML += '<option value="' + p + '">' + p + '</option>';
-                });
-                sel.value = current;
-            }
-            if (data.filters && data.filters.movements) {
-                var movSel = document.getElementById('filter-movement');
-                var movCur = movSel.value;
-                movSel.innerHTML = '<option value="All">All</option>';
-                data.filters.movements.forEach(function(m) {
-                    movSel.innerHTML += '<option value="' + m + '">' + m + '</option>';
-                });
-                movSel.value = movCur;
+            // Populate filter dropdowns using shared utility
+            if (data.filters) {
+                LMS.populateDropdown('filter-process', data.filters.processes);
+                LMS.populateDropdown('filter-movement', data.filters.movements);
             }
 
             // Set dates
@@ -239,24 +181,21 @@ function loadData(skipCache) {
             }
 
             // Cache
-            try {
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-                    units: units,
-                    detail: detail,
-                    total_rows: TOTAL_ROWS,
-                    total_qty: TOTAL_QTY,
-                    selected: data.selected || {},
-                    filters: data.filters || {},
-                    timestamp: Date.now()
-                }));
-            } catch(e) {}
+            cache.set({
+                units: units,
+                detail: detail,
+                total_rows: TOTAL_ROWS,
+                total_qty: TOTAL_QTY,
+                selected: data.selected || {},
+                filters: data.filters || {},
+            });
 
             renderUnitsChart(units);
-            hideLoading(data.selected.date_from, data.selected.date_to);
+            LMS.hideLoading(data.selected.date_from, data.selected.date_to);
         })
         .catch(function(err) {
             console.error('[DetailByMaterial] Fetch error:', err);
-            hideLoading('', '');
+            LMS.hideLoading('', '');
             document.getElementById('chart-units').innerHTML = '<p style="color:#dc2626; text-align:center;">Error loading data.</p>';
         });
 }
@@ -271,40 +210,36 @@ document.getElementById('filter-date-to').addEventListener('change', function() 
 
 // Reset
 document.getElementById('btn-reset').addEventListener('click', function() {
-    showLoading();
-    try { sessionStorage.removeItem(CACHE_KEY); } catch(e) {}
+    LMS.showLoading();
+    cache.clear();
     window.location.href = '/detailbymaterial/';
 });
 
 // Refresh
 document.getElementById('btn-refresh').addEventListener('click', function() {
-    showLoading();
-    try { sessionStorage.removeItem(CACHE_KEY); sessionStorage.removeItem(TIMER_KEY); } catch(e) {}
+    LMS.showLoading();
+    cache.clear();
+    timer.reset();
     window.location.reload();
 });
 
-// Export (client-side, instant — uses data already loaded in browser)
+// Export (client-side, instant - uses shared LMS.exportXLSX)
 document.getElementById('btn-export').addEventListener('click', function() {
     if (!UNITS_RAW.length && !DETAIL_FILTERED.length) { alert('No data to export.'); return; }
-    var wb = XLSX.utils.book_new();
     // Sheet 1: Units by Process
     var unitsRows = [['Process', 'Quantity']];
     UNITS_RAW.forEach(function(r) { unitsRows.push([r.process, r.qty]); });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unitsRows), 'Units by Process');
-    // Sheet 2: Details (filtered rows + total)
+    // Sheet 2: Details
     var detailRows = [DETAIL_COLS];
     DETAIL_FILTERED.forEach(function(r) {
         detailRows.push(DETAIL_COLS.map(function(c) { return r[c] != null ? r[c] : ''; }));
     });
     detailRows.push([]);
     detailRows.push(['Total', '', '', '', '', '', '', '', '', '', '', '', TOTAL_QTY]);
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), 'Details');
     var df = document.getElementById('filter-date-from').value || '';
     var dt = document.getElementById('filter-date-to').value || '';
-    var filename = 'LMS_DetailByMaterial';
-    if (df && dt) filename += '_' + df + '_to_' + dt;
-    filename += '.xlsx';
-    XLSX.writeFile(wb, filename);
+    var filename = 'LMS_DetailByMaterial' + (df && dt ? '_' + df + '_to_' + dt : '') + '.xlsx';
+    LMS.exportXLSX([{name: 'Units by Process', rows: unitsRows}, {name: 'Details', rows: detailRows}], filename);
 });
 
 
@@ -319,45 +254,13 @@ document.getElementById('filter-source-bin').addEventListener('input', applyClie
 
 
 // ================================================================
-// AUTO-REFRESH TIMER (15 min)
+// AUTO-REFRESH TIMER (15 min) - uses shared LMS.Timer
 // ================================================================
 
-var timerEl = document.getElementById('refresh-timer');
-
-function getTimerStart() {
-    try {
-        var stored = sessionStorage.getItem(TIMER_KEY);
-        if (stored) {
-            var ts = parseInt(stored, 10);
-            var elapsed = Math.floor((Date.now() - ts) / 1000);
-            if (elapsed >= REFRESH_INTERVAL) {
-                sessionStorage.setItem(TIMER_KEY, String(Date.now()));
-                try { sessionStorage.removeItem(CACHE_KEY); } catch(e) {}
-                window.location.reload();
-                return Date.now();
-            }
-            return ts;
-        }
-    } catch(e) {}
-    var now = Date.now();
-    try { sessionStorage.setItem(TIMER_KEY, String(now)); } catch(e) {}
-    return now;
-}
-
-var timerStart = getTimerStart();
-function updateTimer() {
-    var left = Math.max(0, REFRESH_INTERVAL - Math.floor((Date.now() - timerStart) / 1000));
-    if (left <= 0) {
-        try { sessionStorage.setItem(TIMER_KEY, String(Date.now())); sessionStorage.removeItem(CACHE_KEY); } catch(e) {}
-        window.location.reload();
-        return;
-    }
-    var mins = Math.floor(left / 60);
-    var secs = left % 60;
-    if (timerEl) timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
-}
-updateTimer();
-setInterval(updateTimer, 1000);
+var timer = new LMS.Timer('lms_timer_detailbymaterial', 15, function() {
+    cache.clear();
+    window.location.reload();
+});
 
 // ================================================================
 // INIT
