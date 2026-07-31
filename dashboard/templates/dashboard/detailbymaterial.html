@@ -14,8 +14,50 @@
 {% endblock %}
 
 {% block content %}
-<!-- FILTERS -->
+<!-- SEARCH BAR (Material / Grid + dates + Search button) -->
 <div class="filters-bar">
+    <div class="filter-group">
+        <label>Material</label>
+        <input type="text" id="search-material" placeholder="Enter material..." autocomplete="off">
+    </div>
+    <div class="filter-group">
+        <label>Grid Value</label>
+        <input type="text" id="search-grid" placeholder="Enter grid value..." autocomplete="off">
+    </div>
+    <div class="filter-group">
+        <label>Date From</label>
+        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
+    </div>
+    <div class="filter-group">
+        <label>Date To</label>
+        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-search" id="btn-search" title="Search">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+            Search
+        </button>
+        <button class="btn-filter btn-reset" id="btn-reset" title="Reset">
+            &#8634; Reset
+        </button>
+    </div>
+</div>
+
+<!-- EMPTY STATE (shown until search) -->
+<div id="dm-empty-state" class="dm-empty-state">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:16px;">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="M16 16l4.5 4.5"/>
+    </svg>
+    <h2 style="font-size:20px; font-weight:600; color:#334155; margin-bottom:8px;">Search by Material or Grid Value</h2>
+    <p style="font-size:14px; color:#64748b; max-width:400px;">Enter a Material number, Grid Value, or both and click Search to view details.</p>
+</div>
+
+<!-- RESULTS (hidden until search) -->
+<div id="dm-results" style="display:none;">
+
+<!-- POST-SEARCH FILTERS -->
+<div class="filters-bar dm-secondary-filters">
     <div class="filter-group">
         <label>Process</label>
         <select id="filter-process">
@@ -29,45 +71,22 @@
         </select>
     </div>
     <div class="filter-group">
-        <label>Material</label>
-        <input type="text" id="filter-material" placeholder="Search material..." autocomplete="off">
-    </div>
-    <div class="filter-group">
-        <label>Grid</label>
-        <input type="text" id="filter-grid" placeholder="Grid value..." autocomplete="off">
-    </div>
-    <div class="filter-group">
         <label>Stock Cat</label>
-        <input type="text" id="filter-stock-cat" placeholder="Stock category..." autocomplete="off">
+        <input type="text" id="filter-stock-cat" placeholder="Filter..." autocomplete="off">
     </div>
     <div class="filter-group">
         <label>Dest Bin</label>
-        <input type="text" id="filter-dest-bin" placeholder="Destination bin..." autocomplete="off">
+        <input type="text" id="filter-dest-bin" placeholder="Filter..." autocomplete="off">
     </div>
     <div class="filter-group">
         <label>Source Bin</label>
-        <input type="text" id="filter-source-bin" placeholder="Source bin..." autocomplete="off">
-    </div>
-    <div class="filter-group">
-        <label>Date From</label>
-        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
-    </div>
-    <div class="filter-group">
-        <label>Date To</label>
-        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+        <input type="text" id="filter-source-bin" placeholder="Filter..." autocomplete="off">
     </div>
     <div class="filter-actions">
         <button class="btn-filter btn-export" id="btn-export" title="Export to Excel">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
             Export
         </button>
-        <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">
-            &#8634; Reset Filters
-        </button>
-        <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data">
-            &#8635; Refresh
-        </button>
-        <span class="refresh-timer" id="refresh-timer"></span>
     </div>
 </div>
 
@@ -131,6 +150,7 @@
         </div>
     </div>
 </div>
+</div><!-- /dm-results -->
 {% endblock %}
 
 {% block scripts %}

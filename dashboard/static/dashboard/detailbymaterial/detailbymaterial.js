@@ -1,9 +1,8 @@
 /* ============================================================
-   DETAIL BY MATERIAL - Page-specific logic
+   DETAIL BY MATERIAL - Search-first page
+   User must search by Material and/or Grid Value.
    Uses LMS core library (lms-core.js) for shared utilities.
    ============================================================ */
-
-var cache = new LMS.Cache('lms_detailbymaterial_cache', 30);
 
 var UNITS_RAW = [];
 var DETAIL_RAW = [];
@@ -68,8 +67,6 @@ var DETAIL_COLS = ['Date', 'Time', 'Process', 'Movement', 'User Name',
 function applyClientFilters() {
     var proc = document.getElementById('filter-process').value;
     var mov = document.getElementById('filter-movement').value;
-    var mat = (document.getElementById('filter-material').value || '').toLowerCase();
-    var grid = (document.getElementById('filter-grid').value || '').toLowerCase();
     var stockCat = (document.getElementById('filter-stock-cat').value || '').toLowerCase();
     var destBin = (document.getElementById('filter-dest-bin').value || '').toLowerCase();
     var srcBin = (document.getElementById('filter-source-bin').value || '').toLowerCase();
@@ -77,8 +74,6 @@ function applyClientFilters() {
     DETAIL_FILTERED = DETAIL_RAW.filter(function(r) {
         if (proc !== 'All' && r['Process'] !== proc) return false;
         if (mov !== 'All' && r['Movement'] !== mov) return false;
-        if (mat && (r['Material'] || '').toLowerCase().indexOf(mat) === -1) return false;
-        if (grid && (r['Grid Value'] || '').toLowerCase().indexOf(grid) === -1) return false;
         if (stockCat && (r['Stock Category'] || '').toLowerCase().indexOf(stockCat) === -1) return false;
         if (destBin && (r['Destination Storage Bin'] || '').toLowerCase().indexOf(destBin) === -1) return false;
         if (srcBin && (r['Source Storage Bin'] || '').toLowerCase().indexOf(srcBin) === -1) return false;
@@ -122,31 +117,23 @@ function renderDetailTable() {
 }
 
 // ================================================================
-// FETCH DATA
+// SEARCH (fetch data from server)
 // ================================================================
 
-function loadData(skipCache) {
-    if (!skipCache) {
-        var cached = cache.get();
-        if (cached) {
-            UNITS_RAW = cached.units || [];
-            DETAIL_RAW = cached.detail || [];
-            DETAIL_FILTERED = DETAIL_RAW;
-            TOTAL_ROWS = cached.total_rows || DETAIL_RAW.length;
-            TOTAL_QTY = cached.total_qty || 0;
-            if (cached.selected) {
-                if (cached.selected.date_from) document.getElementById('filter-date-from').value = cached.selected.date_from;
-                if (cached.selected.date_to) document.getElementById('filter-date-to').value = cached.selected.date_to;
-            }
-            renderUnitsChart(UNITS_RAW);
-            renderDetailTable();
-            LMS.hideLoading(cached.selected.date_from, cached.selected.date_to);
-        } else {
-            LMS.showLoading();
-        }
-    } else {
-        LMS.showLoading();
+function doSearch() {
+    var material = (document.getElementById('search-material').value || '').trim();
+    var grid = (document.getElementById('search-grid').value || '').trim();
+
+    if (!material && !grid) {
+        alert('Please enter a Material or Grid Value to search.');
+        return;
     }
+
+    // Show results, hide empty state
+    document.getElementById('dm-empty-state').style.display = 'none';
+    document.getElementById('dm-results').style.display = 'block';
+    document.getElementById('active-filters-banner').style.display = '';
+    LMS.showLoading();
 
     var df = document.getElementById('filter-date-from').value;
     var dt = document.getElementById('filter-date-to').value;
@@ -154,6 +141,8 @@ function loadData(skipCache) {
     var params = new URLSearchParams();
     if (df) params.set('date_from', df);
     if (dt) params.set('date_to', dt);
+    if (material) params.set('material', material);
+    if (grid) params.set('grid', grid);
 
     fetch('/api/detailbymaterial/?' + params.toString())
         .then(function(r) { return r.json(); })
@@ -166,31 +155,22 @@ function loadData(skipCache) {
             DETAIL_FILTERED = detail;
             TOTAL_ROWS = data.total_rows || detail.length;
             TOTAL_QTY = data.total_qty || 0;
-            renderDetailTable();
 
-            // Populate filter dropdowns using shared utility
+            renderDetailTable();
+            renderUnitsChart(units);
+
+            // Populate secondary filter dropdowns
             if (data.filters) {
                 LMS.populateDropdown('filter-process', data.filters.processes);
                 LMS.populateDropdown('filter-movement', data.filters.movements);
             }
 
-            // Set dates
+            // Update dates from response
             if (data.selected) {
                 if (data.selected.date_from) document.getElementById('filter-date-from').value = data.selected.date_from;
                 if (data.selected.date_to) document.getElementById('filter-date-to').value = data.selected.date_to;
             }
 
-            // Cache
-            cache.set({
-                units: units,
-                detail: detail,
-                total_rows: TOTAL_ROWS,
-                total_qty: TOTAL_QTY,
-                selected: data.selected || {},
-                filters: data.filters || {},
-            });
-
-            renderUnitsChart(units);
             LMS.hideLoading(data.selected.date_from, data.selected.date_to);
         })
         .catch(function(err) {
@@ -204,32 +184,29 @@ function loadData(skipCache) {
 // EVENT HANDLERS
 // ================================================================
 
-// Date change: re-fetch from server
-document.getElementById('filter-date-from').addEventListener('change', function() { loadData(true); });
-document.getElementById('filter-date-to').addEventListener('change', function() { loadData(true); });
+// Search button
+document.getElementById('btn-search').addEventListener('click', doSearch);
 
-// Reset
+// Enter key on search inputs triggers search
+document.getElementById('search-material').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
+document.getElementById('search-grid').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
+
+// Reset: return to empty state
 document.getElementById('btn-reset').addEventListener('click', function() {
-    LMS.showLoading();
-    cache.clear();
-    window.location.href = '/detailbymaterial/';
+    document.getElementById('search-material').value = '';
+    document.getElementById('search-grid').value = '';
+    document.getElementById('dm-empty-state').style.display = '';
+    document.getElementById('dm-results').style.display = 'none';
+    document.getElementById('active-filters-banner').style.display = 'none';
+    UNITS_RAW = []; DETAIL_RAW = []; DETAIL_FILTERED = [];
+    TOTAL_ROWS = 0; TOTAL_QTY = 0;
 });
 
-// Refresh
-document.getElementById('btn-refresh').addEventListener('click', function() {
-    LMS.showLoading();
-    cache.clear();
-    timer.reset();
-    window.location.reload();
-});
-
-// Export (client-side, instant - uses shared LMS.exportXLSX)
+// Export (client-side via SheetJS)
 document.getElementById('btn-export').addEventListener('click', function() {
     if (!UNITS_RAW.length && !DETAIL_FILTERED.length) { alert('No data to export.'); return; }
-    // Sheet 1: Units by Process
     var unitsRows = [['Process', 'Quantity']];
     UNITS_RAW.forEach(function(r) { unitsRows.push([r.process, r.qty]); });
-    // Sheet 2: Details
     var detailRows = [DETAIL_COLS];
     DETAIL_FILTERED.forEach(function(r) {
         detailRows.push(DETAIL_COLS.map(function(c) { return r[c] != null ? r[c] : ''; }));
@@ -238,31 +215,18 @@ document.getElementById('btn-export').addEventListener('click', function() {
     detailRows.push(['Total', '', '', '', '', '', '', '', '', '', '', '', TOTAL_QTY]);
     var df = document.getElementById('filter-date-from').value || '';
     var dt = document.getElementById('filter-date-to').value || '';
-    var filename = 'LMS_DetailByMaterial' + (df && dt ? '_' + df + '_to_' + dt : '') + '.xlsx';
+    var mat = document.getElementById('search-material').value || '';
+    var filename = 'LMS_DetailByMaterial' + (mat ? '_' + mat : '') + (df && dt ? '_' + df + '_to_' + dt : '') + '.xlsx';
     LMS.exportXLSX([{name: 'Units by Process', rows: unitsRows}, {name: 'Details', rows: detailRows}], filename);
 });
 
-
-// Client-side filter narrowing (dropdowns + text inputs)
+// Client-side secondary filter narrowing
 document.getElementById('filter-process').addEventListener('change', applyClientFilters);
 document.getElementById('filter-movement').addEventListener('change', applyClientFilters);
-document.getElementById('filter-material').addEventListener('input', applyClientFilters);
-document.getElementById('filter-grid').addEventListener('input', applyClientFilters);
 document.getElementById('filter-stock-cat').addEventListener('input', applyClientFilters);
 document.getElementById('filter-dest-bin').addEventListener('input', applyClientFilters);
 document.getElementById('filter-source-bin').addEventListener('input', applyClientFilters);
 
-
 // ================================================================
-// AUTO-REFRESH TIMER (15 min) - uses shared LMS.Timer
+// INIT - page starts empty (search-first)
 // ================================================================
-
-var timer = new LMS.Timer('lms_timer_detailbymaterial', 15, function() {
-    cache.clear();
-    window.location.reload();
-});
-
-// ================================================================
-// INIT
-// ================================================================
-loadData(false);

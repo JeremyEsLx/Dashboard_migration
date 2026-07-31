@@ -1,6 +1,35 @@
 /* ============================================================
-   DETAIL BY MATERIAL - Page Styles
+   DETAIL BY MATERIAL - Search-first Page Styles
    ============================================================ */
+
+/* === EMPTY STATE === */
+.dm-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    text-align: center;
+    color: #64748b;
+}
+
+/* === SEARCH BUTTON === */
+.btn-search {
+    background: #1e293b !important;
+    color: white !important;
+    border-color: #1e293b !important;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-search:hover {
+    background: #334155 !important;
+}
+
+/* === SECONDARY FILTERS === */
+.dm-secondary-filters {
+    margin-bottom: 12px;
+}
 
 /* === FILTERS BAR === */
 .filters-bar {
