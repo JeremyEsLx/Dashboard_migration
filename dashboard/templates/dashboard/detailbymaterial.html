@@ -1,0 +1,138 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Detail by Material - Tijuana LMS{% endblock %}
+
+{% block nav_detailbymaterial %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/detailbymaterial/detailbymaterial.css' %}?v=2">
+{% endblock %}
+
+{% block page_title %}
+<h1 class="page-title">Detail by Material</h1>
+{% endblock %}
+
+{% block content %}
+<!-- FILTERS -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label>Process</label>
+        <select id="filter-process">
+            <option value="All" selected>All</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Movement</label>
+        <select id="filter-movement">
+            <option value="All" selected>All</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Material</label>
+        <input type="text" id="filter-material" placeholder="Search material..." autocomplete="off">
+    </div>
+    <div class="filter-group">
+        <label>Grid</label>
+        <input type="text" id="filter-grid" placeholder="Grid value..." autocomplete="off">
+    </div>
+    <div class="filter-group">
+        <label>Stock Cat</label>
+        <input type="text" id="filter-stock-cat" placeholder="Stock category..." autocomplete="off">
+    </div>
+    <div class="filter-group">
+        <label>Dest Bin</label>
+        <input type="text" id="filter-dest-bin" placeholder="Destination bin..." autocomplete="off">
+    </div>
+    <div class="filter-group">
+        <label>Source Bin</label>
+        <input type="text" id="filter-source-bin" placeholder="Source bin..." autocomplete="off">
+    </div>
+    <div class="filter-group">
+        <label>Date From</label>
+        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
+    </div>
+    <div class="filter-group">
+        <label>Date To</label>
+        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-export" id="btn-export" title="Export to Excel">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            Export
+        </button>
+        <button class="btn-filter btn-reset" id="btn-reset" title="Reset all filters">
+            &#8634; Reset Filters
+        </button>
+        <button class="btn-filter btn-refresh" id="btn-refresh" title="Refresh data">
+            &#8635; Refresh
+        </button>
+        <span class="refresh-timer" id="refresh-timer"></span>
+    </div>
+</div>
+
+<!-- ACTIVE FILTERS BANNER -->
+<div class="active-filters-banner" id="active-filters-banner">
+    <span class="banner-icon" id="banner-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="12" height="11" rx="1.5"/>
+            <path d="M2 6.5h12"/>
+            <path d="M5.5 1.5v3"/>
+            <path d="M10.5 1.5v3"/>
+        </svg>
+    </span>
+    <span class="banner-date-range" id="banner-date-range">Loading...</span>
+</div>
+
+<!-- UNITS CHART -->
+<div class="dm-section">
+    <div class="chart-card">
+        <h3>Units</h3>
+        <div id="chart-units" class="chart-container">
+            <div class="skeleton skeleton-chart"></div>
+        </div>
+    </div>
+</div>
+
+<!-- DETAILS TABLE -->
+<div class="dm-section">
+    <div class="table-card">
+        <div class="table-card-header">
+            <h3>Details</h3>
+            <span id="detail-count" class="detail-count-label"></span>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table" id="detail-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Process</th>
+                        <th>Movement</th>
+                        <th>User Name</th>
+                        <th>Source Storage Type</th>
+                        <th>Source Storage Bin</th>
+                        <th>Destination Storage Type</th>
+                        <th>Destination Storage Bin</th>
+                        <th>Material</th>
+                        <th>Grid Value</th>
+                        <th>Stock Category</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="detail-tbody">
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                    <tr><td colspan="13" class="skeleton skeleton-row"></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/detailbymaterial/detailbymaterial.js' %}?v=2"></script>
+{% endblock %}

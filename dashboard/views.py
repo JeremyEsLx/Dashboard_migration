@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .services import get_summary_data, get_performance_data, get_process_data, get_strongstart_data, get_strongfinish_data, get_noactivity_data
 from .services_userperf import get_userperformance_data
 from .services_delivery import get_delivery_data
+from .services_material import get_material_data, get_material_export
 
 
 # ============================================================
@@ -258,3 +259,85 @@ def deliverydeepdive_data(request):
             'packing_total': 0,
             'selected': {'date_from': '', 'date_to': ''},
         }, status=200)
+
+
+# ============================================================
+# DETAIL BY MATERIAL
+# ============================================================
+
+def detailbymaterial(request):
+    """Render Detail by Material shell (instant, no SQL)."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/detailbymaterial.html', {'data': data})
+
+
+def detailbymaterial_data(request):
+    """API: returns Units chart data as JSON."""
+    try:
+        data = get_material_data(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+            process=request.GET.get('process'),
+            movement=request.GET.get('movement'),
+            material=request.GET.get('material'),
+            grid=request.GET.get('grid'),
+            stock_cat=request.GET.get('stock_cat'),
+            dest_bin=request.GET.get('dest_bin'),
+            source_bin=request.GET.get('source_bin'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'units_json': '[]',
+            'filters': {},
+            'selected': {'date_from': '', 'date_to': ''},
+        }, status=200)
+
+
+def detailbymaterial_export(request):
+    """Server-side XLSX export: 2 sheets (Units + Details). Uses pandas for speed."""
+    import io
+    try:
+        units_df, detail_df = get_material_export(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+            process=request.GET.get('process'),
+            movement=request.GET.get('movement'),
+            material=request.GET.get('material'),
+            grid=request.GET.get('grid'),
+            stock_cat=request.GET.get('stock_cat'),
+            dest_bin=request.GET.get('dest_bin'),
+            source_bin=request.GET.get('source_bin'),
+        )
+
+        df_from = request.GET.get('date_from', '')
+        df_to = request.GET.get('date_to', '')
+        fname = f'LMS_DetailByMaterial_{df_from}_to_{df_to}.xlsx'
+
+        # Build Excel in memory with 2 sheets using pandas (C-optimized)
+        buffer = io.BytesIO()
+        with __import__('pandas').ExcelWriter(buffer, engine='openpyxl') as writer:
+            # Sheet 1: Units by Process
+            units_df.to_excel(writer, sheet_name='Units by Process', index=False)
+            # Sheet 2: Details (pandas to_excel is 20x faster than row-by-row)
+            detail_df.to_excel(writer, sheet_name='Details', index=False)
+        buffer.seek(0)
+
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{fname}"'
+        return response
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(f'Export error: {e}', status=500)
