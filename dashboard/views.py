@@ -4,7 +4,7 @@ from .services import get_summary_data, get_performance_data, get_process_data, 
 from .services_userperf import get_userperformance_data
 from .services_delivery import get_delivery_data
 from .services_material import get_material_data, get_material_export
-from .services_usersummary import get_usersummary_data
+from .services_usersummary import get_usersummary_data, get_usersummary_filters
 
 
 # ============================================================
@@ -345,39 +345,17 @@ def detailbymaterial_export(request):
 
 
 # ============================================================
-# USER SUMMARY (search-first)
-# ============================================================
-
-def usersummary(request):
-    return render(request, 'dashboard/usersummary.html')
-
-
-def usersummary_data(request):
-    """API: returns performance + by-hour + detail as JSON."""
-    try:
-        data = get_usersummary_data(
-            date_filter=request.GET.get('date_filter'),
-            week=request.GET.get('week'),
-            supervisor=request.GET.get('supervisor'),
-            user_name=request.GET.get('user_name'),
-        )
-        return JsonResponse(data)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({
-            'error': str(e),
-            'perf_json': '[]',
-            'hour_json': '[]',
-            'detail_json': '[]',
-            'filters': {},
-            'selected': {},
-        }, status=200)
-
-
-# ============================================================
 # PLACEHOLDER VIEWS — WIP dashboards (page not found -> WIP page)
 # ============================================================
+
+def usersummary_filters(request):
+    """API: returns supervisor-user mapping for cascading dropdowns."""
+    try:
+        data = get_usersummary_filters()
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'supervisors': ['All'], 'weeks': ['All'], 'user_map': []}, status=200)
+
 
 _PLACEHOLDER_DASHBOARDS = {
     'frames': 'Frames Hourly WIP',

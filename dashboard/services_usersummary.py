@@ -16,6 +16,39 @@ _EXCLUDED_USERS = ("'756777'", "'Bast_TIJ'", "'CONTROLM'", "'RFCDWP'", "'WSDLWCS
 _EXCLUDED_USERS_SQL = ','.join(_EXCLUDED_USERS)
 
 
+def get_usersummary_filters():
+    """Return supervisor list + supervisor-to-user mapping for cascading dropdowns."""
+    filter_opts = get_filter_options()
+
+    # Get distinct (Supervisor Full Name, User Name) pairs for cascading
+    try:
+        df = run_query(f"""
+            SELECT DISTINCT
+                ISNULL([Supervisor Full Name], '') AS [Supervisor],
+                [User Name]
+            FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+            WHERE [User Name] NOT IN ({_EXCLUDED_USERS_SQL})
+              AND [User Name] IS NOT NULL AND [User Name] != ''
+              AND [Supervisor Full Name] IS NOT NULL AND [Supervisor Full Name] != ''
+            ORDER BY [Supervisor Full Name], [User Name]
+        """)
+        user_map = []
+        for _, row in df.iterrows():
+            user_map.append({
+                'supervisor': row['Supervisor'],
+                'user': row['User Name'],
+            })
+    except Exception as e:
+        print(f"[UserSummary] user mapping query failed: {e}")
+        user_map = []
+
+    return {
+        'supervisors': filter_opts.get('supervisors', ['All']),
+        'weeks': filter_opts.get('weeks', ['All']),
+        'user_map': user_map,
+    }
+
+
 def _build_where(date_filter=None, week=None, supervisor=None, user_name=None):
     """Build WHERE clause for user summary queries."""
     clauses = [
@@ -25,11 +58,11 @@ def _build_where(date_filter=None, week=None, supervisor=None, user_name=None):
     if user_name:
         clauses.append(f"[User Name] = '{user_name}'")
     if supervisor:
-        clauses.append(f"[Supervisor] = '{supervisor}'")
+        clauses.append(f"[Supervisor Full Name] = '{supervisor}'")
 
     # Date filtering
     if week:
-        clauses.append(f"[Week] = '{week}'")
+        clauses.append(f"[Fiscal Week] = '{week}'")
     elif date_filter:
         clauses.append(f"CAST([Date] AS DATE) = '{date_filter}'")
     else:

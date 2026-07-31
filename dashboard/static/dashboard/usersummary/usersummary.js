@@ -6,6 +6,7 @@
 var PERF_RAW = [];
 var HOUR_RAW = [];
 var DETAIL_RAW = [];
+var USER_MAP = [];  // [{supervisor, user}, ...] for cascading
 
 var DETAIL_COLS = ['Date', 'Time', 'Process', 'Flow Type', 'Quantity',
     'Source Storage Type', 'Source Storage Bin',
@@ -39,7 +40,7 @@ function renderPerfChart(data) {
         yaxis: { title: '' },
         height: 200,
         plot_bgcolor: 'white', paper_bgcolor: 'white',
-        font: { family: 'Inter, sans-serif', size: 12 },
+        font: { family: 'Inter, sans-serif', size: 12 },git
     }, { responsive: true, displayModeBar: false });
 }
 
@@ -54,7 +55,6 @@ function renderHourChart(data) {
         container.innerHTML = '<p style="color:#6b7280; text-align:center; padding:40px;">No data</p>';
         return;
     }
-
     // Group by category
     var inTask = [], offTask = [], hours = [];
     var hourSet = {};
@@ -109,6 +109,44 @@ function renderDetailTable(data) {
     });
     tbody.innerHTML = html;
     if (countEl) countEl.textContent = data.length.toLocaleString() + ' rows';
+}
+
+// ================================================================
+// CASCADING: Supervisor -> User dropdown
+// ================================================================
+
+function populateUserDropdown(supervisorFilter) {
+    var select = document.getElementById('filter-user');
+    var current = select.value;
+    select.innerHTML = '<option value="All">All</option>';
+
+    var users = [];
+    if (!supervisorFilter || supervisorFilter === 'All') {
+        // Show all users
+        var seen = {};
+        USER_MAP.forEach(function(item) {
+            if (!seen[item.user]) {
+                users.push(item.user);
+                seen[item.user] = true;
+            }
+        });
+    } else {
+        // Filter by selected supervisor
+        USER_MAP.forEach(function(item) {
+            if (item.supervisor === supervisorFilter) {
+                users.push(item.user);
+            }
+        });
+    }
+
+    users.sort();
+    users.forEach(function(u) {
+        var opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = u;
+        if (u === current) opt.selected = true;
+        select.appendChild(opt);
+    });
 }
 
 // ================================================================
@@ -181,6 +219,11 @@ function doSearch() {
 
 document.getElementById('btn-search').addEventListener('click', doSearch);
 
+// Supervisor change -> cascade User dropdown
+document.getElementById('filter-supervisor').addEventListener('change', function() {
+    populateUserDropdown(this.value);
+});
+
 // Reset
 document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('filter-supervisor').value = 'All';
@@ -192,6 +235,7 @@ document.getElementById('btn-reset').addEventListener('click', function() {
     banner.classList.remove('is-loading');
     document.getElementById('banner-icon').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>';
     document.getElementById('banner-date-range').innerHTML = 'Enter a <strong>Supervisor</strong> or <strong>User</strong> and click Search';
+    populateUserDropdown('All');
     PERF_RAW = []; HOUR_RAW = []; DETAIL_RAW = [];
 });
 
@@ -210,17 +254,36 @@ document.getElementById('btn-export').addEventListener('click', function() {
 });
 
 // ================================================================
-// INIT: populate dropdowns on page load (from shared filter cache)
+// INIT: fetch filters + populate all dropdowns (incl. cascading users)
 // ================================================================
 (function() {
-    // Fetch filter options to populate supervisor dropdown
-    fetch('/api/summary/?date_filter=' + document.getElementById('filter-date').value)
+    // Default date to today
+    var dateInput = document.getElementById('filter-date');
+    if (!dateInput.value) {
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, '0');
+        var d = String(now.getDate()).padStart(2, '0');
+        dateInput.value = y + '-' + m + '-' + d;
+    }
+
+    // Fetch supervisor-user mapping + filter options
+    fetch('/api/usersummary/filters/')
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data.filters) {
-                LMS.populateDropdown('filter-supervisor', data.filters.supervisors || []);
-                LMS.populateDropdown('filter-week', data.filters.weeks || []);
+            if (data.supervisors) {
+                LMS.populateDropdown('filter-supervisor', data.supervisors);
+            }
+            if (data.weeks) {
+                LMS.populateDropdown('filter-week', data.weeks);
+            }
+            // Store user mapping and populate User dropdown with all users
+            if (data.user_map) {
+                USER_MAP = data.user_map;
+                populateUserDropdown('All');
             }
         })
-        .catch(function() {});
+        .catch(function(err) {
+            console.error('[UserSummary] Failed to load filters:', err);
+        });
 })();
