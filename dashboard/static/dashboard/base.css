@@ -40,6 +40,35 @@ body {
     color: #1e293b;
 }
 
+/* === DASHBOARD TABS (inside header) === */
+.dashboard-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-left: 24px;
+    overflow: hidden;
+}
+.dashboard-tabs .tab-item {
+    padding: 16px 14px;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.dashboard-tabs .tab-item:hover {
+    color: #e2e8f0;
+}
+.dashboard-tabs .tab-item.tab-active {
+    color: #f1f5f9;
+    border-bottom-color: #34d399;
+    font-weight: 600;
+}
+
 /* === LAYOUT === */
 .layout { display: flex; flex: 1; overflow: hidden; }
 

@@ -341,3 +341,54 @@ def detailbymaterial_export(request):
         import traceback
         traceback.print_exc()
         return HttpResponse(f'Export error: {e}', status=500)
+
+
+# ============================================================
+# PLACEHOLDER VIEWS — WIP dashboards (page not found -> WIP page)
+# ============================================================
+
+_PLACEHOLDER_DASHBOARDS = {
+    'frames': 'Frames Hourly WIP',
+    'wearables': 'Wearables Hourly WIP',
+    'c2s': 'C2S',
+    'c2b': 'C2B',
+    'merge': 'Merge',
+    'volume': 'Volume',
+    'cyclecount': 'Cycle Count',
+    'allocation': 'Allocation',
+    'hr': 'HR',
+}
+
+
+def placeholder_dashboard(request, dashboard_key):
+    """Generic placeholder view for dashboards under development."""
+    from django.template import Template, Context
+    from django.template.loader import get_template
+
+    name = _PLACEHOLDER_DASHBOARDS.get(dashboard_key, dashboard_key.title())
+    url = f'/{dashboard_key}/'
+
+    # Render inline because editAsset can't write Django templates with {{ }}
+    tpl_str = '''{%% extends "dashboard/base.html" %%}
+{%% load static %%}
+{%% block title %%}%s - MX03 Warehouse{%% endblock %%}
+{%% block sidebar %%}
+<div class="sidebar-section">%s</div>
+<a href="%s" class="active">
+    <span class="sidebar-icon">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6"/></svg>
+    </span>
+    Dashboard
+</a>
+{%% endblock %%}
+{%% block content %%}
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;color:#64748b;">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom:24px;"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6"/><path d="M12 9v6"/></svg>
+    <h2 style="font-size:24px;font-weight:600;color:#334155;margin-bottom:8px;">%s</h2>
+    <p style="font-size:15px;max-width:400px;line-height:1.6;">This dashboard is under development.<br>Check back soon for updates.</p>
+</div>
+{%% endblock %%}''' % (name, name, url, name)
+
+    template = Template(tpl_str)
+    html = template.render(Context({'request': request}))
+    return HttpResponse(html)
