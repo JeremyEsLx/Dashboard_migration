@@ -65,6 +65,7 @@ var DETAIL_COLS = ['Date', 'Time', 'Process', 'Movement', 'User Name',
     'Material', 'Grid Value', 'Stock Category', 'Quantity'];
 
 function applyClientFilters() {
+    var gridVal = document.getElementById('filter-grid-value').value;
     var proc = document.getElementById('filter-process').value;
     var mov = document.getElementById('filter-movement').value;
     var stockCat = (document.getElementById('filter-stock-cat').value || '').toLowerCase();
@@ -72,6 +73,7 @@ function applyClientFilters() {
     var srcBin = (document.getElementById('filter-source-bin').value || '').toLowerCase();
 
     DETAIL_FILTERED = DETAIL_RAW.filter(function(r) {
+        if (gridVal !== 'All' && r['Grid Value'] !== gridVal) return false;
         if (proc !== 'All' && r['Process'] !== proc) return false;
         if (mov !== 'All' && r['Movement'] !== mov) return false;
         if (stockCat && (r['Stock Category'] || '').toLowerCase().indexOf(stockCat) === -1) return false;
@@ -164,6 +166,16 @@ function doSearch() {
                 LMS.populateDropdown('filter-movement', data.filters.movements);
             }
 
+            // Populate Grid Value dropdown from detail data
+            var gridValues = [];
+            var gridSeen = {};
+            detail.forEach(function(r) {
+                var gv = r['Grid Value'] || '';
+                if (gv && !gridSeen[gv]) { gridSeen[gv] = true; gridValues.push(gv); }
+            });
+            gridValues.sort();
+            LMS.populateDropdown('filter-grid-value', gridValues);
+
             // Update dates from response
             if (data.selected) {
                 if (data.selected.date_from) document.getElementById('filter-date-from').value = data.selected.date_from;
@@ -219,6 +231,7 @@ document.getElementById('btn-export').addEventListener('click', function() {
 });
 
 // Client-side secondary filter narrowing
+document.getElementById('filter-grid-value').addEventListener('change', applyClientFilters);
 document.getElementById('filter-process').addEventListener('change', applyClientFilters);
 document.getElementById('filter-movement').addEventListener('change', applyClientFilters);
 document.getElementById('filter-stock-cat').addEventListener('input', applyClientFilters);

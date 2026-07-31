@@ -50,17 +50,21 @@
 
 /* === FILTERS BAR === */
 .filters-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    padding: 14px 16px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
     background: white;
     border: 1px solid #e5e7eb;
-    border-radius: 3px;
+    border-radius: 4px;
+    border-left: 3px solid #2563eb;
 }
-.filter-group { display: flex; flex-direction: column; gap: 3px; }
+.filters-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+}
+.filter-group { display: flex; flex-direction: column; gap: 2px; }
 .filter-group label {
     font-size: 10px;
     font-weight: 600;
@@ -94,6 +98,7 @@
     display: flex;
     gap: 6px;
     align-items: flex-end;
+    margin-left: auto;
 }
 .btn-filter {
     padding: 7px 12px;
@@ -109,12 +114,10 @@
     gap: 4px;
     white-space: nowrap;
 }
-.btn-search { background: #2563eb; color: white; border-color: #2563eb; }
-.btn-search:hover { background: #1d4ed8; }
-.btn-export { background: #059669; color: white; border-color: #059669; }
-.btn-export:hover { background: #047857; }
 .btn-reset { background: white; color: #6b7280; }
 .btn-reset:hover { background: #f3f4f6; color: #374151; border-color: #9ca3af; }
+.btn-refresh { background: #0f172a; color: white; border-color: #0f172a; }
+.btn-refresh:hover { background: #1e293b; }
 .refresh-timer {
     font-size: 11px;
     color: #9ca3af;
