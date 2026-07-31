@@ -243,6 +243,8 @@ function loadData(skipCache) {
                 sessionStorage.setItem(CACHE_KEY, JSON.stringify({
                     units: units,
                     detail: detail,
+                    total_rows: TOTAL_ROWS,
+                    total_qty: TOTAL_QTY,
                     selected: data.selected || {},
                     filters: data.filters || {},
                     timestamp: Date.now()
@@ -281,56 +283,28 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
     window.location.reload();
 });
 
-// Export toast notification
-function showExportToast() {
-    var existing = document.getElementById('export-toast');
-    if (existing) existing.remove();
-
-    var rows = TOTAL_ROWS.toLocaleString();
-    var toast = document.createElement('div');
-    toast.id = 'export-toast';
-    toast.className = 'export-toast';
-    toast.innerHTML = '<div class="export-toast-icon"><div class="inline-spinner"></div></div>' +
-        '<div class="export-toast-text">' +
-        '<strong>Preparing your export</strong>' +
-        '<span>Gathering ' + rows + ' rows. This may take a moment depending on the data volume.</span>' +
-        '</div>' +
-        '<button class="export-toast-close" onclick="this.parentElement.remove()">&times;</button>';
-    document.body.appendChild(toast);
-
-    // Auto-dismiss after 45 seconds
-    setTimeout(function() {
-        var el = document.getElementById('export-toast');
-        if (el) el.remove();
-    }, 45000);
-}
-
-// Export (server-side CSV with ALL rows)
+// Export (client-side, instant — uses data already loaded in browser)
 document.getElementById('btn-export').addEventListener('click', function() {
+    if (!UNITS_RAW.length && !DETAIL_FILTERED.length) { alert('No data to export.'); return; }
+    var wb = XLSX.utils.book_new();
+    // Sheet 1: Units by Process
+    var unitsRows = [['Process', 'Quantity']];
+    UNITS_RAW.forEach(function(r) { unitsRows.push([r.process, r.qty]); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(unitsRows), 'Units by Process');
+    // Sheet 2: Details (filtered rows + total)
+    var detailRows = [DETAIL_COLS];
+    DETAIL_FILTERED.forEach(function(r) {
+        detailRows.push(DETAIL_COLS.map(function(c) { return r[c] != null ? r[c] : ''; }));
+    });
+    detailRows.push([]);
+    detailRows.push(['Total', '', '', '', '', '', '', '', '', '', '', '', TOTAL_QTY]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), 'Details');
     var df = document.getElementById('filter-date-from').value || '';
     var dt = document.getElementById('filter-date-to').value || '';
-    if (!df || !dt) { alert('Select a date range first.'); return; }
-    var params = new URLSearchParams();
-    params.set('date_from', df);
-    params.set('date_to', dt);
-    // Pass active filters
-    var proc = document.getElementById('filter-process').value;
-    var mov = document.getElementById('filter-movement').value;
-    if (proc !== 'All') params.set('process', proc);
-    if (mov !== 'All') params.set('movement', mov);
-    var mat = document.getElementById('filter-material').value;
-    if (mat) params.set('material', mat);
-    var grid = document.getElementById('filter-grid').value;
-    if (grid) params.set('grid', grid);
-    var stockCat = document.getElementById('filter-stock-cat').value;
-    if (stockCat) params.set('stock_cat', stockCat);
-    var destBin = document.getElementById('filter-dest-bin').value;
-    if (destBin) params.set('dest_bin', destBin);
-    var srcBin = document.getElementById('filter-source-bin').value;
-    if (srcBin) params.set('source_bin', srcBin);
-    // Show toast and trigger download
-    showExportToast();
-    window.location.href = '/api/detailbymaterial/export/?' + params.toString();
+    var filename = 'LMS_DetailByMaterial';
+    if (df && dt) filename += '_' + df + '_to_' + dt;
+    filename += '.xlsx';
+    XLSX.writeFile(wb, filename);
 });
 
 
