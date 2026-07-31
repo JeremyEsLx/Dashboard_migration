@@ -134,7 +134,12 @@ function doSearch() {
     // Show results, hide empty state
     document.getElementById('dm-empty-state').style.display = 'none';
     document.getElementById('dm-results').classList.add('visible');
-    LMS.showLoading();
+
+    // Banner -> loading state
+    var banner = document.getElementById('active-filters-banner');
+    banner.classList.add('is-loading');
+    document.getElementById('banner-icon').innerHTML = '<div class="inline-spinner"></div>';
+    document.getElementById('banner-date-range').textContent = 'Loading data...';
 
     var df = document.getElementById('filter-date-from').value;
     var dt = document.getElementById('filter-date-to').value;
@@ -182,11 +187,24 @@ function doSearch() {
                 if (data.selected.date_to) document.getElementById('filter-date-to').value = data.selected.date_to;
             }
 
-            LMS.hideLoading(data.selected.date_from, data.selected.date_to);
+            // Banner -> ready state
+            var banner = document.getElementById('active-filters-banner');
+            banner.classList.remove('is-loading');
+            document.getElementById('banner-icon').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>';
+            var mat = document.getElementById('search-material').value || '';
+            var grd = document.getElementById('search-grid').value || '';
+            var msg = 'Showing results for ';
+            if (mat) msg += '<strong>' + mat + '</strong>';
+            if (mat && grd) msg += ' + ';
+            if (grd) msg += '<strong>' + grd + '</strong>';
+            msg += ' (' + TOTAL_ROWS.toLocaleString() + ' total rows)';
+            document.getElementById('banner-date-range').innerHTML = msg;
         })
         .catch(function(err) {
             console.error('[DetailByMaterial] Fetch error:', err);
-            LMS.hideLoading('', '');
+            var banner = document.getElementById('active-filters-banner');
+            banner.classList.remove('is-loading');
+            document.getElementById('banner-date-range').textContent = 'Error loading data.';
             document.getElementById('chart-units').innerHTML = '<p style="color:#dc2626; text-align:center;">Error loading data.</p>';
         });
 }
@@ -208,6 +226,11 @@ document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('search-grid').value = '';
     document.getElementById('dm-empty-state').style.display = '';
     document.getElementById('dm-results').classList.remove('visible');
+    // Restore banner
+    var banner = document.getElementById('active-filters-banner');
+    banner.classList.remove('is-loading');
+    document.getElementById('banner-icon').innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>';
+    document.getElementById('banner-date-range').innerHTML = 'Enter a <strong>Material</strong> or <strong>Grid Value</strong> and click Search';
     UNITS_RAW = []; DETAIL_RAW = []; DETAIL_FILTERED = [];
     TOTAL_ROWS = 0; TOTAL_QTY = 0;
 });
