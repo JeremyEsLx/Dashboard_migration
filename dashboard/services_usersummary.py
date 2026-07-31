@@ -11,6 +11,8 @@ from datetime import date, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from .services_base import run_query, get_filter_options
 
+DEBUG = True  # Set to False once working
+
 # System users excluded from all queries (page-level filter)
 _EXCLUDED_USERS = ("'756777'", "'Bast_TIJ'", "'CONTROLM'", "'RFCDWP'", "'WSDLWCS3'")
 _EXCLUDED_USERS_SQL = ','.join(_EXCLUDED_USERS)
