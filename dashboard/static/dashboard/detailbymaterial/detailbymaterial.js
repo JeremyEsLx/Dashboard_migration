@@ -131,8 +131,7 @@ function doSearch() {
 
     // Show results, hide empty state
     document.getElementById('dm-empty-state').style.display = 'none';
-    document.getElementById('dm-results').style.display = 'block';
-    document.getElementById('active-filters-banner').style.display = '';
+    document.getElementById('dm-results').classList.add('visible');
     LMS.showLoading();
 
     var df = document.getElementById('filter-date-from').value;
@@ -196,8 +195,7 @@ document.getElementById('btn-reset').addEventListener('click', function() {
     document.getElementById('search-material').value = '';
     document.getElementById('search-grid').value = '';
     document.getElementById('dm-empty-state').style.display = '';
-    document.getElementById('dm-results').style.display = 'none';
-    document.getElementById('active-filters-banner').style.display = 'none';
+    document.getElementById('dm-results').classList.remove('visible');
     UNITS_RAW = []; DETAIL_RAW = []; DETAIL_FILTERED = [];
     TOTAL_ROWS = 0; TOTAL_QTY = 0;
 });
