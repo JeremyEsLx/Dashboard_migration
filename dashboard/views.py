@@ -348,6 +348,34 @@ def detailbymaterial_export(request):
 # PLACEHOLDER VIEWS — WIP dashboards (page not found -> WIP page)
 # ============================================================
 
+def usersummary(request):
+    from datetime import date
+    return render(request, 'dashboard/usersummary.html', {'today': str(date.today())})
+
+
+def usersummary_data(request):
+    """API: returns performance + by-hour + detail as JSON."""
+    try:
+        data = get_usersummary_data(
+            date_filter=request.GET.get('date_filter'),
+            week=request.GET.get('week'),
+            supervisor=request.GET.get('supervisor'),
+            user_name=request.GET.get('user_name'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'perf_json': '[]',
+            'hour_json': '[]',
+            'detail_json': '[]',
+            'filters': {},
+            'selected': {},
+        }, status=200)
+
+
 def usersummary_filters(request):
     """API: returns supervisor-user mapping for cascading dropdowns."""
     try:
