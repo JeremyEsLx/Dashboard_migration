@@ -40,40 +40,31 @@ body {
     color: #1e293b;
 }
 
-/* === HEADER TITLE === */
-.header-title {
-    font-weight: 400;
-    color: #94a3b8;
-}
-
-/* === DASHBOARD TABS === */
+/* === DASHBOARD TABS (inside header) === */
 .dashboard-tabs {
     display: flex;
     align-items: center;
-    background: #1e293b;
-    padding: 0 24px;
     gap: 0;
-    border-bottom: 2px solid #334155;
+    margin-left: 24px;
     overflow-x: auto;
 }
 .dashboard-tabs .tab-item {
-    padding: 10px 16px;
+    padding: 16px 14px;
     color: #64748b;
     text-decoration: none;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
     border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
+    margin-bottom: -1px;
     white-space: nowrap;
     transition: all 0.15s;
 }
 .dashboard-tabs .tab-item:hover {
     color: #e2e8f0;
-    background: rgba(255,255,255,0.03);
 }
 .dashboard-tabs .tab-item.tab-active {
-    color: #34d399;
+    color: #f1f5f9;
     border-bottom-color: #34d399;
     font-weight: 600;
 }
