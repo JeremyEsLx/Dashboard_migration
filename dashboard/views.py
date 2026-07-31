@@ -380,8 +380,12 @@ def usersummary_filters(request):
     """API: returns supervisor-user mapping for cascading dropdowns."""
     try:
         data = get_usersummary_filters()
+        print(f"[UserSummary] filters endpoint returning: {len(data.get('supervisors',[]))} supervisors, {len(data.get('user_map',[]))} user_map entries")
         return JsonResponse(data)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"[UserSummary] filters endpoint FAILED: {e}")
         return JsonResponse({'supervisors': ['All'], 'weeks': ['All'], 'user_map': []}, status=200)
 
 

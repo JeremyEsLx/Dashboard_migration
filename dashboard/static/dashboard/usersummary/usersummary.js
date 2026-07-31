@@ -271,6 +271,8 @@ document.getElementById('btn-export').addEventListener('click', function() {
     fetch('/api/usersummary/filters/')
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            console.log('[UserSummary] filters response:', data);
+            console.log('[UserSummary] user_map length:', data.user_map ? data.user_map.length : 'NO user_map key');
             if (data.supervisors) {
                 LMS.populateDropdown('filter-supervisor', data.supervisors);
             }
@@ -278,9 +280,12 @@ document.getElementById('btn-export').addEventListener('click', function() {
                 LMS.populateDropdown('filter-week', data.weeks);
             }
             // Store user mapping and populate User dropdown with all users
-            if (data.user_map) {
+            if (data.user_map && data.user_map.length > 0) {
                 USER_MAP = data.user_map;
+                console.log('[UserSummary] USER_MAP stored, first 3:', USER_MAP.slice(0, 3));
                 populateUserDropdown('All');
+            } else {
+                console.warn('[UserSummary] user_map is empty or missing!');
             }
         })
         .catch(function(err) {
