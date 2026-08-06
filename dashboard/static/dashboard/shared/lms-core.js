@@ -125,8 +125,9 @@ var LMS = (function() {
     Timer.prototype._tick = function() {
         var left = Math.max(0, this.interval - Math.floor((Date.now() - this.start) / 1000));
         if (left <= 0) {
+            this.start = Date.now(); // reset for next cycle (prevents infinite re-fire)
             try {
-                sessionStorage.setItem(this.key, String(Date.now()));
+                sessionStorage.setItem(this.key, String(this.start));
             } catch(e) {}
             this.onExpire();
             return;
