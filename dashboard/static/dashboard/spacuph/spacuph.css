@@ -39,5 +39,4 @@
 
 /* === SKELETON === */
 .skeleton-container { display: block; }
-.skeleton-container.hidden { display: none; }
-.spac-grid.hidden, .spac-chart-card.hidden { display: none; }
+.hidden { display: none; }

@@ -61,15 +61,30 @@
     <span class="banner-chips" id="banner-chips"></span>
 </div>
 
-<!-- DASHBOARD WIDGETS -->
-<div class="spac-grid">
-    <!-- KPI: Total Units Packed -->
+<!-- SKELETON LOADING (shown until data arrives) -->
+<div id="skeleton-loading">
+    <div class="spac-grid">
+        <div class="spac-kpi-card">
+            <div class="kpi-label">Total Units Packed</div>
+            <div class="skeleton skeleton-value"></div>
+        </div>
+        <div class="spac-gauge-card">
+            <div class="card-title">Performance</div>
+            <div class="skeleton skeleton-gauge"></div>
+        </div>
+    </div>
+    <div class="spac-chart-card" style="margin-top:16px;">
+        <div class="card-title">Units by Day & Hour</div>
+        <div class="skeleton skeleton-chart"></div>
+    </div>
+</div>
+
+<!-- REAL DASHBOARD WIDGETS (hidden until data loads) -->
+<div class="spac-grid hidden" id="spac-widgets">
     <div class="spac-kpi-card">
         <div class="kpi-label">Total Units Packed</div>
         <div class="kpi-value" id="kpi-total-units">--</div>
     </div>
-
-    <!-- Gauge: Performance -->
     <div class="spac-gauge-card">
         <div class="card-title">Performance</div>
         <div id="gauge-container"></div>
@@ -77,16 +92,9 @@
     </div>
 </div>
 
-<!-- Units by Day & Hour -->
-<div class="spac-chart-card">
+<div class="spac-chart-card hidden" id="spac-chart">
     <div class="card-title">Units by Day & Hour</div>
     <div id="hour-chart"></div>
-</div>
-
-<!-- Skeleton loading placeholder -->
-<div class="skeleton-container" id="skeleton-loading">
-    <div class="skeleton-shimmer" style="height: 200px;"></div>
-    <div class="skeleton-shimmer" style="height: 300px; margin-top: 16px;"></div>
 </div>
 {% endblock %}
 

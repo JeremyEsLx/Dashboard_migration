@@ -283,9 +283,9 @@
     // HELPERS
     // ================================================================
     function showContent() {
-        document.getElementById('skeleton-loading').classList.add('hidden');
-        document.querySelector('.spac-grid').classList.remove('hidden');
-        document.querySelector('.spac-chart-card').classList.remove('hidden');
+        document.getElementById('skeleton-loading').style.display = 'none';
+        document.getElementById('spac-widgets').classList.remove('hidden');
+        document.getElementById('spac-chart').classList.remove('hidden');
     }
 
     function doReset() {
