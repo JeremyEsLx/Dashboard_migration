@@ -254,6 +254,7 @@
             marker: { color: '#6b7280' },
             hovertemplate: 'Hour %{x}: %{y} units<extra></extra>',
         }], {
+            autosize: true,
             margin: { t: 10, b: 70, l: 40, r: 20 },
             height: 280,
             paper_bgcolor: 'transparent',
@@ -286,6 +287,13 @@
         document.getElementById('skeleton-loading').style.display = 'none';
         document.getElementById('spac-widgets').classList.remove('hidden');
         document.getElementById('spac-chart').classList.remove('hidden');
+        // Force Plotly to recalculate width after container becomes visible
+        setTimeout(function() {
+            var el = document.getElementById('hour-chart');
+            if (el && el.data) Plotly.Plots.resize(el);
+            var g = document.getElementById('gauge-container');
+            if (g && g.data) Plotly.Plots.resize(g);
+        }, 50);
     }
 
     function doReset() {
