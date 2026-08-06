@@ -178,7 +178,7 @@
         }], {
             autosize: true,
             margin: { t: 20, b: 60, l: 40, r: 10 },
-            height: 200,
+            height: 220,
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif', size: 10 },

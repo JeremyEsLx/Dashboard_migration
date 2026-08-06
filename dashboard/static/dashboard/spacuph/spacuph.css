@@ -29,8 +29,8 @@
 .kpi-value { font-size: 2.5rem; font-weight: 700; color: #111827; }
 .spac-gauge-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 16px 20px; display: flex; flex-direction: column; align-items: center; }
 .spac-gauge-card .card-title { font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px; align-self: flex-start; }
-#gauge-container { width: 100%; max-width: 400px; height: 220px; }
-.gauge-target { text-align: center; font-size: 0.9rem; font-weight: 600; color: #059669; margin-top: -8px; }
+#gauge-container { width: 100%; max-width: 550px; height: 280px; }
+.gauge-target { text-align: center; font-size: 0.85rem; font-weight: 600; color: #059669; margin-top: -12px; }
 
 /* === CHART CARD === */
 .spac-chart-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 16px 20px; width: 100%; margin-top: 16px; }
