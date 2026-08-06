@@ -188,7 +188,7 @@
             mode: 'gauge+number',
             value: uph,
             number: {
-                font: { size: 54, color: '#111827', family: 'Inter, sans-serif' },
+                font: { size: 40, color: '#111827', family: 'Inter, sans-serif' },
             },
             gauge: {
                 shape: 'angular',
@@ -214,8 +214,8 @@
                 },
             },
         }], {
-            margin: { t: 30, b: 0, l: 30, r: 30 },
-            height: 270,
+            margin: { t: 20, b: 0, l: 25, r: 25 },
+            height: 190,
             paper_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif' },
         }, { responsive: true, displayModeBar: false });
@@ -256,8 +256,8 @@
             hovertemplate: 'Hour %{x}: %{y} units<extra></extra>',
         }], {
             autosize: true,
-            margin: { t: 25, b: 70, l: 40, r: 20 },
-            height: 280,
+            margin: { t: 20, b: 55, l: 35, r: 15 },
+            height: 195,
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif', size: 11 },

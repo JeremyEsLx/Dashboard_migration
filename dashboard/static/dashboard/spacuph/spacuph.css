@@ -23,19 +23,19 @@
 .updated-on { font-size: 0.8rem; color: #6b7280; font-style: italic; }
 
 /* === WIDGETS GRID === */
-.spac-grid { display: grid; grid-template-columns: 220px 1fr; gap: 16px; margin-bottom: 16px; width: 100%; }
-.spac-kpi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.kpi-label { font-size: 0.8rem; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-.kpi-value { font-size: 2.5rem; font-weight: 700; color: #111827; }
-.spac-gauge-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 16px 20px; display: flex; flex-direction: column; align-items: center; }
-.spac-gauge-card .card-title { font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px; align-self: flex-start; }
-#gauge-container { width: 100%; max-width: 550px; height: 280px; }
-.gauge-target { text-align: center; font-size: 0.85rem; font-weight: 600; color: #059669; margin-top: -12px; }
+.spac-grid { display: grid; grid-template-columns: 160px 1fr; gap: 10px; margin-bottom: 8px; width: 100%; }
+.spac-kpi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 12px 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.kpi-label { font-size: 0.7rem; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.kpi-value { font-size: 2rem; font-weight: 700; color: #111827; }
+.spac-gauge-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 8px 16px; display: flex; flex-direction: column; align-items: center; }
+.spac-gauge-card .card-title { font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 2px; align-self: flex-start; }
+#gauge-container { width: 100%; max-width: 480px; height: 200px; }
+.gauge-target { text-align: center; font-size: 0.8rem; font-weight: 600; color: #059669; margin-top: -10px; }
 
 /* === CHART CARD === */
-.spac-chart-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 16px 20px; width: 100%; margin-top: 16px; }
-.spac-chart-card .card-title { font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 8px; }
-#hour-chart { width: 100%; height: 280px; }
+.spac-chart-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 8px 16px; width: 100%; margin-top: 8px; }
+.spac-chart-card .card-title { font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+#hour-chart { width: 100%; height: 200px; }
 
 /* === SKELETON === */
 .skeleton { border-radius: 3px; }
