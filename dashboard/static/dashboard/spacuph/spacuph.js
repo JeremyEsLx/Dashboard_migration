@@ -1,11 +1,11 @@
 /**
  * SPAC UPH Dashboard - Client-side Logic
  *
- * Architecture: Auto-load + Stale-While-Revalidate
- *   - Page loads, fetches /api/spacuph/ with date range (current week default)
- *   - Renders: KPI (Total Units), Gauge (UPH), Bar chart (Units by Day & Hour)
- *   - User/Date filters trigger server reload
- *   - 15-min auto-refresh timer
+ * Architecture: Hybrid Cube + Stale-While-Revalidate
+ *   - Server sends FULL cube for date range (all users, all days/hours)
+ *   - User/Date filters are applied CLIENT-SIDE (instant, no server call)
+ *   - Only date range changes or Refresh button trigger server re-fetch
+ *   - 15-min auto-refresh timer reloads from server
  */
 
 (function() {
@@ -22,7 +22,8 @@
     // ================================================================
     // STATE
     // ================================================================
-    var DATA = null;
+    var DATA = null;   // raw server response (cube_json, filters, selected, etc.)
+    var CUBE = [];     // parsed cube array [{day, hour, user, units, duration}]
     var cache = new LMS.Cache(CACHE_KEY, CACHE_TTL);
     var timer = new LMS.Timer('lms_timer_spacuph', REFRESH_INTERVAL, function() { doFetch(true); });
 
@@ -41,18 +42,20 @@
             dtEl.value = today.toISOString().split('T')[0];
         }
 
-        // Try cache first
+        // Try cache first (stale-while-revalidate)
         var cached = cache.get();
         if (cached) {
             DATA = cached;
-            renderAll();
+            CUBE = JSON.parse(DATA.cube_json);
+            renderFromCube();
             showContent();
         }
 
-        // Always fetch fresh
-        doFetch(false);
+        // Always fetch fresh in background
+        doFetch(!cached);
 
         // Event listeners
+        // Date range changes => SERVER re-fetch (new cube)
         dfEl.addEventListener('change', function() {
             document.getElementById('filter-date').value = 'All';
             doFetch(true);
@@ -61,22 +64,16 @@
             document.getElementById('filter-date').value = 'All';
             doFetch(true);
         });
-        document.getElementById('filter-date').addEventListener('change', function() {
-            // Single date overrides date range
-            if (this.value !== 'All') {
-                dfEl.value = this.value;
-                dtEl.value = this.value;
-            }
-            doFetch(true);
-        });
-        document.getElementById('filter-user').addEventListener('change', function() { doFetch(true); });
+        // Single date + User => CLIENT-SIDE filter (instant, no server call)
+        document.getElementById('filter-date').addEventListener('change', function() { renderFromCube(); });
+        document.getElementById('filter-user').addEventListener('change', function() { renderFromCube(); });
         document.getElementById('btn-reset').addEventListener('click', doReset);
         document.getElementById('btn-refresh').addEventListener('click', function() { cache.clear(); doFetch(true); });
         document.getElementById('btn-export').addEventListener('click', doExport);
     }
 
     // ================================================================
-    // FETCH
+    // FETCH (only on date range change or refresh)
     // ================================================================
     function doFetch(showSpinner) {
         if (showSpinner) LMS.showLoading();
@@ -84,15 +81,24 @@
         var params = new URLSearchParams({
             date_from: document.getElementById('filter-date-from').value,
             date_to: document.getElementById('filter-date-to').value,
-            user: document.getElementById('filter-user').value,
         });
 
         fetch(API_URL + '?' + params.toString())
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 DATA = data;
+                CUBE = JSON.parse(data.cube_json);
                 cache.set(data);
-                renderAll();
+
+                // Populate dropdowns from server filter lists
+                if (data.filters && data.filters.users) {
+                    LMS.populateDropdown('filter-user', data.filters.users, 'All');
+                }
+                if (data.filters && data.filters.dates) {
+                    LMS.populateDropdown('filter-date', data.filters.dates, 'All');
+                }
+
+                renderFromCube();
                 showContent();
                 requestAnimationFrame(function() {
                     LMS.hideLoading(data.selected.date_from, data.selected.date_to);
@@ -105,13 +111,35 @@
     }
 
     // ================================================================
-    // RENDER
+    // CLIENT-SIDE FILTERING + RENDER
     // ================================================================
-    function renderAll() {
-        if (!DATA) return;
+    function getFilteredCube() {
+        var selectedUser = document.getElementById('filter-user').value;
+        var selectedDate = document.getElementById('filter-date').value;
 
-        // KPI
-        document.getElementById('kpi-total-units').textContent = DATA.total_units.toLocaleString();
+        return CUBE.filter(function(row) {
+            if (selectedUser !== 'All' && row.user !== selectedUser) return false;
+            if (selectedDate !== 'All' && row.day !== selectedDate) return false;
+            return true;
+        });
+    }
+
+    function renderFromCube() {
+        if (!DATA || !CUBE.length) return;
+
+        var filtered = getFilteredCube();
+
+        // Compute KPIs from filtered cube
+        var totalUnits = 0;
+        var totalDuration = 0;
+        for (var i = 0; i < filtered.length; i++) {
+            totalUnits += filtered[i].units;
+            totalDuration += filtered[i].duration;
+        }
+        var uph = totalDuration > 0 ? Math.round((totalUnits / totalDuration) * 60 * 10) / 10 : 0;
+
+        // KPI display
+        document.getElementById('kpi-total-units').textContent = totalUnits.toLocaleString();
 
         // Updated On (format nicely)
         var updEl = document.getElementById('updated-on');
@@ -124,23 +152,25 @@
             }
         }
 
-        // Gauge target display
+        // Gauge
         document.getElementById('gauge-target').textContent = 'Target: ' + DATA.target;
+        renderGauge(uph);
 
-        // Populate dropdowns (preserve selection)
-        if (DATA.filters && DATA.filters.users) {
-            LMS.populateDropdown('filter-user', DATA.filters.users, DATA.selected.user);
+        // Hour chart: aggregate filtered cube by day+hour
+        var hourMap = {};
+        for (var j = 0; j < filtered.length; j++) {
+            var key = filtered[j].day + '|' + filtered[j].hour;
+            if (!hourMap[key]) hourMap[key] = { day: filtered[j].day, hour: filtered[j].hour, units: 0 };
+            hourMap[key].units += filtered[j].units;
         }
-        if (DATA.filters && DATA.filters.dates) {
-            LMS.populateDropdown('filter-date', DATA.filters.dates, 'All');
-        }
+        // Sort by day then hour
+        var hourData = Object.keys(hourMap).map(function(k) { return hourMap[k]; });
+        hourData.sort(function(a, b) { return a.day < b.day ? -1 : a.day > b.day ? 1 : a.hour - b.hour; });
 
-        renderGauge();
-        renderHourChart();
+        renderHourChart(hourData);
     }
 
-    function renderGauge() {
-        var uph = DATA.uph;
+    function renderGauge(uph) {
         var target = DATA.target;
         var gaugeMax = DATA.gauge_max;
 
@@ -188,9 +218,8 @@
         }, { responsive: true, displayModeBar: false });
     }
 
-    function renderHourChart() {
-        var hourData = JSON.parse(DATA.hour_json);
-        if (!hourData.length) {
+    function renderHourChart(hourData) {
+        if (!hourData || !hourData.length) {
             Plotly.react('hour-chart', [], { margin: { t: 20, b: 40, l: 40, r: 20 }, height: 260 }, { displayModeBar: false });
             return;
         }
@@ -269,14 +298,24 @@
     }
 
     function doExport() {
-        if (!DATA) return;
-        var hourData = JSON.parse(DATA.hour_json);
-        var rows = [['Date', 'Hour', 'Units']];
-        for (var i = 0; i < hourData.length; i++) {
-            rows.push([hourData[i].day, hourData[i].hour, hourData[i].units]);
+        if (!DATA || !CUBE.length) return;
+        var filtered = getFilteredCube();
+
+        // Detail rows
+        var rows = [['Date', 'Hour', 'User', 'Units', 'Duration']];
+        for (var i = 0; i < filtered.length; i++) {
+            rows.push([filtered[i].day, filtered[i].hour, filtered[i].user, filtered[i].units, filtered[i].duration]);
         }
-        // Add KPI summary row
-        var summary = [[''], ['Total Units Packed', DATA.total_units], ['UPH', DATA.uph], ['Target', DATA.target]];
+
+        // Summary KPIs
+        var totalUnits = 0, totalDuration = 0;
+        for (var j = 0; j < filtered.length; j++) {
+            totalUnits += filtered[j].units;
+            totalDuration += filtered[j].duration;
+        }
+        var uph = totalDuration > 0 ? Math.round((totalUnits / totalDuration) * 60 * 10) / 10 : 0;
+        var summary = [[''], ['Total Units Packed', totalUnits], ['UPH', uph], ['Target', DATA.target]];
+
         LMS.exportXLSX([
             { name: 'Units by Hour', rows: rows },
             { name: 'Summary', rows: summary },

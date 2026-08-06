@@ -60,101 +60,69 @@ def _current_week_range():
 # ============================================================
 
 def get_spac_data(date_from=None, date_to=None, user=None):
-    """Fetch SPAC UPH data for the dashboard.
+    """Fetch SPAC UPH cube data for the dashboard.
 
-    Returns:
-        dict with total_units, uph, target, last_update, hour_json, filters, selected
+    Returns ALL data for the date range (no user filter server-side).
+    Client-side JS handles User/Date filtering from the cube.
     """
     if not date_from or not date_to:
         date_from, date_to = _current_week_range()
 
-    # Build WHERE clause
-    clauses = [
-        f"[Date] >= '{date_from}'",
-        f"[Date] <= '{date_to}'",
-    ]
-    if user and user != 'All':
-        clauses.append(f"[User] = '{user}'")
+    # WHERE clause: only date range (no user filter - client does that)
+    where_sql = f"[Date] >= '{date_from}' AND [Date] <= '{date_to}'"
 
-    where_sql = ' AND '.join(clauses)
-
-    # Query 1: KPIs (Total Units + UPH + LastUpdate)
-    kpi_query = f"""
-        SELECT
-            ISNULL(SUM(TRY_CAST([Count] AS BIGINT)), 0) AS total_units,
-            ISNULL(SUM(TRY_CAST([Duration] AS FLOAT)), 0) AS total_duration,
-            MIN([LastUpdate]) AS last_update
+    # Query 1: LastUpdate only (KPIs computed client-side from cube)
+    meta_query = f"""
+        SELECT MIN([LastUpdate]) AS last_update
         FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
         WHERE {where_sql}
     """
 
-    # Query 2: Units by Day & Hour
-    hour_query = f"""
+    # Query 2: CUBE - grouped by Day + Hour + User (all combos for client filter)
+    cube_query = f"""
         SELECT
             CONVERT(VARCHAR(10), [Date], 23) AS [day],
             DATEPART(HOUR, [Min_DateTime]) AS [hour],
-            SUM(TRY_CAST([Count] AS BIGINT)) AS [units]
+            [User] AS [user],
+            ISNULL(SUM(TRY_CAST([Count] AS BIGINT)), 0) AS [units],
+            ISNULL(SUM(TRY_CAST([Duration] AS FLOAT)), 0) AS [duration]
         FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
         WHERE {where_sql}
           AND [Min_DateTime] IS NOT NULL
-        GROUP BY CONVERT(VARCHAR(10), [Date], 23), DATEPART(HOUR, [Min_DateTime])
-        ORDER BY [day], [hour]
+        GROUP BY CONVERT(VARCHAR(10), [Date], 23), DATEPART(HOUR, [Min_DateTime]), [User]
+        ORDER BY [day], [hour], [User]
     """
 
-    # Query 3: Filter options (distinct users)
-    filter_query = f"""
-        SELECT DISTINCT [User]
-        FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
-        WHERE [Date] >= '{date_from}' AND [Date] <= '{date_to}'
-          AND [User] IS NOT NULL AND [User] != ''
-        ORDER BY [User]
-    """
+    # Run cube + meta in parallel (only 2 queries now)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        f_meta = executor.submit(_bi_query, meta_query)
+        f_cube = executor.submit(_bi_query, cube_query)
+        meta_df = f_meta.result(timeout=30)
+        cube_df = f_cube.result(timeout=30)
 
-    # Query 4: Distinct dates in range (for single-date dropdown)
-    dates_query = f"""
-        SELECT DISTINCT CONVERT(VARCHAR(10), [Date], 23) AS [d]
-        FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
-        WHERE [Date] >= '{date_from}' AND [Date] <= '{date_to}'
-        ORDER BY [d]
-    """
+    # Last update timestamp
+    last_update = str(meta_df.iloc[0]['last_update']) if not meta_df.empty and meta_df.iloc[0]['last_update'] else ''
 
-    # Run in parallel
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        f_kpi = executor.submit(_bi_query, kpi_query)
-        f_hour = executor.submit(_bi_query, hour_query)
-        f_filter = executor.submit(_bi_query, filter_query)
-        f_dates = executor.submit(_bi_query, dates_query)
-        kpi_df = f_kpi.result(timeout=30)
-        hour_df = f_hour.result(timeout=30)
-        filter_df = f_filter.result(timeout=30)
-        dates_df = f_dates.result(timeout=30)
-
-    # KPIs
-    total_units = int(kpi_df.iloc[0]['total_units']) if not kpi_df.empty else 0
-    total_duration = float(kpi_df.iloc[0]['total_duration']) if not kpi_df.empty else 0
-    uph = round((total_units / total_duration) * 60, 1) if total_duration > 0 else 0
-    last_update = str(kpi_df.iloc[0]['last_update']) if not kpi_df.empty and kpi_df.iloc[0]['last_update'] else ''
-
-    # Hour chart data
-    hour_data = []
-    for _, row in hour_df.iterrows():
-        hour_data.append({
+    # Build cube JSON (all combos of day + hour + user)
+    cube_data = []
+    for _, row in cube_df.iterrows():
+        cube_data.append({
             'day': str(row['day']),
             'hour': int(row['hour']),
+            'user': str(row['user']) if row['user'] else '',
             'units': int(row['units']),
+            'duration': float(row['duration']),
         })
 
-    # Filters
-    users = ['All'] + filter_df['User'].tolist()
-    dates = ['All'] + dates_df['d'].tolist() if not dates_df.empty else ['All']
+    # Extract filter options from cube (distinct users + dates)
+    users = ['All'] + sorted(set(r['user'] for r in cube_data if r['user']))
+    dates = ['All'] + sorted(set(r['day'] for r in cube_data))
 
     return {
-        'total_units': total_units,
-        'uph': uph,
         'target': 120,
         'gauge_max': 150,
         'last_update': last_update,
-        'hour_json': json.dumps(hour_data),
+        'cube_json': json.dumps(cube_data),
         'filters': {
             'users': users,
             'dates': dates,
@@ -162,6 +130,5 @@ def get_spac_data(date_from=None, date_to=None, user=None):
         'selected': {
             'date_from': date_from,
             'date_to': date_to,
-            'user': user or 'All',
         },
     }
