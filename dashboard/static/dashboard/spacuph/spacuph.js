@@ -36,9 +36,9 @@
         var dtEl = document.getElementById('filter-date-to');
         if (!dfEl.value) {
             var today = new Date();
-            var sunday = new Date(today);
-            sunday.setDate(today.getDate() - today.getDay());
-            dfEl.value = sunday.toISOString().split('T')[0];
+            var fiveDaysAgo = new Date(today);
+            fiveDaysAgo.setDate(today.getDate() - 4); // last 5 days including today
+            dfEl.value = fiveDaysAgo.toISOString().split('T')[0];
             dtEl.value = today.toISOString().split('T')[0];
         }
 
@@ -287,9 +287,9 @@
 
     function doReset() {
         var today = new Date();
-        var sunday = new Date(today);
-        sunday.setDate(today.getDate() - today.getDay());
-        document.getElementById('filter-date-from').value = sunday.toISOString().split('T')[0];
+        var fiveDaysAgo = new Date(today);
+        fiveDaysAgo.setDate(today.getDate() - 4); // last 5 days including today
+        document.getElementById('filter-date-from').value = fiveDaysAgo.toISOString().split('T')[0];
         document.getElementById('filter-date-to').value = today.toISOString().split('T')[0];
         document.getElementById('filter-date').value = 'All';
         document.getElementById('filter-user').value = 'All';
