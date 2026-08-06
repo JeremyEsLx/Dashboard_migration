@@ -346,47 +346,6 @@ def detailbymaterial_export(request):
 
 
 # ============================================================
-# SPAC UPH (MX03 SPAC Performance)
-# ============================================================
-
-def spac_uph(request):
-    """Render SPAC UPH shell (instant, no SQL) — JS hydrates via /api/spacuph/."""
-    data = {
-        'selected': {
-            'date_from': request.GET.get('date_from', ''),
-            'date_to': request.GET.get('date_to', ''),
-            'user': request.GET.get('user', 'All'),
-        },
-    }
-    return render(request, 'dashboard/spacuph.html', {'data': data})
-
-
-def spac_uph_data(request):
-    """API: returns SPAC UPH data as JSON."""
-    try:
-        data = get_spac_data(
-            date_from=request.GET.get('date_from'),
-            date_to=request.GET.get('date_to'),
-            user=request.GET.get('user'),
-        )
-        return JsonResponse(data)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({
-            'error': str(e),
-            'total_units': 0,
-            'uph': 0,
-            'target': 120,
-            'gauge_max': 150,
-            'last_update': '',
-            'hour_json': '[]',
-            'filters': {'users': ['All']},
-            'selected': {'date_from': '', 'date_to': '', 'user': 'All'},
-        }, status=200)
-
-
-# ============================================================
 # PLACEHOLDER VIEWS — WIP dashboards (page not found -> WIP page)
 # ============================================================
 
@@ -429,6 +388,17 @@ def usersummary_filters(request):
         traceback.print_exc()
         print(f"[UserSummary] filters endpoint FAILED: {e}")
         return JsonResponse({'supervisors': ['All'], 'weeks': ['All'], 'user_map': []}, status=200)
+
+
+def spac_performance(request):
+    """Render SPAC Performance shell (no SQL) - JS reuses /api/spacuph/."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/spacperformance.html', {'data': data})
 
 
 _PLACEHOLDER_DASHBOARDS = {
