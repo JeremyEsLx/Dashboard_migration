@@ -36,9 +36,9 @@
         var dtEl = document.getElementById('filter-date-to');
         if (!dfEl.value) {
             var today = new Date();
-            var monday = new Date(today);
-            monday.setDate(today.getDate() - today.getDay() + 1);
-            dfEl.value = monday.toISOString().split('T')[0];
+            var sunday = new Date(today);
+            sunday.setDate(today.getDate() - today.getDay());
+            dfEl.value = sunday.toISOString().split('T')[0];
             dtEl.value = today.toISOString().split('T')[0];
         }
 
@@ -68,7 +68,6 @@
         document.getElementById('filter-date').addEventListener('change', function() { renderFromCube(); });
         document.getElementById('filter-user').addEventListener('change', function() { renderFromCube(); });
         document.getElementById('btn-reset').addEventListener('click', doReset);
-        document.getElementById('btn-refresh').addEventListener('click', function() { cache.clear(); doFetch(true); });
         document.getElementById('btn-export').addEventListener('click', doExport);
     }
 
@@ -287,9 +286,9 @@
 
     function doReset() {
         var today = new Date();
-        var monday = new Date(today);
-        monday.setDate(today.getDate() - today.getDay() + 1);
-        document.getElementById('filter-date-from').value = monday.toISOString().split('T')[0];
+        var sunday = new Date(today);
+        sunday.setDate(today.getDate() - today.getDay());
+        document.getElementById('filter-date-from').value = sunday.toISOString().split('T')[0];
         document.getElementById('filter-date-to').value = today.toISOString().split('T')[0];
         document.getElementById('filter-date').value = 'All';
         document.getElementById('filter-user').value = 'All';
