@@ -59,8 +59,6 @@
         document.getElementById('btn-reset').addEventListener('click', doReset);
         document.getElementById('btn-refresh').addEventListener('click', function() { cache.clear(); doFetch(true); });
         document.getElementById('btn-export').addEventListener('click', doExport);
-
-        timer.start();
     }
 
     // ================================================================
@@ -101,10 +99,15 @@
         // KPI
         document.getElementById('kpi-total-units').textContent = DATA.total_units.toLocaleString();
 
-        // Updated On
+        // Updated On (format nicely)
         var updEl = document.getElementById('updated-on');
         if (DATA.last_update) {
-            updEl.textContent = 'Updated on ' + DATA.last_update;
+            var d = new Date(DATA.last_update);
+            if (!isNaN(d.getTime())) {
+                updEl.textContent = 'Updated on ' + (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear() + ' ' + d.toLocaleTimeString();
+            } else {
+                updEl.textContent = 'Updated on ' + DATA.last_update;
+            }
         }
 
         // Gauge target display
@@ -211,6 +214,7 @@
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif', size: 11 },
             xaxis: {
+                type: 'category',
                 tickangle: 0,
                 tickfont: { size: 9 },
             },
