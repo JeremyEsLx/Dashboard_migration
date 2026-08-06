@@ -53,8 +53,22 @@
         doFetch(false);
 
         // Event listeners
-        dfEl.addEventListener('change', function() { doFetch(true); });
-        dtEl.addEventListener('change', function() { doFetch(true); });
+        dfEl.addEventListener('change', function() {
+            document.getElementById('filter-date').value = 'All';
+            doFetch(true);
+        });
+        dtEl.addEventListener('change', function() {
+            document.getElementById('filter-date').value = 'All';
+            doFetch(true);
+        });
+        document.getElementById('filter-date').addEventListener('change', function() {
+            // Single date overrides date range
+            if (this.value !== 'All') {
+                dfEl.value = this.value;
+                dtEl.value = this.value;
+            }
+            doFetch(true);
+        });
         document.getElementById('filter-user').addEventListener('change', function() { doFetch(true); });
         document.getElementById('btn-reset').addEventListener('click', doReset);
         document.getElementById('btn-refresh').addEventListener('click', function() { cache.clear(); doFetch(true); });
@@ -113,9 +127,12 @@
         // Gauge target display
         document.getElementById('gauge-target').textContent = 'Target: ' + DATA.target;
 
-        // Populate user dropdown (preserve selection)
+        // Populate dropdowns (preserve selection)
         if (DATA.filters && DATA.filters.users) {
             LMS.populateDropdown('filter-user', DATA.filters.users, DATA.selected.user);
+        }
+        if (DATA.filters && DATA.filters.dates) {
+            LMS.populateDropdown('filter-date', DATA.filters.dates, 'All');
         }
 
         renderGauge();
@@ -178,45 +195,41 @@
             return;
         }
 
-        // Build x-axis labels: "hour\ndate" format
-        var xLabels = [];
+        // Multicategory x-axis: [[hours], [dates]] — Plotly groups by date like Power BI
+        var xHours = [];
+        var xDates = [];
         var yValues = [];
         var textValues = [];
-        var prevDay = '';
 
         for (var i = 0; i < hourData.length; i++) {
             var d = hourData[i];
-            var dayLabel = '';
-            if (d.day !== prevDay) {
-                // Format date as M/D/YYYY
-                var parts = d.day.split('-');
-                dayLabel = parseInt(parts[1]) + '/' + parseInt(parts[2]) + '/' + parts[0];
-                prevDay = d.day;
-            }
-            xLabels.push(d.hour + (dayLabel ? '<br>' + dayLabel : ''));
+            // Format date as M/D/YYYY for display
+            var parts = d.day.split('-');
+            var dateLabel = parseInt(parts[1]) + '/' + parseInt(parts[2]) + '/' + parts[0];
+            xHours.push(String(d.hour));
+            xDates.push(dateLabel);
             yValues.push(d.units);
             textValues.push(d.units.toLocaleString());
         }
 
         Plotly.react('hour-chart', [{
             type: 'bar',
-            x: xLabels,
+            x: [xDates, xHours],
             y: yValues,
             text: textValues,
             textposition: 'outside',
             textfont: { size: 10, color: '#374151' },
             marker: { color: '#6b7280' },
-            hovertemplate: '%{x}: %{y} units<extra></extra>',
+            hovertemplate: 'Hour %{x}: %{y} units<extra></extra>',
         }], {
-            margin: { t: 10, b: 60, l: 40, r: 20 },
-            height: 260,
+            margin: { t: 10, b: 70, l: 40, r: 20 },
+            height: 280,
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif', size: 11 },
             xaxis: {
-                type: 'category',
-                tickangle: 0,
-                tickfont: { size: 9 },
+                type: 'multicategory',
+                tickfont: { size: 10 },
             },
             yaxis: {
                 gridcolor: '#f3f4f6',
@@ -226,7 +239,7 @@
             shapes: [{
                 type: 'line',
                 x0: -0.5,
-                x1: xLabels.length - 0.5,
+                x1: hourData.length - 0.5,
                 y0: DATA.target,
                 y1: DATA.target,
                 line: { color: '#3b82f6', width: 1.5, dash: 'dash' },
@@ -249,6 +262,7 @@
         monday.setDate(today.getDate() - today.getDay() + 1);
         document.getElementById('filter-date-from').value = monday.toISOString().split('T')[0];
         document.getElementById('filter-date-to').value = today.toISOString().split('T')[0];
+        document.getElementById('filter-date').value = 'All';
         document.getElementById('filter-user').value = 'All';
         cache.clear();
         doFetch(true);

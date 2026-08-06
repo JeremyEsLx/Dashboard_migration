@@ -101,7 +101,7 @@ def get_spac_data(date_from=None, date_to=None, user=None):
         ORDER BY [day], [hour]
     """
 
-    # Query 3: Filter options (distinct users + dates)
+    # Query 3: Filter options (distinct users)
     filter_query = f"""
         SELECT DISTINCT [User]
         FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
@@ -110,14 +110,24 @@ def get_spac_data(date_from=None, date_to=None, user=None):
         ORDER BY [User]
     """
 
+    # Query 4: Distinct dates in range (for single-date dropdown)
+    dates_query = f"""
+        SELECT DISTINCT CONVERT(VARCHAR(10), [Date], 23) AS [d]
+        FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
+        WHERE [Date] >= '{date_from}' AND [Date] <= '{date_to}'
+        ORDER BY [d]
+    """
+
     # Run in parallel
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         f_kpi = executor.submit(_bi_query, kpi_query)
         f_hour = executor.submit(_bi_query, hour_query)
         f_filter = executor.submit(_bi_query, filter_query)
+        f_dates = executor.submit(_bi_query, dates_query)
         kpi_df = f_kpi.result(timeout=30)
         hour_df = f_hour.result(timeout=30)
         filter_df = f_filter.result(timeout=30)
+        dates_df = f_dates.result(timeout=30)
 
     # KPIs
     total_units = int(kpi_df.iloc[0]['total_units']) if not kpi_df.empty else 0
@@ -136,6 +146,7 @@ def get_spac_data(date_from=None, date_to=None, user=None):
 
     # Filters
     users = ['All'] + filter_df['User'].tolist()
+    dates = ['All'] + dates_df['d'].tolist() if not dates_df.empty else ['All']
 
     return {
         'total_units': total_units,
@@ -146,6 +157,7 @@ def get_spac_data(date_from=None, date_to=None, user=None):
         'hour_json': json.dumps(hour_data),
         'filters': {
             'users': users,
+            'dates': dates,
         },
         'selected': {
             'date_from': date_from,
