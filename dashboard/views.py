@@ -5,6 +5,7 @@ from .services_userperf import get_userperformance_data
 from .services_delivery import get_delivery_data
 from .services_material import get_material_data, get_material_export
 from .services_usersummary import get_usersummary_data, get_usersummary_filters
+from .services_spac import get_spac_data
 
 
 # ============================================================
@@ -342,6 +343,47 @@ def detailbymaterial_export(request):
         import traceback
         traceback.print_exc()
         return HttpResponse(f'Export error: {e}', status=500)
+
+
+# ============================================================
+# SPAC UPH (MX03 SPAC Performance)
+# ============================================================
+
+def spac_uph(request):
+    """Render SPAC UPH shell (instant, no SQL) — JS hydrates via /api/spacuph/."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+            'user': request.GET.get('user', 'All'),
+        },
+    }
+    return render(request, 'dashboard/spacuph.html', {'data': data})
+
+
+def spac_uph_data(request):
+    """API: returns SPAC UPH data as JSON."""
+    try:
+        data = get_spac_data(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+            user=request.GET.get('user'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'total_units': 0,
+            'uph': 0,
+            'target': 120,
+            'gauge_max': 150,
+            'last_update': '',
+            'hour_json': '[]',
+            'filters': {'users': ['All']},
+            'selected': {'date_from': '', 'date_to': '', 'user': 'All'},
+        }, status=200)
 
 
 # ============================================================

@@ -25,6 +25,10 @@ urlpatterns = [
     path('api/usersummary/', views.usersummary_data, name='usersummary_data'),
     path('api/usersummary/filters/', views.usersummary_filters, name='usersummary_filters'),
 
+    # MX03 SPAC Performance
+    path('spacuph/', views.spac_uph, name='spac_uph'),
+    path('api/spacuph/', views.spac_uph_data, name='spac_uph_data'),
+
     # Placeholder dashboards (WIP)
     path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),
     path('wearables/', views.placeholder_dashboard, {'dashboard_key': 'wearables'}, name='wearables'),

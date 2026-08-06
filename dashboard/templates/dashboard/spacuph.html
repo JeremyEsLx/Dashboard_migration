@@ -1,0 +1,87 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}SPAC UPH{% endblock %}
+{% block tab_lms %}tab-active{% endblock %}
+{% block nav_spacuph %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/spacuph/spacuph.css' %}?v=1">
+{% endblock %}
+
+{% block page_title %}
+<div class="page-header">
+    <h1 class="page-title">SPAC UPH</h1>
+    <span class="updated-on" id="updated-on"></span>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- FILTER BAR -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label for="filter-date-from">DATE FROM</label>
+        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
+    </div>
+    <div class="filter-group">
+        <label for="filter-date-to">DATE TO</label>
+        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+    </div>
+    <div class="filter-group">
+        <label for="filter-user">USER</label>
+        <select id="filter-user">
+            <option value="All">All</option>
+        </select>
+    </div>
+    <div class="filter-actions">
+        <button class="btn-export" id="btn-export">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12v2h12v-2"/><path d="M8 2v8"/><path d="M5 7l3 3 3-3"/></svg>
+            Export
+        </button>
+        <button class="btn-reset" id="btn-reset">Reset Filters</button>
+        <button class="btn-refresh" id="btn-refresh">Refresh</button>
+        <span class="timer-display" id="timer-display"></span>
+    </div>
+</div>
+
+<!-- ACTIVE FILTERS BANNER -->
+<div class="active-filters-banner" id="active-filters-banner">
+    <span class="banner-icon" id="banner-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>
+    </span>
+    <span class="banner-date-range" id="banner-date-range">Loading...</span>
+    <span class="banner-chips" id="banner-chips"></span>
+</div>
+
+<!-- DASHBOARD WIDGETS -->
+<div class="spac-grid">
+    <!-- KPI: Total Units Packed -->
+    <div class="spac-kpi-card">
+        <div class="kpi-label">Total Units Packed</div>
+        <div class="kpi-value" id="kpi-total-units">--</div>
+    </div>
+
+    <!-- Gauge: Performance -->
+    <div class="spac-gauge-card">
+        <div class="card-title">Performance</div>
+        <div id="gauge-container"></div>
+        <div class="gauge-target" id="gauge-target">Target: 120</div>
+    </div>
+</div>
+
+<!-- Units by Day & Hour -->
+<div class="spac-chart-card">
+    <div class="card-title">Units by Day & Hour</div>
+    <div id="hour-chart"></div>
+</div>
+
+<!-- Skeleton loading placeholder -->
+<div class="skeleton-container" id="skeleton-loading">
+    <div class="skeleton-shimmer" style="height: 200px;"></div>
+    <div class="skeleton-shimmer" style="height: 300px; margin-top: 16px;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/spacuph/spacuph.js' %}?v=1"></script>
+{% endblock %}
