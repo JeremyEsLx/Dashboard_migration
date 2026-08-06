@@ -91,11 +91,14 @@
                 cache.set(data);
 
                 // Populate dropdowns from server filter lists
+                // Strip 'All' from server data (LMS.populateDropdown adds it)
                 if (data.filters && data.filters.users) {
-                    LMS.populateDropdown('filter-user', data.filters.users, 'All');
+                    var users = data.filters.users.filter(function(v) { return v !== 'All'; });
+                    LMS.populateDropdown('filter-user', users, 'All');
                 }
                 if (data.filters && data.filters.dates) {
-                    LMS.populateDropdown('filter-date', data.filters.dates, 'All');
+                    var dates = data.filters.dates.filter(function(v) { return v !== 'All'; });
+                    LMS.populateDropdown('filter-date', dates, 'All');
                 }
 
                 renderFromCube();
