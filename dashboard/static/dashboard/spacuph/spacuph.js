@@ -16,7 +16,7 @@
     // ================================================================
     var CACHE_KEY = 'lms_spacuph_cache';
     var CACHE_TTL = 15; // minutes
-    var REFRESH_INTERVAL = 15 * 60; // seconds
+    var REFRESH_INTERVAL = 15; // minutes (LMS.Timer expects minutes)
     var API_URL = '/api/spacuph/';
 
     // ================================================================
@@ -68,6 +68,7 @@
         document.getElementById('filter-date').addEventListener('change', function() { renderFromCube(); });
         document.getElementById('filter-user').addEventListener('change', function() { renderFromCube(); });
         document.getElementById('btn-reset').addEventListener('click', doReset);
+        document.getElementById('btn-refresh').addEventListener('click', function() { cache.clear(); doFetch(true); });
         document.getElementById('btn-export').addEventListener('click', doExport);
     }
 
