@@ -177,8 +177,8 @@
             hovertemplate: 'Hour %{x}: %{y}<extra></extra>',
         }], {
             autosize: true,
-            margin: { t: 20, b: 60, l: 40, r: 10 },
-            height: 220,
+            margin: { t: 18, b: 50, l: 35, r: 10 },
+            height: 155,
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif', size: 10 },
