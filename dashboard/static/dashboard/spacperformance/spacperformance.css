@@ -22,7 +22,7 @@
 .updated-on { font-size: 0.8rem; color: #6b7280; font-style: italic; }
 
 /* === PERFORMANCE ROWS WRAPPER (fill remaining viewport) === */
-#skeleton-loading, #perf-widgets { display: flex; flex-direction: column; height: calc(100vh - 280px); gap: 6px; }
+#skeleton-loading, #perf-widgets { display: flex; flex-direction: column; height: calc(100vh - 320px); gap: 6px; overflow: hidden; }
 
 /* === PERFORMANCE ROWS (KPI left + Chart right) === */
 .perf-row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; width: 100%; flex: 1; }
