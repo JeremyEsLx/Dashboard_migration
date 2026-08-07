@@ -22,13 +22,13 @@
 .updated-on { font-size: 0.8rem; color: #6b7280; font-style: italic; }
 
 /* === LAYOUT: 2 columns (user list + chart) === */
-.spbu-layout { display: grid; grid-template-columns: 220px 1fr; gap: 10px; width: 100%; height: calc(100vh - 240px); min-height: 350px; }
+.spbu-layout { display: grid; grid-template-columns: 220px 1fr; gap: 10px; width: 100%; height: calc(100vh - 280px); overflow: hidden; }
 .spbu-users-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 8px 10px; display: flex; flex-direction: column; overflow: hidden; }
 .spbu-users-card .card-title { font-size: 0.75rem; font-weight: 600; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
 .spbu-users-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-.spbu-chart-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 8px 12px; display: flex; flex-direction: column; }
+.spbu-chart-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 8px 12px; display: flex; flex-direction: column; overflow: hidden; }
 .spbu-chart-card .card-title { font-size: 0.75rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
-#uph-line-chart { flex: 1; width: 100%; min-height: 200px; }
+#uph-line-chart { flex: 1; width: 100%; }
 
 /* === USER CARD ITEMS === */
 .user-item { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; }
