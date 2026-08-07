@@ -58,7 +58,11 @@
     // FETCH
     // ================================================================
     function doFetch(showSpinner) {
-        if (showSpinner) LMS.showLoading();
+        if (showSpinner) {
+            LMS.showLoading();
+            document.getElementById('spbu-widgets').classList.add('hidden');
+            document.getElementById('skeleton-loading').style.display = '';
+        }
         var params = new URLSearchParams({
             date_from: document.getElementById('filter-date-from').value,
             date_to: document.getElementById('filter-date-to').value,
