@@ -47,6 +47,14 @@
         if (cached) {
             DATA = cached;
             CUBE = JSON.parse(DATA.cube_json);
+            if (DATA.filters && DATA.filters.users) {
+                var users = DATA.filters.users.filter(function(v) { return v !== 'All'; });
+                LMS.populateDropdown('filter-user', users, 'All');
+            }
+            if (DATA.filters && DATA.filters.dates) {
+                var dates = DATA.filters.dates.filter(function(v) { return v !== 'All'; });
+                LMS.populateDropdown('filter-date', dates, 'All');
+            }
             showContent();      // show containers FIRST so Plotly sees full width
             renderFromCube();   // then render charts into visible containers
         }
