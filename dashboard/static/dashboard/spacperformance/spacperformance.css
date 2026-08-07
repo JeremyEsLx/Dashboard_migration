@@ -21,15 +21,21 @@
 .page-title { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0; }
 .updated-on { font-size: 0.8rem; color: #6b7280; font-style: italic; }
 
+/* === PERFORMANCE ROWS WRAPPER (fill remaining viewport) === */
+#skeleton-loading, #perf-widgets { display: flex; flex-direction: column; height: calc(100vh - 280px); gap: 6px; }
+
 /* === PERFORMANCE ROWS (KPI left + Chart right) === */
-.perf-row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; margin-bottom: 8px; width: 100%; }
-.perf-kpi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 10px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.perf-row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; width: 100%; flex: 1; }
+.perf-kpi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 8px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .perf-kpi-card .kpi-label { font-size: 0.7rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 .perf-kpi-card .kpi-value { font-size: 2rem; font-weight: 700; color: #111827; }
-.perf-chart-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 6px 12px; }
+.perf-chart-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 6px 12px; display: flex; flex-direction: column; overflow: hidden; }
 .perf-chart-card .card-title { font-size: 0.75rem; font-weight: 600; color: #374151; margin-bottom: 2px; }
-.perf-chart-card > div:last-child { width: 100%; height: 155px; }
+.perf-chart-card > div:last-child { width: 100%; flex: 1; }
 
 /* === SKELETON === */
-.skeleton { border-radius: 3px; }
+.skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 3px; }
+.skeleton-value { height: 32px; width: 60%; margin: 0 auto; }
+.skeleton-chart { flex: 1; width: 100%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .hidden { display: none; }
