@@ -6,7 +6,7 @@
 {% block nav_spacperfbyuser %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/spacperfbyuser/spacperfbyuser.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'dashboard/spacperfbyuser/spacperfbyuser.css' %}?v=2">
 {% endblock %}
 
 {% block page_title %}
@@ -64,8 +64,21 @@
 <!-- SKELETON LOADING -->
 <div id="skeleton-loading">
     <div class="spbu-layout">
-        <div class="spbu-users-card"><div class="card-title">User Performance</div><div class="skeleton" style="height:100%"></div></div>
-        <div class="spbu-chart-card"><div class="card-title">UPH by Date and Hour</div><div class="skeleton" style="height:100%"></div></div>
+        <div class="spbu-users-card">
+            <div class="card-title">User Performance</div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line"></div>
+        </div>
+        <div class="spbu-chart-card">
+            <div class="card-title">UPH by Date and Hour</div>
+            <div class="skeleton skeleton-chart"></div>
+        </div>
     </div>
 </div>
 
@@ -85,5 +98,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/spacperfbyuser/spacperfbyuser.js' %}?v=1"></script>
+<script src="{% static 'dashboard/spacperfbyuser/spacperfbyuser.js' %}?v=2"></script>
 {% endblock %}
