@@ -172,13 +172,24 @@
             return;
         }
 
-        var xHours = [], xDates = [], yUPH = [], textVals = [];
+        // Use sequential x values to guarantee correct left-to-right order
+        var xVals = [], tickLabels = [], yUPH = [], textVals = [];
+        var lastDate = '';
         for (var i = 0; i < hourData.length; i++) {
             var h = hourData[i];
             var parts = h.day.split('-');
             var dateLabel = parseInt(parts[1]) + '/' + parseInt(parts[2]) + '/' + parts[0];
-            xHours.push(h.hour < 10 ? '0' + h.hour : String(h.hour));
-            xDates.push(dateLabel);
+            var hourLabel = h.hour < 10 ? '0' + h.hour : String(h.hour);
+
+            // Show date below hour label only on first occurrence of each day
+            if (h.day !== lastDate) {
+                tickLabels.push(hourLabel + '<br>' + dateLabel);
+                lastDate = h.day;
+            } else {
+                tickLabels.push(hourLabel);
+            }
+
+            xVals.push(i);
             var uph = h.duration > 0 ? Math.round((h.units / h.duration) * 60) : 0;
             yUPH.push(uph);
             textVals.push(String(uph));
@@ -187,7 +198,7 @@
         Plotly.react('uph-line-chart', [{
             type: 'scatter',
             mode: 'lines+markers+text',
-            x: [xDates, xHours],
+            x: xVals,
             y: yUPH,
             text: textVals,
             textposition: 'top center',
@@ -197,14 +208,19 @@
             fill: 'tozeroy',
             fillcolor: 'rgba(59, 130, 246, 0.15)',
             cliponaxis: false,
-            hovertemplate: 'Hour %{x}: %{y} UPH<extra></extra>',
+            hovertemplate: '%{text} UPH<extra></extra>',
         }], {
             autosize: true,
             margin: { t: 10, b: 50, l: 35, r: 40 },
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif', size: 10 },
-            xaxis: { type: 'multicategory', tickfont: { size: 9 } },
+            xaxis: {
+                tickmode: 'array',
+                tickvals: xVals,
+                ticktext: tickLabels,
+                tickfont: { size: 9 },
+            },
             yaxis: { gridcolor: '#f3f4f6', zeroline: false, title: { text: 'UPH', font: { size: 10 } } },
             shapes: [{
                 type: 'line',
