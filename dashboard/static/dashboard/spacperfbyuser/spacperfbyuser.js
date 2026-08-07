@@ -192,10 +192,10 @@
             text: textVals,
             textposition: 'top center',
             textfont: { size: 8, color: '#6b7280' },
-            line: { color: '#3b82f6', width: 2 },
+            line: { color: '#3b82f6', width: 2, shape: 'spline' },
             marker: { color: '#3b82f6', size: 4 },
             fill: 'tozeroy',
-            fillcolor: 'rgba(59, 130, 246, 0.1)',
+            fillcolor: 'rgba(59, 130, 246, 0.15)',
             cliponaxis: false,
             hovertemplate: 'Hour %{x}: %{y} UPH<extra></extra>',
         }], {
