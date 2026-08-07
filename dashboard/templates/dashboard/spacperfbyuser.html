@@ -1,0 +1,89 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}SPAC Performance by User{% endblock %}
+{% block tab_lms %}tab-active{% endblock %}
+{% block nav_spacperfbyuser %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/spacperfbyuser/spacperfbyuser.css' %}?v=1">
+{% endblock %}
+
+{% block page_title %}
+<div class="page-header">
+    <h1 class="page-title">SPAC Performance by User</h1>
+    <span class="updated-on" id="updated-on"></span>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- FILTER BAR -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label for="filter-date-from">DATE FROM</label>
+        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
+    </div>
+    <div class="filter-group">
+        <label for="filter-date-to">DATE TO</label>
+        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+    </div>
+    <div class="filter-group">
+        <label for="filter-date">DATE</label>
+        <select id="filter-date"></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-user">USER</label>
+        <select id="filter-user"></select>
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter btn-export" id="btn-export">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            Export
+        </button>
+        <button class="btn-filter btn-reset" id="btn-reset">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0111.3-2.7M14 3v3h-3"/><path d="M14 8a6 6 0 01-11.3 2.7M2 13v-3h3"/></svg>
+            Reset Filters
+        </button>
+        <button class="btn-filter btn-refresh" id="btn-refresh">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0111.3-2.7M14 3v3h-3"/><path d="M14 8a6 6 0 01-11.3 2.7M2 13v-3h3"/></svg>
+            Refresh
+        </button>
+        <span class="refresh-timer" id="refresh-timer"></span>
+    </div>
+</div>
+
+<!-- ACTIVE FILTERS BANNER -->
+<div class="active-filters-banner" id="active-filters-banner">
+    <span class="banner-icon" id="banner-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>
+    </span>
+    <span class="banner-date-range" id="banner-date-range">Loading...</span>
+    <span class="banner-chips" id="banner-chips"></span>
+</div>
+
+<!-- SKELETON LOADING -->
+<div id="skeleton-loading">
+    <div class="spbu-layout">
+        <div class="spbu-users-card"><div class="card-title">User Performance</div><div class="skeleton" style="height:100%"></div></div>
+        <div class="spbu-chart-card"><div class="card-title">UPH by Date and Hour</div><div class="skeleton" style="height:100%"></div></div>
+    </div>
+</div>
+
+<!-- REAL WIDGETS -->
+<div id="spbu-widgets" class="hidden">
+    <div class="spbu-layout">
+        <div class="spbu-users-card">
+            <div class="card-title">User Performance</div>
+            <div class="spbu-users-list" id="user-list"></div>
+        </div>
+        <div class="spbu-chart-card">
+            <div class="card-title">UPH by Date and Hour</div>
+            <div id="uph-line-chart"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/spacperfbyuser/spacperfbyuser.js' %}?v=1"></script>
+{% endblock %}

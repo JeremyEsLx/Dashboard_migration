@@ -29,6 +29,7 @@ urlpatterns = [
     path('spacuph/', views.spac_uph, name='spac_uph'),
     path('api/spacuph/', views.spac_uph_data, name='spac_uph_data'),
     path('spacperformance/', views.spac_performance, name='spac_performance'),
+    path('spacperfbyuser/', views.spac_perf_by_user, name='spac_perf_by_user'),
 
     # Placeholder dashboards (WIP)
     path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),
