@@ -59,7 +59,6 @@
     // ================================================================
     function doFetch(showSpinner) {
         if (showSpinner) {
-            LMS.showLoading();
             document.getElementById('spbu-widgets').classList.add('hidden');
             document.getElementById('skeleton-loading').style.display = '';
         }

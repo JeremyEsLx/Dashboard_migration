@@ -59,7 +59,6 @@
     // ================================================================
     function doFetch(showSpinner) {
         if (showSpinner) {
-            LMS.showLoading();
             document.getElementById('perf-widgets').classList.add('hidden');
             document.getElementById('skeleton-loading').style.display = '';
         }
