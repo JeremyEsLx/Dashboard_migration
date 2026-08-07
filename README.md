@@ -266,6 +266,10 @@ Reusable Django template fragments in `_partials/`:
 | User Performance | `/userperformance/` | `/api/userperformance/` | `services_userperf.get_userperf_data()` | Search-first |
 | Delivery Deep Dive | `/deliverydeepdive/` | `/api/deliverydeepdive/` | `services_delivery.get_delivery_data()` | Search-first |
 | Detail by Material | `/detailbymaterial/` | `/api/detailbymaterial/` | `services_material.get_material_data()` | Hybrid (10K cap) |
+| User Summary | `/usersummary/` | `/api/usersummary/` | `services_usersummary.get_usersummary_data()` | Search-first |
+| SPAC UPH | `/spacuph/` | `/api/spacuph/` | `services_spac.get_spac_data()` | Hybrid cube |
+| SPAC Performance | `/spacperformance/` | (reuses `/api/spacuph/`) | `services_spac.get_spac_data()` | Hybrid cube |
+| SPAC Perf by User | `/spacperfbyuser/` | (reuses `/api/spacuph/`) | `services_spac.get_spac_data()` | Hybrid cube |
 
 ### Date Defaults
 
