@@ -177,7 +177,7 @@
             var h = hourData[i];
             var parts = h.day.split('-');
             var dateLabel = parseInt(parts[1]) + '/' + parseInt(parts[2]) + '/' + parts[0];
-            xHours.push(String(h.hour));
+            xHours.push(h.hour < 10 ? '0' + h.hour : String(h.hour));
             xDates.push(dateLabel);
             var uph = h.duration > 0 ? Math.round((h.units / h.duration) * 60) : 0;
             yUPH.push(uph);
