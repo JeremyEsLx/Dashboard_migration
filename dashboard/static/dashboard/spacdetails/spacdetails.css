@@ -25,7 +25,7 @@
 #skeleton-loading, #spd-widgets { height: calc(100vh - 320px); overflow: hidden; }
 .spd-layout { display: grid; grid-template-columns: 160px 1fr; gap: 10px; width: 100%; height: 100%; }
 .spd-kpi-col { display: flex; flex-direction: column; gap: 6px; }
-.spd-kpi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 12px 14px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.spd-kpi-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 3px; padding: 12px 14px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .spd-kpi-card .kpi-label { font-size: 0.7rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 .spd-kpi-card .kpi-value { font-size: 2rem; font-weight: 700; color: #111827; }
 
