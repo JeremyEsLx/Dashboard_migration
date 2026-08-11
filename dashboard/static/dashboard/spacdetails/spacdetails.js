@@ -36,7 +36,7 @@
         var cached = cache.get();
         if (cached) {
             DATA = cached;
-            CUBE = JSON.parse(DATA.detail_json);
+            CUBE = JSON.parse(DATA.detail_json || '[]');
             if (DATA.filters && DATA.filters.users) {
                 var users = DATA.filters.users.filter(function(v) { return v !== 'All'; });
                 LMS.populateDropdown('filter-user', users, 'All');
@@ -78,7 +78,7 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 DATA = data;
-                CUBE = JSON.parse(data.cube_json);
+                CUBE = JSON.parse(data.detail_json || '[]');
                 cache.set(data);
                 if (data.filters && data.filters.users) {
                     var users = data.filters.users.filter(function(v) { return v !== 'All'; });
