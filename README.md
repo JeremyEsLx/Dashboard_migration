@@ -102,6 +102,11 @@ Dashboard_migration/
 |   |   |-- userperformance/userperformance.js + .css
 |   |   |-- deliverydeepdive/deliverydeepdive.js + .css
 |   |   |-- detailbymaterial/detailbymaterial.js + .css
+|   |   |-- usersummary/usersummary.js + .css
+|   |   |-- spacuph/spacuph.js + .css
+|   |   |-- spacperformance/spacperformance.js + .css
+|   |   |-- spacperfbyuser/spacperfbyuser.js + .css
+|   |   |-- spacdetails/spacdetails.js + .css
 |   |
 |   |-- templates/dashboard/
 |       |-- base.html                            # Shared layout (nav, header, logo)
@@ -128,10 +133,12 @@ Dashboard_migration/
 
 ```
 services_base.py          <-- Foundation (import from here)
-    |-- services.py       <-- Summary, Performance, Process, Strong Start/Finish, No Activity
-    |-- services_userperf.py    <-- User Performance
-    |-- services_delivery.py    <-- Delivery Deep Dive
-    |-- services_material.py    <-- Detail by Material
+    |-- services.py            <-- Summary, Performance, Process, Strong Start/Finish, No Activity
+    |-- services_userperf.py   <-- User Performance
+    |-- services_delivery.py   <-- Delivery Deep Dive
+    |-- services_material.py   <-- Detail by Material
+    |-- services_usersummary.py <-- User Summary
+    |-- services_spac.py       <-- SPAC UPH / Performance / Perf by User / Details (BI database)
 ```
 
 ### services_base.py - Shared Utilities
@@ -270,6 +277,7 @@ Reusable Django template fragments in `_partials/`:
 | SPAC UPH | `/spacuph/` | `/api/spacuph/` | `services_spac.get_spac_data()` | Hybrid cube |
 | SPAC Performance | `/spacperformance/` | (reuses `/api/spacuph/`) | `services_spac.get_spac_data()` | Hybrid cube |
 | SPAC Perf by User | `/spacperfbyuser/` | (reuses `/api/spacuph/`) | `services_spac.get_spac_data()` | Hybrid cube |
+| SPAC Details | `/spacdetails/` | `/api/spacdetails/` | `services_spac.get_spac_details_data()` | Hybrid (row-level) |
 
 ### Date Defaults
 
@@ -299,6 +307,7 @@ Reusable Django template fragments in `_partials/`:
 | --- | --- | --- | --- |
 | 10.80.192.78 | LMS_Database | `[dbo].[LMS_PBI_Dashboard_MX03]` | Main LMS transactions |
 | 10.80.192.78 | Business_Intelligence | `[dbo].[MX03_Roster]` | Employee headcount/roster |
+| 10.80.192.78 | Business_Intelligence | `[dbo].[mx03_spac_uph]` | SPAC packing productivity |
 
 ### Employee Type Filter
 
