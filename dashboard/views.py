@@ -5,7 +5,7 @@ from .services_userperf import get_userperformance_data
 from .services_delivery import get_delivery_data
 from .services_material import get_material_data, get_material_export
 from .services_usersummary import get_usersummary_data, get_usersummary_filters
-from .services_spac import get_spac_data
+from .services_spac import get_spac_data, get_spac_details_data
 
 
 # ============================================================
@@ -447,6 +447,37 @@ def spac_performance(request):
         },
     }
     return render(request, 'dashboard/spacperformance.html', {'data': data})
+
+
+def spac_details(request):
+    """Render SPAC Details shell (no SQL) - JS fetches /api/spacdetails/."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/spacdetails.html', {'data': data})
+
+
+def spac_details_data(request):
+    """API: returns SPAC row-level detail data as JSON."""
+    try:
+        data = get_spac_details_data(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'last_update': '',
+            'detail_json': '[]',
+            'filters': {'users': ['All'], 'dates': ['All']},
+            'selected': {'date_from': '', 'date_to': ''},
+        }, status=200)
 
 
 _PLACEHOLDER_DASHBOARDS = {

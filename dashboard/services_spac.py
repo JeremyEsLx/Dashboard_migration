@@ -132,3 +132,82 @@ def get_spac_data(date_from=None, date_to=None, user=None):
             'date_to': date_to,
         },
     }
+
+
+# ============================================================
+# SPAC DETAILS - ROW-LEVEL DATA
+# ============================================================
+
+def get_spac_details_data(date_from=None, date_to=None):
+    """Fetch row-level SPAC data for the Details dashboard.
+
+    Returns individual rows (not grouped) with wave, mission, start, end.
+    Client-side JS handles User/Date filtering + KPI computation.
+    """
+    if not date_from or not date_to:
+        today = date.today()
+        date_from = str(today - timedelta(days=4))
+        date_to = str(today)
+
+    where_sql = f"[Date] >= '{date_from}' AND [Date] <= '{date_to}'"
+
+    detail_query = f"""
+        SELECT
+            [User] AS [user],
+            ISNULL(CAST([Wave Number] AS VARCHAR(20)), '') AS [wave],
+            ISNULL(CAST([Virtual Tote] AS VARCHAR(20)), '') AS [mission],
+            CONVERT(VARCHAR(20), [Min_DateTime], 120) AS [start],
+            CONVERT(VARCHAR(20), [Max_DateTime], 120) AS [end],
+            ISNULL(TRY_CAST([Duration] AS FLOAT), 0) AS [duration],
+            ISNULL(TRY_CAST([Count] AS BIGINT), 0) AS [units],
+            CONVERT(VARCHAR(10), [Date], 23) AS [day]
+        FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
+        WHERE {where_sql}
+          AND [Min_DateTime] IS NOT NULL
+        ORDER BY [Min_DateTime] DESC
+    """
+
+    meta_query = f"""
+        SELECT MIN([LastUpdate]) AS last_update
+        FROM [Business_Intelligence].[dbo].[mx03_spac_uph] WITH (NOLOCK)
+        WHERE {where_sql}
+    """
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        f_meta = executor.submit(_bi_query, meta_query)
+        f_detail = executor.submit(_bi_query, detail_query)
+        meta_df = f_meta.result(timeout=30)
+        detail_df = f_detail.result(timeout=30)
+
+    last_update = str(meta_df.iloc[0]['last_update']) if not meta_df.empty and meta_df.iloc[0]['last_update'] else ''
+
+    # Build detail rows
+    detail_data = []
+    for _, row in detail_df.iterrows():
+        detail_data.append({
+            'user': str(row['user']) if row['user'] else '',
+            'wave': str(row['wave']),
+            'mission': str(row['mission']),
+            'start': str(row['start']),
+            'end': str(row['end']),
+            'duration': float(row['duration']),
+            'units': int(row['units']),
+            'day': str(row['day']),
+        })
+
+    # Filter options
+    users = ['All'] + sorted(set(r['user'] for r in detail_data if r['user']))
+    dates = ['All'] + sorted(set(r['day'] for r in detail_data))
+
+    return {
+        'last_update': last_update,
+        'detail_json': json.dumps(detail_data),
+        'filters': {
+            'users': users,
+            'dates': dates,
+        },
+        'selected': {
+            'date_from': date_from,
+            'date_to': date_to,
+        },
+    }
