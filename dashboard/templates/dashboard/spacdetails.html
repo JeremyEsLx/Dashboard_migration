@@ -6,7 +6,7 @@
 {% block nav_spacdetails %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/spacdetails/spacdetails.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'dashboard/spacdetails/spacdetails.css' %}?v=2">
 {% endblock %}
 
 {% block page_title %}
@@ -17,8 +17,14 @@
 {% endblock %}
 
 {% block content %}
+<!-- FILTERS TOGGLE (mobile only) -->
+<button class="filters-toggle" id="filters-toggle">
+    <span>Filters</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+
 <!-- FILTER BAR -->
-<div class="filters-bar">
+<div class="filters-bar filters-collapsible" id="filters-bar">
     <div class="filter-group">
         <label for="filter-date-from">DATE FROM</label>
         <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">

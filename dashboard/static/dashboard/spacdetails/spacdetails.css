@@ -46,3 +46,53 @@
 .skeleton-table { flex: 1; width: 100%; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .hidden { display: none !important; }
+
+/* === RESPONSIVE === */
+@media (max-width: 1024px) {
+    /* Single column: KPIs above, table below */
+    .spd-layout {
+        grid-template-columns: 1fr;
+    }
+    .spd-kpi-col {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .spd-kpi-card {
+        flex: 1 1 calc(33% - 8px);
+        min-width: 100px;
+    }
+    .spd-table-card {
+        min-height: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .filters-bar {
+        flex-direction: column;
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    .filter-group { width: 100%; }
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        min-width: unset;
+        padding: 10px 12px;
+        font-size: 14px;
+        min-height: 44px;
+    }
+    .filter-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .btn-filter {
+        justify-content: center;
+        min-height: 44px;
+    }
+    .spd-kpi-card {
+        flex: 1 1 calc(50% - 8px);
+    }
+}
