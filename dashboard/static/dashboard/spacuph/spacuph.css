@@ -41,3 +41,42 @@
 .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 3px; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .hidden { display: none !important; }
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .filters-bar {
+        flex-direction: column;
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    .filter-group { width: 100%; }
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        min-width: unset;
+        padding: 10px 12px;
+        font-size: 14px;
+        min-height: 44px;
+    }
+    .filter-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .btn-filter {
+        justify-content: center;
+        min-height: 44px;
+    }
+
+    /* Stack to single column */
+    .spac-grid {
+        grid-template-columns: 1fr;
+    }
+    .spac-chart-card {
+        margin-top: 10px;
+    }
+    #hour-chart {
+        height: 250px;
+    }
+}
