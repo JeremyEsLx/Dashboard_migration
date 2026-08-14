@@ -243,3 +243,93 @@
     font-weight: 500;
     color: #111827;
 }
+
+/* ============================================================
+   RESPONSIVE — Performance by User (mobile)
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Filters: stack vertically */
+    .filters-bar {
+        flex-direction: column;
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    .filter-group {
+        width: 100%;
+    }
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        min-width: unset;
+        padding: 10px 12px;
+        font-size: 14px;
+        min-height: 44px;
+    }
+    .filter-group label {
+        font-size: 11px;
+    }
+
+    /* Action buttons: full-width row wrap */
+    .filter-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+    }
+    .btn-filter {
+        justify-content: center;
+        padding: 10px 8px;
+        font-size: 12px;
+        min-height: 44px;
+    }
+    .refresh-timer {
+        grid-column: 1 / -1;
+        text-align: center;
+        margin-left: 0;
+    }
+
+    /* Tables: stack vertically, auto height (no fixed calc) */
+    .tables-container {
+        height: auto;
+        gap: 10px;
+    }
+    .table-card.process-card {
+        max-height: none;
+        overflow: visible;
+    }
+    .table-card.process-card .table-scroll {
+        max-height: 300px;
+    }
+    .table-card.user-card {
+        min-height: unset;
+    }
+    .table-card.user-card .table-scroll {
+        max-height: 400px;
+    }
+    .table-card {
+        padding: 10px 12px;
+    }
+
+    /* Table: horizontal scroll for wide tables */
+    .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .perf-table {
+        min-width: 600px;
+    }
+    .perf-table th,
+    .perf-table td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-actions {
+        grid-template-columns: 1fr 1fr;
+    }
+    .perf-table {
+        min-width: 500px;
+    }
+}
