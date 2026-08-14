@@ -14,8 +14,14 @@
 {% endblock %}
 
 {% block content %}
+<!-- FILTERS TOGGLE (mobile only) -->
+<button class="filters-toggle" id="filters-toggle">
+    <span>Filters</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+
 <!-- FILTERS -->
-<div class="filters-bar">
+<div class="filters-bar filters-collapsible" id="filters-bar">
     <div class="filter-group">
         <label>Week</label>
         <select id="filter-week">
