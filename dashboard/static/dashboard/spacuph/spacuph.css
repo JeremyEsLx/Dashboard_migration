@@ -43,6 +43,19 @@
 .hidden { display: none !important; }
 
 /* === RESPONSIVE === */
+@media (max-width: 1024px) {
+    /* Stack to single column on tablets and phones */
+    .spac-grid {
+        grid-template-columns: 1fr;
+    }
+    .spac-chart-card {
+        margin-top: 10px;
+    }
+    #hour-chart {
+        height: 280px;
+    }
+}
+
 @media (max-width: 768px) {
     .filters-bar {
         flex-direction: column;
@@ -67,16 +80,5 @@
     .btn-filter {
         justify-content: center;
         min-height: 44px;
-    }
-
-    /* Stack to single column */
-    .spac-grid {
-        grid-template-columns: 1fr;
-    }
-    .spac-chart-card {
-        margin-top: 10px;
-    }
-    #hour-chart {
-        height: 250px;
     }
 }
