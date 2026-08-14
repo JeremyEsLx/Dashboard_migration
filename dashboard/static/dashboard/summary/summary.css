@@ -202,13 +202,28 @@
     }
     .kpi-card.gauge-card {
         grid-column: 1 / -1;
-        min-height: 180px;
+        min-height: auto;
+        overflow: hidden;
+        padding-bottom: 10px;
     }
     .kpi-value {
         font-size: 26px;
     }
     .kpi-card h3 {
         font-size: 9px;
+    }
+
+    /* Gauge: constrain Plotly render to prevent overflow */
+    #gauge-container {
+        height: 140px;
+        max-height: 140px;
+        overflow: hidden;
+    }
+    #gauge-container .js-plotly-plot,
+    #gauge-container .plot-container,
+    #gauge-container .svg-container {
+        max-height: 140px !important;
+        overflow: hidden;
     }
 
     /* Charts: single column, reduced height */
@@ -218,12 +233,12 @@
     }
     .chart-card {
         padding: 12px;
+        overflow: hidden;
     }
     .chart-container {
         height: 220px;
-    }
-    #gauge-container {
-        height: 150px;
+        max-height: 220px;
+        overflow: hidden;
     }
 }
 
@@ -234,10 +249,16 @@
     .kpi-card.gauge-card {
         grid-column: auto;
     }
+    #gauge-container {
+        height: 130px;
+        max-height: 130px;
+    }
     .filter-actions {
         grid-template-columns: 1fr;
     }
     .chart-container {
         height: 200px;
+        max-height: 200px;
+        overflow: hidden;
     }
 }
