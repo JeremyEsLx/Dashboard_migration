@@ -288,23 +288,30 @@
         margin-left: 0;
     }
 
-    /* Tables: stack vertically, auto height (no fixed calc) */
+    /* Tables: stack vertically, remove fixed viewport height */
     .tables-container {
         height: auto;
+        min-height: 0;
+        overflow: visible;
         gap: 10px;
     }
     .table-card.process-card {
+        flex: none;
         max-height: none;
         overflow: visible;
     }
     .table-card.process-card .table-scroll {
-        max-height: 300px;
+        max-height: 50vh;
+        overflow-y: auto;
     }
     .table-card.user-card {
+        flex: none;
         min-height: unset;
+        overflow: visible;
     }
     .table-card.user-card .table-scroll {
-        max-height: 400px;
+        max-height: 50vh;
+        overflow-y: auto;
     }
     .table-card {
         padding: 10px 12px;

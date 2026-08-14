@@ -167,6 +167,20 @@
     })();
     </script>
 
+    <!-- Collapsible Filters Script (mobile) -->
+    <script>
+    (function() {
+        var toggle = document.getElementById('filters-toggle');
+        var filtersBar = document.getElementById('filters-bar');
+        if (!toggle || !filtersBar) return;
+
+        toggle.addEventListener('click', function() {
+            var expanded = filtersBar.classList.toggle('filters-expanded');
+            toggle.classList.toggle('filters-active', expanded);
+        });
+    })();
+    </script>
+
     <!-- Mobile Navigation Script -->
     <script>
     (function() {
