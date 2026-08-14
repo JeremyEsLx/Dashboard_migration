@@ -213,17 +213,17 @@
         font-size: 9px;
     }
 
-    /* Gauge: constrain Plotly render to prevent overflow */
+    /* Gauge: scale down Plotly render to fit mobile */
     #gauge-container {
-        height: 140px;
-        max-height: 140px;
+        height: 160px;
         overflow: hidden;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
     }
-    #gauge-container .js-plotly-plot,
-    #gauge-container .plot-container,
-    #gauge-container .svg-container {
-        max-height: 140px !important;
-        overflow: hidden;
+    #gauge-container .js-plotly-plot {
+        transform: scale(0.75);
+        transform-origin: top center;
     }
 
     /* Charts: single column, reduced height */
@@ -250,8 +250,11 @@
         grid-column: auto;
     }
     #gauge-container {
-        height: 130px;
-        max-height: 130px;
+        height: 140px;
+    }
+    #gauge-container .js-plotly-plot {
+        transform: scale(0.65);
+        transform-origin: top center;
     }
     .filter-actions {
         grid-template-columns: 1fr;
