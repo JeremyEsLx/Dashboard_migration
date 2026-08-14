@@ -150,6 +150,94 @@
     .kpi-row { grid-template-columns: repeat(3, 1fr); }
     .charts-row { grid-template-columns: 1fr; }
 }
+
 @media (max-width: 768px) {
-    .kpi-row { grid-template-columns: 1fr 1fr; }
+    /* Filters bar: stack vertically, full width */
+    .filters-bar {
+        flex-direction: column;
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    .filter-group {
+        width: 100%;
+    }
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        min-width: unset;
+        padding: 10px 12px;
+        font-size: 14px;
+        min-height: 44px; /* touch-friendly */
+    }
+    .filter-group label {
+        font-size: 11px;
+    }
+
+    /* Action buttons: wrap into grid */
+    .filter-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .btn-filter {
+        justify-content: center;
+        padding: 10px 12px;
+        font-size: 13px;
+        min-height: 44px;
+    }
+    .refresh-timer {
+        grid-column: 1 / -1;
+        text-align: center;
+    }
+
+    /* KPIs: 2 columns, gauge spans full width */
+    .kpi-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .kpi-card {
+        padding: 14px 10px;
+        min-height: 120px;
+    }
+    .kpi-card.gauge-card {
+        grid-column: 1 / -1;
+        min-height: 180px;
+    }
+    .kpi-value {
+        font-size: 26px;
+    }
+    .kpi-card h3 {
+        font-size: 9px;
+    }
+
+    /* Charts: single column, reduced height */
+    .charts-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .chart-card {
+        padding: 12px;
+    }
+    .chart-container {
+        height: 220px;
+    }
+    #gauge-container {
+        height: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-row {
+        grid-template-columns: 1fr;
+    }
+    .kpi-card.gauge-card {
+        grid-column: auto;
+    }
+    .filter-actions {
+        grid-template-columns: 1fr;
+    }
+    .chart-container {
+        height: 200px;
+    }
 }
