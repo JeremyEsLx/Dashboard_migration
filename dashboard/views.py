@@ -481,6 +481,46 @@ def spac_details_data(request):
         }, status=200)
 
 
+# ============================================================
+# MX03 PERFORMANCE HxH
+# ============================================================
+
+def hxh_overall(request):
+    """Render HxH Overall Performance shell (instant, no SQL) - JS hydrates via /api/hxh/."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/hxh_overall.html', {'data': data})
+
+
+def hxh_overall_data(request):
+    """API: returns HxH Overall Performance data as JSON."""
+    try:
+        data = get_hxh_overall_data(
+            date_from=request.GET.get('date_from'),
+            date_to=request.GET.get('date_to'),
+        )
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'cube_json': '[]',
+            'filters': {
+                'processes': ['All'],
+                'flows': ['All'],
+                'cart_types': ['All'],
+                'dates': ['All'],
+                'shifts': ['All', 'Morning Shift', 'Night Shift'],
+            },
+            'selected': {'date_from': '', 'date_to': ''},
+        }, status=200)
+
+
 _PLACEHOLDER_DASHBOARDS = {
     'frames': 'Frames Hourly WIP',
     'wearables': 'Wearables Hourly WIP',
