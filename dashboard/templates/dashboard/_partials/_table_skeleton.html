@@ -1,11 +1,11 @@
-{# _partials/_table_skeleton.html — Loading skeleton rows for tables
-   Shows animated placeholder rows while data loads.
-
-   Required variable: colspan (number of table columns)
-   Optional variable: rows (default 5)
-   Usage: {% include "dashboard/_partials/_table_skeleton.html" with colspan=13 %}
-   Usage: {% include "dashboard/_partials/_table_skeleton.html" with colspan=6 rows=3 %}
-#}
+{% comment %}
+_partials/_table_skeleton.html — Loading skeleton rows for tables
+Shows animated placeholder rows while data loads.
+Required variable: colspan (number of table columns)
+Optional variable: rows (default 5)
+Usage: include "dashboard/_partials/_table_skeleton.html" with colspan=13
+Usage: include "dashboard/_partials/_table_skeleton.html" with colspan=6 rows=3
+{% endcomment %}
 {% for i in "12345" %}
 {% if rows and forloop.counter > rows|default:5 %}{% else %}
 <tr><td colspan="{{ colspan }}" class="skeleton skeleton-row"></td></tr>

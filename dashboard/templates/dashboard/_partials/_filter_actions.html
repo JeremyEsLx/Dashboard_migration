@@ -1,11 +1,11 @@
-{# _partials/_filter_actions.html — Standard filter action buttons
-   Includes: Export, Reset, Refresh, and auto-refresh timer.
-   Used on all auto-load pages.
-
-   Optional variable: show_export (default true)
-   Usage: {% include "dashboard/_partials/_filter_actions.html" %}
-   Usage: {% include "dashboard/_partials/_filter_actions.html" with show_export=False %}
-#}
+{% comment %}
+_partials/_filter_actions.html — Standard filter action buttons
+Includes: Export, Reset, Refresh, and auto-refresh timer.
+Used on all auto-load pages.
+Optional variable: show_export (default true)
+Usage: include "dashboard/_partials/_filter_actions.html"
+Usage: include "dashboard/_partials/_filter_actions.html" with show_export=False
+{% endcomment %}
 <div class="filter-actions">
     {% if show_export != False %}
     <button class="btn-filter btn-export" id="btn-export" title="Export filtered data to Excel">
