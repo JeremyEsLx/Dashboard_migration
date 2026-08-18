@@ -6,6 +6,7 @@ from .services_delivery import get_delivery_data
 from .services_material import get_material_data, get_material_export
 from .services_usersummary import get_usersummary_data, get_usersummary_filters
 from .services_spac import get_spac_data, get_spac_details_data
+from .services_hxh import get_hxh_overall_data
 
 
 # ============================================================

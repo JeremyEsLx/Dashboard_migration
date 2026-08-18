@@ -33,6 +33,10 @@ urlpatterns = [
     path('spacdetails/', views.spac_details, name='spac_details'),
     path('api/spacdetails/', views.spac_details_data, name='spac_details_data'),
 
+    # MX03 Performance HxH
+    path('hxh/', views.hxh_overall, name='hxh_overall'),
+    path('api/hxh/', views.hxh_overall_data, name='hxh_overall_data'),
+
     # Placeholder dashboards (WIP)
     path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),
     path('wearables/', views.placeholder_dashboard, {'dashboard_key': 'wearables'}, name='wearables'),

@@ -1,0 +1,211 @@
+/* ============================================================
+   HxH Overall Performance - Page Styles
+   ============================================================ */
+
+/* Layout: left (UPH) | center (3 charts) | right (3 KPIs) */
+.hxh-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr 160px;
+    gap: 16px;
+    height: calc(100vh - 200px);
+    min-height: 500px;
+}
+
+/* Left column: UPH by Shift */
+.hxh-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.hxh-left .chart-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.hxh-left .chart-container {
+    flex: 1;
+    min-height: 200px;
+}
+
+/* Center column: 3 stacked charts */
+.hxh-center {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.hxh-center .chart-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.hxh-center .chart-container {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Right column: 3 KPI cards */
+.hxh-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    justify-content: space-around;
+}
+
+.kpi-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.kpi-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.kpi-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+
+/* Chart card styling */
+.chart-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.chart-card-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    padding: 10px 14px 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.chart-container {
+    width: 100%;
+    padding: 0 4px 4px;
+}
+
+/* Skeleton loading */
+.hxh-skeleton {
+    display: grid;
+    grid-template-columns: 200px 1fr 160px;
+    gap: 16px;
+    height: calc(100vh - 200px);
+    min-height: 500px;
+}
+
+.skeleton-left,
+.skeleton-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.skeleton-center {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.skeleton-left .skeleton-box {
+    flex: 1;
+}
+
+.skeleton-center .skeleton-box {
+    flex: 1;
+}
+
+.skeleton-right .skeleton-box {
+    flex: 1;
+}
+
+.skeleton-box {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Hidden utility */
+.hidden {
+    display: none !important;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1024px) {
+    .hxh-layout,
+    .hxh-skeleton {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .hxh-left {
+        order: 2;
+    }
+
+    .hxh-center {
+        order: 1;
+    }
+
+    .hxh-right {
+        order: 3;
+        flex-direction: row;
+    }
+
+    .hxh-center .chart-card {
+        min-height: 220px;
+    }
+
+    .kpi-card {
+        flex: 1;
+    }
+
+    .kpi-value {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hxh-right {
+        flex-direction: column;
+    }
+
+    .kpi-value {
+        font-size: 24px;
+    }
+
+    .hxh-center .chart-card {
+        min-height: 180px;
+    }
+}
