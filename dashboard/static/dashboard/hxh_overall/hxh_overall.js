@@ -141,7 +141,7 @@
     }
 
     var CHART_LAYOUT_BASE = {
-        margin: { t: 8, r: 10, b: 50, l: 40 },
+        margin: { t: 4, r: 8, b: 36, l: 36 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Inter, sans-serif', size: 10 },
@@ -261,26 +261,27 @@
         var maxVal = Math.max(morningUPH, nightUPH, 1);
 
         var trace = {
-            y: ['Night Shift', 'Morning Shift'],
-            x: [nightUPH, morningUPH],
+            x: ['Morning<br>Shift', 'Night<br>Shift'],
+            y: [morningUPH, nightUPH],
             type: 'bar',
-            orientation: 'h',
             marker: {
                 color: [
-                    valueToGray(nightUPH, maxVal),
                     valueToGray(morningUPH, maxVal),
+                    valueToGray(nightUPH, maxVal),
                 ],
             },
-            text: [nightUPH.toString(), morningUPH.toString()],
-            textposition: 'inside',
-            textfont: { size: 11, color: '#fff' },
-            hovertemplate: '%{y}: %{x} UPH<extra></extra>',
+            text: [morningUPH.toString(), nightUPH.toString()],
+            textposition: 'outside',
+            textfont: { size: 11 },
+            hovertemplate: '%{x}: %{y} UPH<extra></extra>',
+            width: [0.5, 0.5],
         };
 
         var layout = Object.assign({}, CHART_LAYOUT_BASE, {
-            margin: { t: 8, r: 10, b: 30, l: 90 },
-            xaxis: { type: 'log', gridcolor: '#f1f5f9', zeroline: false, dtick: 1 },
-            yaxis: { tickfont: { size: 10 } },
+            margin: { t: 20, r: 10, b: 40, l: 40 },
+            yaxis: { gridcolor: '#f1f5f9', zeroline: false },
+            xaxis: { tickfont: { size: 10 } },
+            bargap: 0.4,
         });
 
         Plotly.newPlot(container, [trace], layout, CHART_CONFIG);
