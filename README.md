@@ -19,6 +19,8 @@ Django web application migrating Power BI LMS dashboards for EssilorLuxottica's 
 11. [UI Conventions](#ui-conventions)
 12. [Known Issues and Solutions](#known-issues-and-solutions)
 
+13. [Mobile Responsiveness](#mobile-responsiveness)
+
 ## Quick Start
 
 ```bash
@@ -489,6 +491,71 @@ Run after any CSS/JS changes, then restart the server.
 - Dates displayed as mm/dd/yyyy (values stay ISO yyyy-mm-dd)
 - Auto-refresh: 15 minutes (all pages except search-first)
 - Session storage keys: `lms_<page>_cache`, timers: `lms_timer_<page>`
+
+---
+
+## Mobile Responsiveness
+
+The dashboard supports mobile/tablet access via responsive CSS with progressive breakpoints.
+
+### Breakpoints
+
+| Breakpoint | Target | Key Changes |
+| --- | --- | --- |
+| 1024px | Tablets / wide phones | SPAC grids collapse to single column, header tabs become scrollable |
+| 768px | Phones | Sidebar becomes slide-in drawer, filters collapse, KPIs/charts stack vertically |
+| 480px | Small phones | Further compacting of padding, single-column KPIs |
+
+### Mobile Navigation
+
+- **Hamburger menu** (visible at 768px) opens sidebar as a slide-in drawer from the left with dark overlay
+- **Header tabs** scroll horizontally with CSS scroll-snap for smooth swipe navigation
+- **Sidebar drawer** has a close button, 44px touch-friendly links, and closes on navigation
+
+### Collapsible Filters
+
+On mobile, all pages with filters show a "Filters" toggle button that expands/collapses the filter bar:
+
+```html
+<!-- Add to any page with filters -->
+<button class="filters-toggle" id="filters-toggle">
+    <span>Filters</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+
+<div class="filters-bar filters-collapsible" id="filters-bar">
+    <!-- existing filter content -->
+</div>
+```
+
+The JS handler in `base.html` auto-detects and wires up any page with `#filters-toggle` + `#filters-bar`.
+
+### Pages with Mobile Support
+
+| Page | Collapsible Filters | Single Column | Notes |
+| --- | --- | --- | --- |
+| Summary | Yes | KPIs stack, charts stack | Gauge uses max-width constraint |
+| Performance by User | Yes | Tables flow vertically | Tables scroll horizontally |
+| Performance by Process | Yes | - | - |
+| Strong Start | Yes | - | - |
+| Strong Finish | Yes | - | - |
+| No Activity | Yes | - | - |
+| SPAC UPH | Yes | Grid at 1024px | KPIs above chart |
+| SPAC Performance | Yes | Grid at 768px | KPI above chart |
+| SPAC Perf by User | Yes | Grid at 768px | Users above chart |
+| SPAC Details | Yes | Grid at 1024px | KPIs row above full-width table |
+
+### CSS Architecture
+
+- **`base.css`** — Shared responsive: hamburger, sidebar drawer, overlay, collapsible filter toggle styles
+- **Page CSS** (`summary.css`, `performance.css`, etc.) — Page-specific responsive overrides at bottom of file
+- Desktop styles are unaffected — all mobile changes are inside `@media` queries
+
+### Testing
+
+1. Open Chrome DevTools (F12) → Toggle device toolbar
+2. Select a phone preset (iPhone 12 Pro, Pixel 5, etc.)
+3. Or connect phone to same network and visit `http://<server-ip>:port`
 
 ---
 
