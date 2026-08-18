@@ -306,18 +306,19 @@
         var filtered = filterCube();
         var agg = aggregate(filtered);
 
+        // Render KPIs immediately (text only, no sizing issues)
         renderKPIs(agg);
-        renderUnitsChart(agg.slots);
-        renderUsersChart(agg.slots);
-        renderAvgChart(agg.slots);
-        renderUPHShift(agg.morningUPH, agg.nightUPH);
 
-        // Show content, hide skeleton
+        // Show container FIRST so Plotly can read proper dimensions
         document.getElementById('skeleton-loading').classList.add('hidden');
         document.getElementById('hxh-widgets').classList.remove('hidden');
 
-        // Update banner
+        // Wait one frame for browser to compute layout, then render charts
         requestAnimationFrame(function() {
+            renderUnitsChart(agg.slots);
+            renderUsersChart(agg.slots);
+            renderAvgChart(agg.slots);
+            renderUPHShift(agg.morningUPH, agg.nightUPH);
             LMS.hideLoading(DATA.selected.date_from, DATA.selected.date_to);
         });
     }
