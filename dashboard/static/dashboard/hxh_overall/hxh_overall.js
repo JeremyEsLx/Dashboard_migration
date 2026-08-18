@@ -141,12 +141,13 @@
     }
 
     var CHART_LAYOUT_BASE = {
-        margin: { t: 4, r: 8, b: 36, l: 36 },
+        margin: { t: 4, r: 8, b: 32, l: 34 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Inter, sans-serif', size: 10 },
         bargap: 0.15,
         showlegend: false,
+        autosize: true,
     };
 
     var CHART_CONFIG = { displayModeBar: false, responsive: true };
@@ -261,27 +262,29 @@
         var maxVal = Math.max(morningUPH, nightUPH, 1);
 
         var trace = {
-            x: ['Morning<br>Shift', 'Night<br>Shift'],
-            y: [morningUPH, nightUPH],
+            y: ['Night Shift', 'Morning Shift'],
+            x: [nightUPH, morningUPH],
             type: 'bar',
+            orientation: 'h',
             marker: {
                 color: [
-                    valueToGray(morningUPH, maxVal),
                     valueToGray(nightUPH, maxVal),
+                    valueToGray(morningUPH, maxVal),
                 ],
             },
-            text: [morningUPH.toString(), nightUPH.toString()],
-            textposition: 'outside',
-            textfont: { size: 11 },
-            hovertemplate: '%{x}: %{y} UPH<extra></extra>',
-            width: [0.5, 0.5],
+            text: [nightUPH.toString(), morningUPH.toString()],
+            textposition: 'inside',
+            insidetextanchor: 'middle',
+            textfont: { size: 12, color: '#fff' },
+            hovertemplate: '%{y}: %{x} UPH<extra></extra>',
         };
 
         var layout = Object.assign({}, CHART_LAYOUT_BASE, {
-            margin: { t: 20, r: 10, b: 40, l: 40 },
-            yaxis: { gridcolor: '#f1f5f9', zeroline: false },
-            xaxis: { tickfont: { size: 10 } },
-            bargap: 0.4,
+            margin: { t: 4, r: 10, b: 30, l: 80 },
+            xaxis: { type: 'log', gridcolor: '#f1f5f9', zeroline: false, dtick: 1, tickfont: { size: 9 } },
+            yaxis: { tickfont: { size: 10 } },
+            bargap: 0.3,
+            autosize: true,
         });
 
         Plotly.newPlot(container, [trace], layout, CHART_CONFIG);
