@@ -109,6 +109,8 @@ Dashboard_migration/
 |   |   |-- spacperformance/spacperformance.js + .css
 |   |   |-- spacperfbyuser/spacperfbyuser.js + .css
 |   |   |-- spacdetails/spacdetails.js + .css
+|   |   |-- hxh_overall/hxh_overall.js + .css
+|   |   |-- hxh_perfbyuser/hxh_perfbyuser.js + .css
 |   |
 |   |-- templates/dashboard/
 |       |-- base.html                            # Shared layout (nav, header, logo)
@@ -141,6 +143,7 @@ services_base.py          <-- Foundation (import from here)
     |-- services_material.py   <-- Detail by Material
     |-- services_usersummary.py <-- User Summary
     |-- services_spac.py       <-- SPAC UPH / Performance / Perf by User / Details (BI database)
+    |-- services_hxh.py        <-- HxH Overall Performance / Performance by User
 ```
 
 ### services_base.py - Shared Utilities
@@ -280,6 +283,8 @@ Reusable Django template fragments in `_partials/`:
 | SPAC Performance | `/spacperformance/` | (reuses `/api/spacuph/`) | `services_spac.get_spac_data()` | Hybrid cube |
 | SPAC Perf by User | `/spacperfbyuser/` | (reuses `/api/spacuph/`) | `services_spac.get_spac_data()` | Hybrid cube |
 | SPAC Details | `/spacdetails/` | `/api/spacdetails/` | `services_spac.get_spac_details_data()` | Hybrid (row-level) |
+| HxH Overall Performance | `/hxh/` | `/api/hxh/` | `services_hxh.get_hxh_overall_data()` | Hybrid cube |
+| HxH Performance by User | `/hxhuser/` | (reuses `/api/hxh/`) | `services_hxh.get_hxh_overall_data()` | Hybrid cube |
 
 ### Date Defaults
 
