@@ -18,72 +18,66 @@ html, body {
 .data-table-wrapper .table-card {
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background: white;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 14px 18px;
     max-height: calc(100vh - 240px);
 }
 
 .table-scroll {
     flex: 1;
     overflow-y: auto;
+    overflow-x: auto;
     min-height: 0;
 }
 
-/* Table styling */
+/* Table styling (matches perf-table pattern from User Performance / No Activity) */
 .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
+    font-family: 'Inter', sans-serif;
 }
 
-.data-table thead {
+.data-table thead th {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
-.data-table th {
-    background: #1e293b;
-    color: #fff;
-    font-weight: 600;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    padding: 8px 12px;
-    text-align: left;
-    white-space: nowrap;
-}
-
-.data-table td {
-    padding: 6px 12px;
-    border-bottom: 1px solid #f1f5f9;
+.data-table tbody td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #f3f4f6;
     color: #374151;
     white-space: nowrap;
+    font-size: 12px;
 }
 
 .data-table tbody tr:hover {
-    background: #f8fafc;
-}
-
-.data-table tbody tr:nth-child(even) {
     background: #fafbfc;
-}
-
-.data-table tbody tr:nth-child(even):hover {
-    background: #f1f5f9;
 }
 
 /* Units column right-aligned (7th column) */
 .data-table td:nth-child(7),
 .data-table th:nth-child(7) {
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Total row */
 .data-table .total-row {
-    background: #f8fafc !important;
+    background: #f9fafb !important;
     border-top: 2px solid #e5e7eb;
     position: sticky;
     bottom: 0;
@@ -93,16 +87,14 @@ html, body {
     padding: 8px 12px;
     font-weight: 600;
     color: #1e293b;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Footer */
 .table-footer {
-    padding: 6px 12px;
+    padding: 4px 0 0;
     font-size: 11px;
     color: #6b7280;
-    border-top: 1px solid #e5e7eb;
-    background: #fafbfc;
-    border-radius: 0 0 6px 6px;
 }
 
 /* Skeleton loading */
