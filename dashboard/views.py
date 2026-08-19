@@ -532,6 +532,17 @@ def hxh_perfbyuser(request):
     return render(request, 'dashboard/hxh_perfbyuser.html', {'data': data})
 
 
+def hxh_data(request):
+    """Render HxH Data table shell (instant, no SQL) - JS hydrates via /api/hxh/."""
+    data = {
+        'selected': {
+            'date_from': request.GET.get('date_from', ''),
+            'date_to': request.GET.get('date_to', ''),
+        },
+    }
+    return render(request, 'dashboard/hxh_data.html', {'data': data})
+
+
 _PLACEHOLDER_DASHBOARDS = {
     'frames': 'Frames Hourly WIP',
     'wearables': 'Wearables Hourly WIP',

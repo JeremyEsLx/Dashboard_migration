@@ -1,0 +1,91 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Data - HxH{% endblock %}
+{% block nav_hxh_data %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/hxh_data/hxh_data.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<button class="filters-toggle" id="filters-toggle">
+    <span>Filters</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+
+<div class="filters-bar filters-collapsible" id="filters-bar">
+    <div class="filter-group">
+        <label for="filter-process">Process</label>
+        <select id="filter-process"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-flow">Flow</label>
+        <select id="filter-flow"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-shift">Shift</label>
+        <select id="filter-shift">
+            <option>All</option>
+            <option>Morning Shift</option>
+            <option>Night Shift</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-date">Date</label>
+        <select id="filter-date"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-user">User</label>
+        <select id="filter-user"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-date-from">Date From</label>
+        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
+    </div>
+    <div class="filter-group">
+        <label for="filter-date-to">Date To</label>
+        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+    </div>
+    {% include "dashboard/_partials/_filter_actions.html" %}
+</div>
+
+{% include "dashboard/_partials/_banner.html" %}
+
+<!-- Skeleton Loading -->
+<div id="skeleton-loading" class="data-skeleton">
+    <div class="skeleton-box"></div>
+</div>
+
+<!-- Main Content -->
+<div id="data-widgets" class="hidden">
+    <div class="data-table-wrapper">
+        <div class="table-card">
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Flow</th>
+                            <th>Hour</th>
+                            <th>Process</th>
+                            <th>Shift</th>
+                            <th>Units</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-tbody"></tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span id="row-count">0 rows</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/hxh_data/hxh_data.js' %}?v=1"></script>
+{% endblock %}
