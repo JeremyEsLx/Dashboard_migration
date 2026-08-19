@@ -172,9 +172,6 @@
             y: values,
             type: 'bar',
             marker: { color: colors },
-            text: values.map(function(v) { return v >= 1000 ? Math.round(v/1000) + 'K' : v.toString(); }),
-            textposition: 'outside',
-            textfont: { size: 9 },
             hovertemplate: '%{x}<br>Units: %{y:,}<extra></extra>',
         };
 
@@ -207,9 +204,6 @@
             y: values,
             type: 'bar',
             marker: { color: colors },
-            text: values.map(function(v) { return v.toString(); }),
-            textposition: 'outside',
-            textfont: { size: 9 },
             hovertemplate: '%{x}<br>Users: %{y}<extra></extra>',
         };
 
@@ -242,9 +236,6 @@
             y: values,
             type: 'bar',
             marker: { color: colors },
-            text: values.map(function(v) { return v.toString(); }),
-            textposition: 'outside',
-            textfont: { size: 9 },
             hovertemplate: '%{x}<br>Avg Units: %{y:,}<extra></extra>',
         };
 
@@ -447,31 +438,16 @@
         var filtered = filterCube();
         var agg = aggregate(filtered);
 
-        // Sheet 1: Summary by Hour
-        var summaryRows = agg.slots.map(function(s) {
-            return {
-                Date: s.d,
-                Hour: s.h,
-                Shift: getShift(s.h),
-                'Total Units': s.units,
-                'Active Users': s.users,
-                'Avg Units/User': s.avg,
-            };
+        // Sheet 1: Summary by Hour (AOA format)
+        var summaryRows = [['Date', 'Hour', 'Shift', 'Total Units', 'Active Users', 'Avg Units/User']];
+        agg.slots.forEach(function(s) {
+            summaryRows.push([s.d, s.h, getShift(s.h), s.units, s.users, s.avg]);
         });
 
-        // Sheet 2: Detail (filtered cube)
-        var detailRows = filtered.map(function(r) {
-            return {
-                Date: r.d,
-                Hour: r.h,
-                Shift: getShift(r.h),
-                Process: r.p,
-                Flow: r.f,
-                'Cart Type': r.ct,
-                User: r.u,
-                'Country of Origin': r.co,
-                Units: r.units,
-            };
+        // Sheet 2: Detail (AOA format)
+        var detailRows = [['Date', 'Hour', 'Shift', 'Process', 'Flow', 'Cart Type', 'User', 'Country of Origin', 'Units']];
+        filtered.forEach(function(r) {
+            detailRows.push([r.d, r.h, getShift(r.h), r.p, r.f, r.ct, r.u, r.co, r.units]);
         });
 
         var dateFrom = document.getElementById('filter-date-from').value || DATA.selected.date_from;
