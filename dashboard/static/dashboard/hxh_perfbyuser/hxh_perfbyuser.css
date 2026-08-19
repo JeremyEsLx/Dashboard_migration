@@ -2,6 +2,12 @@
    HxH Performance by User - Page Styles
    ============================================================ */
 
+/* Prevent page-level scroll — widgets scroll internally */
+html, body {
+    overflow: hidden;
+    height: 100vh;
+}
+
 /* Layout: left (Units by User) | right (Small Multiples) */
 .pbu-layout {
     display: grid;
