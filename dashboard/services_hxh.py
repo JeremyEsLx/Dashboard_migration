@@ -93,10 +93,10 @@ def get_hxh_overall_data(date_from=None, date_to=None):
     return {
         'cube_json': json.dumps(cube_data),
         'filters': {
-            'processes': ['All'] + processes,
-            'flows': ['All'] + flows,
-            'cart_types': ['All'] + cart_types,
-            'dates': ['All'] + dates,
+            'processes': processes,
+        'flows': flows,
+        'cart_types': cart_types,
+        'dates': dates,
             'shifts': ['All', 'Morning Shift', 'Night Shift'],
         },
         'selected': {
