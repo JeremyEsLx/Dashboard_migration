@@ -18,7 +18,7 @@ html, body {
     overflow: hidden;
 }
 
-/* Left column: Units by User chart */
+/* Left column: Units by User chart (scrollable like right column) */
 .pbu-left {
     display: flex;
     flex-direction: column;
@@ -37,7 +37,13 @@ html, body {
 .pbu-left .chart-container {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.pbu-left .chart-container::-webkit-scrollbar {
+    display: none;
 }
 
 /* Right column: Small multiples (internal scroll, hidden bar) */

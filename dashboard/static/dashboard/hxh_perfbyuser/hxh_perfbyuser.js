@@ -115,8 +115,9 @@
         var container = document.getElementById('chart-units-user');
         if (!container || !userData.length) return;
 
-        // Let Plotly fill the container height (auto-adjusts to available space)
-        var containerHeight = container.clientHeight || 400;
+        // Fixed height per user bar for readability (scrollable container)
+        var barHeight = 30;
+        var chartHeight = Math.max(userData.length * barHeight, 300);
 
         // Reverse for Plotly horizontal bar (bottom-to-top)
         var reversed = userData.slice().reverse();
@@ -139,7 +140,7 @@
                 return v >= 1000 ? (v / 1000).toFixed(1) + 'K' : v.toString();
             }),
             textposition: 'outside',
-            textfont: { size: 9 },
+            textfont: { size: 10 },
             hovertemplate: '%{y}<br>Units: %{x:,}<extra></extra>',
         };
 
@@ -154,12 +155,12 @@
         };
 
         var layout = {
-            margin: { t: 4, r: 50, b: 24, l: 100 },
-            height: containerHeight,
+            margin: { t: 4, r: 50, b: 24, l: 120 },
+            height: chartHeight,
             showlegend: false,
-            yaxis: { automargin: true, tickfont: { size: 9 } },
+            yaxis: { automargin: true, tickfont: { size: 11 } },
             xaxis: { zeroline: false, gridcolor: '#f1f5f9', rangemode: 'tozero', tickfont: { size: 9 } },
-            bargap: 0.15,
+            bargap: 0.2,
         };
 
         Plotly.newPlot(container, [trace, avgLine], layout, CHART_CONFIG);
