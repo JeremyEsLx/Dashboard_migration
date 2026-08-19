@@ -18,7 +18,7 @@ html, body {
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 290px);
+    height: calc(100vh - 300px);
     overflow: hidden;
 }
 
@@ -125,7 +125,7 @@ html, body {
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 290px);
+    height: calc(100vh - 300px);
     overflow: hidden;
 }
 
