@@ -5,7 +5,7 @@
 {% block nav_lappicking %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/lappicking/lappicking.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'dashboard/lappicking/lappicking.css' %}?v=2">
 {% endblock %}
 
 {% block page_title %}
@@ -15,6 +15,18 @@
 {% endblock %}
 
 {% block content %}
+<!-- Filters -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label for="filter-date">Date</label>
+        <select id="filter-date">
+            <option value="All">All</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+        </select>
+    </div>
+</div>
+
 {% include "dashboard/_partials/_banner.html" %}
 
 <!-- Skeleton Loading -->
@@ -79,5 +91,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/lappicking/lappicking.js' %}?v=1"></script>
+<script src="{% static 'dashboard/lappicking/lappicking.js' %}?v=2"></script>
 {% endblock %}

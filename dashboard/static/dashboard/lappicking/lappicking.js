@@ -31,6 +31,28 @@
     function fmtNumber(n) { return n.toLocaleString(); }
 
     // ============================================================
+    // FILTERING
+    // ============================================================
+
+    function getFilteredCube() {
+        var dateVal = document.getElementById('filter-date').value;
+        if (dateVal === 'All') return CUBE;
+
+        // Determine which date string to match
+        var dates = [];
+        var seen = {};
+        CUBE.forEach(function(r) { if (!seen[r.d]) { seen[r.d] = true; dates.push(r.d); } });
+        dates.sort();
+
+        var targetDate = '';
+        if (dateVal === 'today' && dates.length >= 1) targetDate = dates[dates.length - 1];
+        if (dateVal === 'yesterday' && dates.length >= 2) targetDate = dates[dates.length - 2];
+        if (!targetDate) return CUBE;
+
+        return CUBE.filter(function(r) { return r.d === targetDate; });
+    }
+
+    // ============================================================
     // AGGREGATION
     // ============================================================
 
@@ -213,8 +235,9 @@
         widgets.classList.remove('hidden');
 
         requestAnimationFrame(function() {
-            var agg = aggregate(CUBE);
-            renderUPHbyFlow(CUBE);
+            var filtered = getFilteredCube();
+            var agg = aggregate(filtered);
+            renderUPHbyFlow(filtered);
             renderCenterCharts(agg);
             renderKPIs(agg);
         });
@@ -259,6 +282,14 @@
         }
         doFetch(!cached);
     }
+
+    // ============================================================
+    // EVENT LISTENERS
+    // ============================================================
+
+    document.getElementById('filter-date').addEventListener('change', function() {
+        if (DATA) renderAll();
+    });
 
     // ============================================================
     // INIT
