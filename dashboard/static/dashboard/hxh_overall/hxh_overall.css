@@ -7,7 +7,7 @@
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 195px);
+    height: calc(100vh - 235px);
     overflow: hidden;
 }
 
@@ -114,7 +114,7 @@
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 195px);
+    height: calc(100vh - 235px);
     overflow: hidden;
 }
 
