@@ -5,28 +5,8 @@
 /* Prevent ANY page-level scroll */
 html, body {
     overflow: hidden !important;
-    height: 100dvh;
-    max-height: 100dvh;
-}
-
-.main {
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: calc(100dvh - 44px); /* 44px = top nav */
-}
-
-/* Flex children: widgets/skeleton take remaining space */
-#pbu-widgets {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-#skeleton-loading {
-    flex: 1;
-    min-height: 0;
+    height: 100vh;
+    max-height: 100vh;
 }
 
 /* Layout: left (Units by User) | right (Small Multiples) */
@@ -34,8 +14,7 @@ html, body {
     display: grid;
     grid-template-columns: 2fr 3fr;
     gap: 10px;
-    flex: 1;
-    min-height: 0;
+    height: calc(100vh - 280px);
     overflow: hidden;
 }
 
@@ -151,8 +130,7 @@ html, body {
     display: grid;
     grid-template-columns: 2fr 3fr;
     gap: 10px;
-    flex: 1;
-    min-height: 0;
+    height: calc(100vh - 280px);
     overflow: hidden;
 }
 
