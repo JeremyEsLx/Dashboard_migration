@@ -67,7 +67,12 @@
             return a.h - b.h;
         });
 
+        // Total distinct users across ALL hour-slots (Power BI uses this as
+        // a constant denominator for "Average Units by Hour")
+        var totalUsers = Object.keys(allUsers).length;
+
         // Compute per-slot metrics
+        // avg = units_in_hour / TOTAL_distinct_users (not per-hour users)
         var slots = hourArr.map(function(slot) {
             var userCount = Object.keys(slot.users).length;
             return {
@@ -75,18 +80,17 @@
                 h: slot.h,
                 units: slot.units,
                 users: userCount,
-                avg: userCount > 0 ? Math.round(slot.units / userCount) : 0,
+                avg: totalUsers > 0 ? Math.round(slot.units / totalUsers) : 0,
             };
         });
 
-        var totalUsers = Object.keys(allUsers).length;
         var totalSlots = slots.length;
 
-        // Average Units by Hour = mean of per-user-per-hour (avg of slot.avg)
+        // Average Units by Hour KPI = mean of per-slot avg values
         var sumAvg = slots.reduce(function(a, s) { return a + s.avg; }, 0);
         var avgUnitsPerHour = totalSlots > 0 ? Math.round(sumAvg / totalSlots) : 0;
 
-        // UPH by shift = mean of per-user-per-hour within each shift
+        // UPH by shift = mean of per-slot avg within each shift
         var morningSlots = slots.filter(function(s) { return getShift(s.h) === 'Morning Shift'; });
         var nightSlots = slots.filter(function(s) { return getShift(s.h) === 'Night Shift'; });
         var morningAvgSum = morningSlots.reduce(function(a, s) { return a + s.avg; }, 0);

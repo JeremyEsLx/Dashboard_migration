@@ -48,7 +48,7 @@ def get_hxh_overall_data(date_from=None, date_to=None):
     cube_query = f"""
         SELECT
             CONVERT(VARCHAR(10), [Date], 23) AS [day],
-            DATEPART(HOUR, [Time]) AS [hour],
+            ISNULL(DATEPART(HOUR, [Time]), 0) AS [hour],
             [Process] AS [process],
             [Flow_Type_Map] AS [flow],
             [Cart Type] AS [cart_type],
@@ -59,7 +59,7 @@ def get_hxh_overall_data(date_from=None, date_to=None):
         WHERE {where_sql}
         GROUP BY
             CONVERT(VARCHAR(10), [Date], 23),
-            DATEPART(HOUR, [Time]),
+            ISNULL(DATEPART(HOUR, [Time]), 0),
             [Process],
             [Flow_Type_Map],
             [Cart Type],
