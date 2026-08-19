@@ -11,7 +11,7 @@ html, body {
 
 /* Table wrapper fills remaining viewport */
 .data-table-wrapper {
-    height: calc(100vh - 280px);
+    height: calc(100vh - 200px);
     overflow: hidden;
 }
 
@@ -113,7 +113,7 @@ html, body {
 
 /* Skeleton loading */
 .data-skeleton {
-    height: calc(100vh - 280px);
+    height: calc(100vh - 200px);
     overflow: hidden;
 }
 
