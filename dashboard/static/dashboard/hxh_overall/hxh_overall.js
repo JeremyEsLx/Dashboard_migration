@@ -81,15 +81,18 @@
 
         var totalUsers = Object.keys(allUsers).length;
         var totalSlots = slots.length;
-        var avgUnitsPerHour = totalSlots > 0 ? Math.round(totalUnits / totalSlots) : 0;
 
-        // UPH by shift
+        // Average Units by Hour = mean of per-user-per-hour (avg of slot.avg)
+        var sumAvg = slots.reduce(function(a, s) { return a + s.avg; }, 0);
+        var avgUnitsPerHour = totalSlots > 0 ? Math.round(sumAvg / totalSlots) : 0;
+
+        // UPH by shift = mean of per-user-per-hour within each shift
         var morningSlots = slots.filter(function(s) { return getShift(s.h) === 'Morning Shift'; });
         var nightSlots = slots.filter(function(s) { return getShift(s.h) === 'Night Shift'; });
-        var morningTotal = morningSlots.reduce(function(a, s) { return a + s.units; }, 0);
-        var nightTotal = nightSlots.reduce(function(a, s) { return a + s.units; }, 0);
-        var morningUPH = morningSlots.length > 0 ? Math.round(morningTotal / morningSlots.length) : 0;
-        var nightUPH = nightSlots.length > 0 ? Math.round(nightTotal / nightSlots.length) : 0;
+        var morningAvgSum = morningSlots.reduce(function(a, s) { return a + s.avg; }, 0);
+        var nightAvgSum = nightSlots.reduce(function(a, s) { return a + s.avg; }, 0);
+        var morningUPH = morningSlots.length > 0 ? Math.round(morningAvgSum / morningSlots.length) : 0;
+        var nightUPH = nightSlots.length > 0 ? Math.round(nightAvgSum / nightSlots.length) : 0;
 
         return {
             slots: slots,
@@ -180,7 +183,7 @@
         };
 
         var layout = Object.assign({}, CHART_LAYOUT_BASE, {
-            yaxis: { gridcolor: '#f1f5f9', zeroline: false },
+            yaxis: { gridcolor: '#f1f5f9', zeroline: false, rangemode: 'tozero' },
             xaxis: { tickangle: 0, tickfont: { size: 9 } },
         });
 
@@ -215,7 +218,7 @@
         };
 
         var layout = Object.assign({}, CHART_LAYOUT_BASE, {
-            yaxis: { gridcolor: '#f1f5f9', zeroline: false },
+            yaxis: { gridcolor: '#f1f5f9', zeroline: false, rangemode: 'tozero' },
             xaxis: { tickangle: 0, tickfont: { size: 9 } },
         });
 
@@ -250,7 +253,7 @@
         };
 
         var layout = Object.assign({}, CHART_LAYOUT_BASE, {
-            yaxis: { gridcolor: '#f1f5f9', zeroline: false },
+            yaxis: { gridcolor: '#f1f5f9', zeroline: false, rangemode: 'tozero' },
             xaxis: { tickangle: 0, tickfont: { size: 9 } },
         });
 
@@ -262,27 +265,28 @@
         var maxVal = Math.max(morningUPH, nightUPH, 1);
 
         var trace = {
-            x: ['Morning<br>Shift', 'Night<br>Shift'],
-            y: [morningUPH, nightUPH],
+            y: ['Night Shift', 'Morning Shift'],
+            x: [nightUPH, morningUPH],
             type: 'bar',
+            orientation: 'h',
             marker: {
                 color: [
-                    valueToGray(morningUPH, maxVal),
                     valueToGray(nightUPH, maxVal),
+                    valueToGray(morningUPH, maxVal),
                 ],
             },
-            text: [morningUPH.toString(), nightUPH.toString()],
-            textposition: 'outside',
-            textfont: { size: 11, color: '#374151' },
-            hovertemplate: '%{x}: %{y} UPH<extra></extra>',
-            width: [0.6, 0.6],
+            text: [nightUPH.toString(), morningUPH.toString()],
+            textposition: 'inside',
+            insidetextanchor: 'middle',
+            textfont: { size: 12, color: '#fff' },
+            hovertemplate: '%{y}: %{x} UPH<extra></extra>',
         };
 
         var layout = Object.assign({}, CHART_LAYOUT_BASE, {
-            margin: { t: 20, r: 6, b: 36, l: 30 },
-            yaxis: { gridcolor: '#f1f5f9', zeroline: false, tickfont: { size: 9 } },
-            xaxis: { tickfont: { size: 9 } },
-            bargap: 0.4,
+            margin: { t: 4, r: 8, b: 24, l: 4 },
+            xaxis: { type: 'log', gridcolor: '#f1f5f9', zeroline: false, dtick: 1, tickfont: { size: 8 } },
+            yaxis: { side: 'left', tickfont: { size: 9 }, automargin: true },
+            bargap: 0.35,
             autosize: true,
         });
 
