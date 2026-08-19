@@ -67,12 +67,10 @@
             return a.h - b.h;
         });
 
-        // Total distinct users across ALL hour-slots (Power BI uses this as
-        // a constant denominator for "Average Units by Hour")
         var totalUsers = Object.keys(allUsers).length;
 
         // Compute per-slot metrics
-        // avg = units_in_hour / TOTAL_distinct_users (not per-hour users)
+        // Bar value = units_in_hour / users_in_THAT_hour (per-hour productivity)
         var slots = hourArr.map(function(slot) {
             var userCount = Object.keys(slot.users).length;
             return {
@@ -80,23 +78,26 @@
                 h: slot.h,
                 units: slot.units,
                 users: userCount,
-                avg: totalUsers > 0 ? Math.round(slot.units / totalUsers) : 0,
+                avg: userCount > 0 ? Math.round(slot.units / userCount) : 0,
             };
         });
 
         var totalSlots = slots.length;
 
-        // Average Units by Hour KPI = mean of per-slot avg values
-        var sumAvg = slots.reduce(function(a, s) { return a + s.avg; }, 0);
-        var avgUnitsPerHour = totalSlots > 0 ? Math.round(sumAvg / totalSlots) : 0;
+        // KPI: weighted average = totalUnits / total user-hour pairs
+        // (Power BI weights hours by how many users worked in them)
+        var totalUserHourPairs = slots.reduce(function(a, s) { return a + s.users; }, 0);
+        var avgUnitsPerHour = totalUserHourPairs > 0 ? Math.round(totalUnits / totalUserHourPairs) : 0;
 
-        // UPH by shift = mean of per-slot avg within each shift
+        // UPH by shift = weighted avg per shift (shift_units / shift_user_hour_pairs)
         var morningSlots = slots.filter(function(s) { return getShift(s.h) === 'Morning Shift'; });
         var nightSlots = slots.filter(function(s) { return getShift(s.h) === 'Night Shift'; });
-        var morningAvgSum = morningSlots.reduce(function(a, s) { return a + s.avg; }, 0);
-        var nightAvgSum = nightSlots.reduce(function(a, s) { return a + s.avg; }, 0);
-        var morningUPH = morningSlots.length > 0 ? Math.round(morningAvgSum / morningSlots.length) : 0;
-        var nightUPH = nightSlots.length > 0 ? Math.round(nightAvgSum / nightSlots.length) : 0;
+        var morningUnits = morningSlots.reduce(function(a, s) { return a + s.units; }, 0);
+        var morningPairs = morningSlots.reduce(function(a, s) { return a + s.users; }, 0);
+        var nightUnits = nightSlots.reduce(function(a, s) { return a + s.units; }, 0);
+        var nightPairs = nightSlots.reduce(function(a, s) { return a + s.users; }, 0);
+        var morningUPH = morningPairs > 0 ? Math.round(morningUnits / morningPairs) : 0;
+        var nightUPH = nightPairs > 0 ? Math.round(nightUnits / nightPairs) : 0;
 
         return {
             slots: slots,
