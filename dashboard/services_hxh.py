@@ -5,6 +5,7 @@ Performance dashboard.
 
 Pages:
   - Overall Performance: Units/Users/Avg by Hour timeline with UPH by Shift
+  - Lab Picking Performance: Process=PICKING, CartType=NTRF, today+yesterday
 """
 import json
 import pandas as pd
@@ -101,6 +102,81 @@ def get_hxh_overall_data(date_from=None, date_to=None):
         },
         'selected': {
             'date_from': date_from,
+            'date_to': date_to,
+        },
+    }
+
+
+# ============================================================
+# LAB PICKING PERFORMANCE
+# ============================================================
+
+def get_lap_picking_data():
+    """Fetch Lab Picking Performance cube.
+
+    Hardcoded page-level filters (matches Power BI):
+      - Process = 'PICKING'
+      - Cart Type = 'NTRF'
+      - Date = today + yesterday
+
+    Date range for banner = last 5 days.  Cube only contains 2 days.
+    Client-side excludes Flow = 'ST01' on the UPH by Flow visual.
+    """
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    date_from = str(yesterday)
+    date_to = str(today)
+    # Banner shows last 5 days
+    banner_from = str(today - timedelta(days=4))
+
+    where_sql = (
+        f"[Process] = 'PICKING' "
+        f"AND [Cart Type] = 'NTRF' "
+        f"AND [Flow_Type_Map] IS NOT NULL "
+        f"AND LTRIM(RTRIM([Flow_Type_Map])) <> '' "
+        f"AND [Date] >= '{date_from}' AND [Date] <= '{date_to}'"
+    )
+
+    cube_query = f"""
+        SELECT
+            CONVERT(VARCHAR(10), [Date], 23) AS [day],
+            ISNULL(DATEPART(HOUR, [Time]), 0) AS [hour],
+            [Flow_Type_Map] AS [flow],
+            [User Name] AS [user],
+            ISNULL(SUM(TRY_CAST([Quantity] AS BIGINT)), 0) AS [units]
+        FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
+        WHERE {where_sql}
+        GROUP BY
+            CONVERT(VARCHAR(10), [Date], 23),
+            ISNULL(DATEPART(HOUR, [Time]), 0),
+            [Flow_Type_Map],
+            [User Name]
+        ORDER BY [day], [hour]
+    """
+
+    cube_df = run_query(cube_query)
+
+    cube_data = []
+    for _, row in cube_df.iterrows():
+        cube_data.append({
+            'd': str(row['day']),
+            'h': int(row['hour']),
+            'f': str(row['flow']) if row['flow'] else '',
+            'u': str(row['user']) if row['user'] else '',
+            'units': int(row['units']),
+        })
+
+    dates = sorted(set(r['d'] for r in cube_data))
+    flows = sorted(set(r['f'] for r in cube_data if r['f']))
+
+    return {
+        'cube_json': json.dumps(cube_data),
+        'filters': {
+            'dates': dates,
+            'flows': flows,
+        },
+        'selected': {
+            'date_from': banner_from,
             'date_to': date_to,
         },
     }

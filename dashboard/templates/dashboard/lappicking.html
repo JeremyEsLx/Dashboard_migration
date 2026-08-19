@@ -1,0 +1,83 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Lab Picking Performance{% endblock %}
+{% block nav_lappicking %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/lappicking/lappicking.css' %}?v=1">
+{% endblock %}
+
+{% block page_title %}
+<div class="page-header">
+    <h1 class="page-title">Lab Picking Performance</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+{% include "dashboard/_partials/_banner.html" %}
+
+<!-- Skeleton Loading -->
+<div id="skeleton-loading" class="lp-skeleton">
+    <div class="skeleton-left"><div class="skeleton-box"></div></div>
+    <div class="skeleton-center">
+        <div class="skeleton-box"></div>
+        <div class="skeleton-box"></div>
+        <div class="skeleton-box"></div>
+    </div>
+    <div class="skeleton-right">
+        <div class="skeleton-box"></div>
+        <div class="skeleton-box"></div>
+        <div class="skeleton-box"></div>
+    </div>
+</div>
+
+<!-- Main Widgets -->
+<div id="lp-widgets" class="hidden">
+    <div class="lp-layout">
+        <!-- Left: UPH by Flow -->
+        <div class="lp-left">
+            <div class="chart-card">
+                <div class="chart-card-header">UPH by Flow</div>
+                <div class="chart-container" id="chart-uph-flow"></div>
+            </div>
+        </div>
+
+        <!-- Center: 3 stacked charts -->
+        <div class="lp-center">
+            <div class="chart-card">
+                <div class="chart-card-header">Total Units by Hour</div>
+                <div class="chart-container" id="chart-units"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-header">Active Users by Hour</div>
+                <div class="chart-container" id="chart-users"></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-header">Average Units by Hour</div>
+                <div class="chart-container" id="chart-avg"></div>
+            </div>
+        </div>
+
+        <!-- Right: 3 KPIs -->
+        <div class="lp-right">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Units</div>
+                <div class="kpi-value" id="kpi-total-units">—</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Active Users</div>
+                <div class="kpi-value" id="kpi-active-users">—</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Average Units by Hour</div>
+                <div class="kpi-value" id="kpi-avg-units">—</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/lappicking/lappicking.js' %}?v=1"></script>
+{% endblock %}

@@ -37,7 +37,9 @@ urlpatterns = [
     path('hxh/', views.hxh_overall, name='hxh_overall'),
     path('hxhuser/', views.hxh_perfbyuser, name='hxh_perfbyuser'),
     path('hxhdata/', views.hxh_data, name='hxh_data'),
+    path('lappicking/', views.lap_picking, name='lap_picking'),
     path('api/hxh/', views.hxh_overall_data, name='hxh_overall_data'),
+    path('api/lappicking/', views.lap_picking_data, name='lap_picking_data'),
 
     # Placeholder dashboards (WIP)
     path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),
