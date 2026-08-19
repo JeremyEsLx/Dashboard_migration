@@ -113,14 +113,6 @@
                 User Summary
             </a>
 
-            <div class="sidebar-section">MX03 Performance HxH</div>
-            <a href="/hxh/" class="">
-                <span class="sidebar-icon">
-                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h12"/><path d="M3 10V7"/><path d="M5.5 10V5"/><path d="M8 10V3"/><path d="M10.5 10V6"/><path d="M13 10V4"/></svg>
-                </span>
-                Overall Performance
-            </a>
-
             <div class="sidebar-section">MX03 SPAC Performance</div>
             <a href="/spacuph/" class="{% block nav_spacuph %}{% endblock %}">
                 <span class="sidebar-icon">
@@ -146,6 +138,14 @@
                 </span>
                 SPAC Details
             </a>
+
+            <div class="sidebar-section">MX03 Performance HxH</div>
+            <a href="/hxh/" class="{% block nav_hxh_overall %}{% endblock %}">
+                <span class="sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13h12"/><path d="M3 10V7"/><path d="M5.5 10V5"/><path d="M8 10V3"/><path d="M10.5 10V6"/><path d="M13 10V4"/></svg>
+                </span>
+                Overall Performance
+            </a>
             {% endblock %}
         </nav>
 
@@ -170,6 +170,14 @@
                 tab.classList.add('tab-active');
             } else if (href !== '/' && path.startsWith(href)) {
                 tab.classList.add('tab-active');
+            }
+        });
+        // Sidebar active link (highlight current page)
+        var links = document.querySelectorAll('#sidebar a[href]');
+        links.forEach(function(link) {
+            var href = link.getAttribute('href');
+            if (href === path || (href !== '/' && path.startsWith(href))) {
+                link.classList.add('active');
             }
         });
     })();

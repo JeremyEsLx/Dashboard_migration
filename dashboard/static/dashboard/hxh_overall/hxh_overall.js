@@ -262,28 +262,27 @@
         var maxVal = Math.max(morningUPH, nightUPH, 1);
 
         var trace = {
-            y: ['Night Shift', 'Morning Shift'],
-            x: [nightUPH, morningUPH],
+            x: ['Morning<br>Shift', 'Night<br>Shift'],
+            y: [morningUPH, nightUPH],
             type: 'bar',
-            orientation: 'h',
             marker: {
                 color: [
-                    valueToGray(nightUPH, maxVal),
                     valueToGray(morningUPH, maxVal),
+                    valueToGray(nightUPH, maxVal),
                 ],
             },
-            text: [nightUPH.toString(), morningUPH.toString()],
-            textposition: 'inside',
-            insidetextanchor: 'middle',
-            textfont: { size: 12, color: '#fff' },
-            hovertemplate: '%{y}: %{x} UPH<extra></extra>',
+            text: [morningUPH.toString(), nightUPH.toString()],
+            textposition: 'outside',
+            textfont: { size: 11, color: '#374151' },
+            hovertemplate: '%{x}: %{y} UPH<extra></extra>',
+            width: [0.6, 0.6],
         };
 
         var layout = Object.assign({}, CHART_LAYOUT_BASE, {
-            margin: { t: 4, r: 10, b: 30, l: 80 },
-            xaxis: { type: 'log', gridcolor: '#f1f5f9', zeroline: false, dtick: 1, tickfont: { size: 9 } },
-            yaxis: { tickfont: { size: 10 } },
-            bargap: 0.3,
+            margin: { t: 20, r: 6, b: 36, l: 30 },
+            yaxis: { gridcolor: '#f1f5f9', zeroline: false, tickfont: { size: 9 } },
+            xaxis: { tickfont: { size: 9 } },
+            bargap: 0.4,
             autosize: true,
         });
 
@@ -406,7 +405,12 @@
     document.getElementById('filter-shift').addEventListener('change', onClientFilter);
     document.getElementById('filter-date').addEventListener('change', onClientFilter);
 
-    document.getElementById('btn-apply').addEventListener('click', function() {
+    // Date range changes trigger fresh data fetch
+    document.getElementById('filter-date-from').addEventListener('change', function() {
+        cache.clear();
+        doFetch(true);
+    });
+    document.getElementById('filter-date-to').addEventListener('change', function() {
         cache.clear();
         doFetch(true);
     });
@@ -429,7 +433,7 @@
     });
 
     // ---- Export ----
-    document.getElementById('btn-export-all').addEventListener('click', function() {
+    document.getElementById('btn-export').addEventListener('click', function() {
         if (!DATA) return;
         var filtered = filterCube();
         var agg = aggregate(filtered);
