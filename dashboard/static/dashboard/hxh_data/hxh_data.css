@@ -9,20 +9,20 @@ html, body {
     max-height: 100vh;
 }
 
-/* Table wrapper fills remaining viewport */
+/* Table wrapper sizes to content, capped at viewport */
 .data-table-wrapper {
-    height: calc(100vh - 200px);
+    max-height: calc(100vh - 240px);
     overflow: hidden;
 }
 
 .data-table-wrapper .table-card {
-    height: 100%;
     display: flex;
     flex-direction: column;
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    max-height: calc(100vh - 240px);
 }
 
 .table-scroll {
@@ -113,7 +113,7 @@ html, body {
 
 /* Skeleton loading */
 .data-skeleton {
-    height: calc(100vh - 200px);
+    height: calc(100vh - 240px);
     overflow: hidden;
 }
 
