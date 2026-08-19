@@ -5,7 +5,7 @@
 {% block nav_hxh_perfbyuser %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/hxh_perfbyuser/hxh_perfbyuser.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'dashboard/hxh_perfbyuser/hxh_perfbyuser.css' %}?v=12">
 {% endblock %}
 
 {% block page_title %}
@@ -59,6 +59,13 @@
 
 {% include "dashboard/_partials/_banner.html" %}
 
+<!-- KPI Summary Strip -->
+<div id="pbu-kpi-strip" class="pbu-kpi-strip hidden">
+    <div class="pbu-kpi"><span class="pbu-kpi-value" id="kpi-total-units">&mdash;</span><span class="pbu-kpi-label">Total Units</span></div>
+    <div class="pbu-kpi"><span class="pbu-kpi-value" id="kpi-total-users">&mdash;</span><span class="pbu-kpi-label">Users</span></div>
+    <div class="pbu-kpi"><span class="pbu-kpi-value" id="kpi-avg-uph">&mdash;</span><span class="pbu-kpi-label">Avg UPH</span></div>
+</div>
+
 <!-- Skeleton Loading -->
 <div id="skeleton-loading" class="pbu-skeleton">
     <div class="skeleton-left"><div class="skeleton-box"></div></div>
@@ -71,14 +78,14 @@
         <!-- Left: Units by User -->
         <div class="pbu-left">
             <div class="chart-card">
-                <div class="chart-card-header">Units by User</div>
+                <div class="chart-card-header">Units by User <span class="chart-count" id="chart-user-count"></span></div>
                 <div class="chart-container" id="chart-units-user"></div>
             </div>
         </div>
         <!-- Right: Units by Date & Hour (small multiples) -->
         <div class="pbu-right">
             <div class="chart-card">
-                <div class="chart-card-header">Units by Date & Hour</div>
+                <div class="chart-card-header">Units by Date & Hour <span class="chart-count" id="chart-multiples-count"></span></div>
                 <div class="pbu-multiples" id="chart-multiples"></div>
             </div>
         </div>
@@ -87,5 +94,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/hxh_perfbyuser/hxh_perfbyuser.js' %}?v=5"></script>
+<script src="{% static 'dashboard/hxh_perfbyuser/hxh_perfbyuser.js' %}?v=6"></script>
 {% endblock %}

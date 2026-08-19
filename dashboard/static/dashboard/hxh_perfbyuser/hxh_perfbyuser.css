@@ -14,7 +14,7 @@ html, body {
     display: grid;
     grid-template-columns: 2fr 3fr;
     gap: 10px;
-    height: calc(100vh - 320px);
+    height: calc(100vh - 370px);
     overflow: hidden;
 }
 
@@ -84,15 +84,6 @@ html, body {
     border-bottom: none;
 }
 
-.pbu-user-name {
-    font-size: 10px;
-    font-weight: 700;
-    color: #1e293b;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    padding: 0 4px 2px;
-}
-
 .pbu-user-chart {
     height: 80px;
     width: 100%;
@@ -121,6 +112,83 @@ html, body {
     padding: 0 4px 4px;
 }
 
+/* KPI Summary Strip */
+.pbu-kpi-strip {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.pbu-kpi-strip.hidden { display: none !important; }
+
+.pbu-kpi {
+    flex: 1;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pbu-kpi-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.pbu-kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* Chart card count badge */
+.chart-count {
+    font-size: 10px;
+    font-weight: 500;
+    color: #9ca3af;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Right panel: alternating backgrounds + badge */
+.pbu-user-panel:nth-child(odd) {
+    background: #f9fafb;
+}
+
+.pbu-user-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 0 4px 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pbu-badge {
+    font-size: 9px;
+    font-weight: 600;
+    color: #6b7280;
+    background: #e5e7eb;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+/* Cross-linking: highlight on click */
+.pbu-user-panel.highlighted {
+    background: #ecfdf5 !important;
+    border-left: 3px solid #10b981;
+    transition: background 0.3s;
+}
+
 /* Content transition */
 #pbu-widgets:not(.hidden) {
     animation: fadeIn 0.2s ease-out;
@@ -136,7 +204,7 @@ html, body {
     display: grid;
     grid-template-columns: 2fr 3fr;
     gap: 10px;
-    height: calc(100vh - 320px);
+    height: calc(100vh - 370px);
     overflow: hidden;
 }
 

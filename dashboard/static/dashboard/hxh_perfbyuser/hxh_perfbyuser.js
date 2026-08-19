@@ -115,13 +115,21 @@
         var container = document.getElementById('chart-units-user');
         if (!container || !userData.length) return;
 
+        // Update header count
+        var countEl = document.getElementById('chart-user-count');
+        if (countEl) countEl.textContent = '(' + userData.length + ' users)';
+
         // Fixed height per user bar for readability (scrollable container)
         var barHeight = 30;
         var chartHeight = Math.max(userData.length * barHeight, 300);
 
         // Reverse for Plotly horizontal bar (bottom-to-top)
         var reversed = userData.slice().reverse();
-        var users = reversed.map(function(u) { return u.user; });
+        var total = userData.length;
+        var users = reversed.map(function(u, i) {
+            var rank = total - i;
+            return '#' + rank + '  ' + u.user;
+        });
         var values = reversed.map(function(u) { return u.units; });
 
         var min = Math.min.apply(null, values);
@@ -130,6 +138,14 @@
 
         var avg = values.reduce(function(a, b) { return a + b; }, 0) / values.length;
 
+        // Determine text position per bar (inside if bar is > 40% of max, else outside)
+        var textPositions = values.map(function(v) {
+            return v > max * 0.4 ? 'inside' : 'outside';
+        });
+        var textColors = values.map(function(v) {
+            return v > max * 0.4 ? '#fff' : '#374151';
+        });
+
         var trace = {
             y: users,
             x: values,
@@ -137,10 +153,10 @@
             orientation: 'h',
             marker: { color: colors, line: { width: 0 } },
             text: values.map(function(v) {
-                return v >= 1000 ? (v / 1000).toFixed(1) + 'K' : v.toString();
+                return v >= 1000 ? (v / 1000).toFixed(1) + 'K' : v.toLocaleString();
             }),
-            textposition: 'outside',
-            textfont: { size: 10 },
+            textposition: textPositions,
+            textfont: { size: 10, color: textColors },
             hovertemplate: '%{y}<br>Units: %{x:,}<extra></extra>',
         };
 
@@ -155,15 +171,33 @@
         };
 
         var layout = {
-            margin: { t: 4, r: 50, b: 24, l: 120 },
+            margin: { t: 4, r: 50, b: 24, l: 130 },
             height: chartHeight,
             showlegend: false,
-            yaxis: { automargin: true, tickfont: { size: 11 } },
+            yaxis: { automargin: true, tickfont: { size: 10 } },
             xaxis: { zeroline: false, gridcolor: '#f1f5f9', rangemode: 'tozero', tickfont: { size: 9 } },
             bargap: 0.2,
         };
 
         Plotly.newPlot(container, [trace, avgLine], layout, CHART_CONFIG);
+
+        // Cross-link: click bar -> scroll to user in right panel
+        container.on('plotly_click', function(evtData) {
+            if (!evtData || !evtData.points || !evtData.points.length) return;
+            var label = evtData.points[0].y || '';
+            // Strip rank prefix to get clean user name
+            var userName = label.replace(/^#\d+\s+/, '');
+            var panels = document.querySelectorAll('.pbu-user-panel');
+            panels.forEach(function(p) { p.classList.remove('highlighted'); });
+            for (var i = 0; i < panels.length; i++) {
+                var nameEl = panels[i].querySelector('.pbu-user-name');
+                if (nameEl && nameEl.textContent.indexOf(userName) !== -1) {
+                    panels[i].classList.add('highlighted');
+                    panels[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        });
     }
 
     function renderSmallMultiples(userHourMap, userOrder) {
@@ -174,6 +208,10 @@
         // Show top users based on userOrder (already sorted by units desc)
         var usersToShow = userOrder.slice(0, 20); // Cap at 20 users
 
+        // Update header count
+        var countEl = document.getElementById('chart-multiples-count');
+        if (countEl) countEl.textContent = '(top ' + usersToShow.length + ' of ' + userOrder.length + ')';
+
         usersToShow.forEach(function(ud) {
             var userName = ud.user;
             var hourData = userHourMap[userName] || {};
@@ -182,10 +220,11 @@
 
             var panel = document.createElement('div');
             panel.className = 'pbu-user-panel';
+            panel.setAttribute('data-user', userName);
 
             var nameEl = document.createElement('div');
             nameEl.className = 'pbu-user-name';
-            nameEl.textContent = userName;
+            nameEl.innerHTML = userName + ' <span class="pbu-badge">' + ud.units.toLocaleString() + ' units</span>';
             panel.appendChild(nameEl);
 
             var chartDiv = document.createElement('div');
@@ -242,6 +281,27 @@
     // RENDER ALL
     // ============================================================
 
+    function renderKPIs(filtered, userData) {
+        var strip = document.getElementById('pbu-kpi-strip');
+        if (strip) strip.classList.remove('hidden');
+
+        var totalUnits = userData.reduce(function(sum, u) { return sum + u.units; }, 0);
+        var totalUsers = userData.length;
+
+        // Avg UPH = totalUnits / totalUserHourPairs
+        var slotMap = {};
+        filtered.forEach(function(r) {
+            var key = r.u + '|' + r.h + '|' + r.d;
+            slotMap[key] = true;
+        });
+        var userHourPairs = Object.keys(slotMap).length;
+        var avgUph = userHourPairs ? Math.round(totalUnits / userHourPairs) : 0;
+
+        document.getElementById('kpi-total-units').textContent = totalUnits >= 1000 ? (totalUnits / 1000).toFixed(1) + 'K' : totalUnits.toLocaleString();
+        document.getElementById('kpi-total-users').textContent = totalUsers.toLocaleString();
+        document.getElementById('kpi-avg-uph').textContent = avgUph.toLocaleString();
+    }
+
     function renderAll() {
         var filtered = filterCube();
         var userData = aggregateByUser(filtered);
@@ -251,6 +311,8 @@
         document.getElementById('skeleton-loading').classList.add('hidden');
         var widgets = document.getElementById('pbu-widgets');
         widgets.classList.remove('hidden');
+
+        renderKPIs(filtered, userData);
 
         requestAnimationFrame(function() {
             renderUnitsByUser(userData);
