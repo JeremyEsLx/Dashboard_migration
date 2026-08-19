@@ -82,6 +82,12 @@ body {
     flex-direction: column;
     gap: 2px;
     border-right: 1px solid #334155;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.sidebar::-webkit-scrollbar {
+    display: none;
 }
 .sidebar-section {
     padding: 10px 20px 6px;

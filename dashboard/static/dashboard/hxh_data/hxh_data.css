@@ -87,6 +87,20 @@ html, body {
     text-align: right;
 }
 
+/* Total row */
+.data-table .total-row {
+    background: #f8fafc !important;
+    border-top: 2px solid #e5e7eb;
+    position: sticky;
+    bottom: 0;
+}
+
+.data-table .total-row td {
+    padding: 8px 12px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
 /* Footer */
 .table-footer {
     padding: 6px 12px;

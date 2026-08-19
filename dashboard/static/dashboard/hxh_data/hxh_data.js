@@ -76,8 +76,10 @@
         });
 
         var html = '';
+        var totalUnits = 0;
         for (var i = 0; i < filtered.length; i++) {
             var r = filtered[i];
+            totalUnits += r.units;
             html += '<tr>' +
                 '<td>' + r.d + '</td>' +
                 '<td>' + r.f + '</td>' +
@@ -88,6 +90,12 @@
                 '<td>' + r.u + '</td>' +
                 '</tr>';
         }
+        // Total row
+        html += '<tr class="total-row">' +
+            '<td><strong>Total</strong></td>' +
+            '<td></td><td></td><td></td><td></td>' +
+            '<td><strong>' + fmtNumber(totalUnits) + '</strong></td>' +
+            '<td></td></tr>';
         tbody.innerHTML = html;
         countEl.textContent = fmtNumber(filtered.length) + ' rows';
     }
