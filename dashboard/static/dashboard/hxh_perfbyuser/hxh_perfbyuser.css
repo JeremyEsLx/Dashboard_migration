@@ -13,7 +13,7 @@ html, body {
     display: grid;
     grid-template-columns: 2fr 3fr;
     gap: 8px;
-    height: calc(100vh - 195px);
+    height: calc(100vh - 220px);
     overflow: hidden;
 }
 
@@ -122,7 +122,7 @@ html, body {
     display: grid;
     grid-template-columns: 2fr 3fr;
     gap: 8px;
-    height: calc(100vh - 195px);
+    height: calc(100vh - 220px);
     overflow: hidden;
 }
 
