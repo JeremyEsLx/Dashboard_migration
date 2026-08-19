@@ -115,9 +115,8 @@
         var container = document.getElementById('chart-units-user');
         if (!container || !userData.length) return;
 
-        // Dynamic height: 28px per user, minimum 300px
-        var chartHeight = Math.max(300, userData.length * 28);
-        container.style.height = chartHeight + 'px';
+        // Let Plotly fill the container height (auto-adjusts to available space)
+        var containerHeight = container.clientHeight || 400;
 
         // Reverse for Plotly horizontal bar (bottom-to-top)
         var reversed = userData.slice().reverse();
@@ -135,7 +134,7 @@
             x: values,
             type: 'bar',
             orientation: 'h',
-            marker: { color: colors },
+            marker: { color: colors, line: { width: 0 } },
             text: values.map(function(v) {
                 return v >= 1000 ? (v / 1000).toFixed(1) + 'K' : v.toString();
             }),
@@ -155,11 +154,12 @@
         };
 
         var layout = {
-            margin: { t: 4, r: 50, b: 30, l: 100 },
-            height: chartHeight,
+            margin: { t: 4, r: 50, b: 24, l: 100 },
+            height: containerHeight,
             showlegend: false,
             yaxis: { automargin: true, tickfont: { size: 9 } },
             xaxis: { zeroline: false, gridcolor: '#f1f5f9', rangemode: 'tozero', tickfont: { size: 9 } },
+            bargap: 0.15,
         };
 
         Plotly.newPlot(container, [trace, avgLine], layout, CHART_CONFIG);

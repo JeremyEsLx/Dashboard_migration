@@ -2,26 +2,33 @@
    HxH Performance by User - Page Styles
    ============================================================ */
 
-/* Prevent page-level scroll — widgets scroll internally */
+/* Prevent ANY page-level scroll */
 html, body {
-    overflow: hidden;
+    overflow: hidden !important;
     height: 100vh;
+    max-height: 100vh;
+}
+
+.main {
+    overflow: hidden;
+    max-height: calc(100vh - 44px); /* 44px = top nav */
 }
 
 /* Layout: left (Units by User) | right (Small Multiples) */
 .pbu-layout {
     display: grid;
     grid-template-columns: 2fr 3fr;
-    gap: 8px;
-    height: calc(100vh - 220px);
+    gap: 10px;
+    height: calc(100vh - 225px);
     overflow: hidden;
 }
 
-/* Left column: Units by User chart (scrollable for many users) */
+/* Left column: Units by User chart */
 .pbu-left {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
 }
 
 .pbu-left .chart-card {
@@ -29,25 +36,21 @@ html, body {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
 }
 
 .pbu-left .chart-container {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    overflow: hidden;
 }
 
-.pbu-left .chart-container::-webkit-scrollbar {
-    display: none;
-}
-
-/* Right column: Small multiples (scrollable) */
+/* Right column: Small multiples (internal scroll, hidden bar) */
 .pbu-right {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
 }
 
 .pbu-right .chart-card {
@@ -72,8 +75,8 @@ html, body {
 }
 
 .pbu-user-panel {
-    border-bottom: 1px solid #e5e7eb;
-    padding: 6px 0;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 8px 0 6px;
 }
 
 .pbu-user-panel:last-child {
@@ -81,48 +84,58 @@ html, body {
 }
 
 .pbu-user-name {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     color: #1e293b;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
-    padding: 0 4px;
+    letter-spacing: 0.4px;
+    padding: 0 4px 2px;
 }
 
 .pbu-user-chart {
-    height: 90px;
+    height: 80px;
     width: 100%;
 }
 
-/* Chart card styling (matches components.css) */
+/* Chart card styling */
 .chart-card {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
-    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .chart-card-header {
     font-size: 11px;
     font-weight: 600;
     color: #374151;
-    padding: 6px 10px 0;
+    padding: 8px 12px 0;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
 
 .chart-container {
     width: 100%;
-    height: calc(100% - 24px);
-    padding: 0 2px 2px;
+    height: calc(100% - 28px);
+    padding: 0 4px 4px;
+}
+
+/* Content transition */
+#pbu-widgets {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Skeleton loading */
 .pbu-skeleton {
     display: grid;
     grid-template-columns: 2fr 3fr;
-    gap: 8px;
-    height: calc(100vh - 220px);
+    gap: 10px;
+    height: calc(100vh - 225px);
     overflow: hidden;
 }
 
