@@ -2,12 +2,19 @@
    HxH Overall Performance - Page Styles
    ============================================================ */
 
+/* Prevent page-level scroll */
+html, body {
+    overflow: hidden !important;
+    height: 100vh;
+    max-height: 100vh;
+}
+
 /* Layout: left (UPH) | center (3 charts) | right (3 KPIs) */
 .hxh-layout {
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 235px);
+    height: calc(100vh - 260px);
     overflow: hidden;
 }
 
@@ -114,7 +121,7 @@
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 235px);
+    height: calc(100vh - 260px);
     overflow: hidden;
 }
 
