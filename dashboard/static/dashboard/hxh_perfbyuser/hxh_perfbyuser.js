@@ -13,6 +13,7 @@
 
     var CUBE = [];
     var DATA = null;
+    var FIRST_LOAD = true;
 
     // ============================================================
     // HELPERS
@@ -114,6 +115,10 @@
         var container = document.getElementById('chart-units-user');
         if (!container || !userData.length) return;
 
+        // Dynamic height: 28px per user, minimum 300px
+        var chartHeight = Math.max(300, userData.length * 28);
+        container.style.height = chartHeight + 'px';
+
         // Reverse for Plotly horizontal bar (bottom-to-top)
         var reversed = userData.slice().reverse();
         var users = reversed.map(function(u) { return u.user; });
@@ -151,7 +156,7 @@
 
         var layout = {
             margin: { t: 4, r: 50, b: 30, l: 100 },
-            autosize: true,
+            height: chartHeight,
             showlegend: false,
             yaxis: { automargin: true, tickfont: { size: 9 } },
             xaxis: { zeroline: false, gridcolor: '#f1f5f9', rangemode: 'tozero', tickfont: { size: 9 } },
@@ -289,6 +294,17 @@
                 users.sort();
                 LMS.populateDropdown('filter-user', users, getFilterVal('filter-user'));
 
+                // On first load, default Process to PUTAWAY
+                if (FIRST_LOAD) {
+                    FIRST_LOAD = false;
+                    var pEl = document.getElementById('filter-process');
+                    if (pEl) {
+                        pEl.value = 'PUTAWAY';
+                        // Fallback to All if PUTAWAY not in list
+                        if (pEl.value !== 'PUTAWAY') pEl.value = 'All';
+                    }
+                }
+
                 // Cache
                 cache.set(data);
                 LMS.hideLoading(data.selected.date_from, data.selected.date_to);
@@ -401,10 +417,6 @@
     // ============================================================
 
     (function init() {
-        // Default Process to PUTAWAY
-        var processEl = document.getElementById('filter-process');
-        if (processEl) processEl.value = 'PUTAWAY';
-
         loadData();
     })();
 
