@@ -5,7 +5,7 @@
 {% block nav_hxh_data %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/hxh_data/hxh_data.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'dashboard/hxh_data/hxh_data.css' %}?v=6">
 {% endblock %}
 
 {% block content %}
@@ -67,12 +67,12 @@
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Flow</th>
-                            <th>Hour</th>
-                            <th>Process</th>
-                            <th>Shift</th>
-                            <th>Units</th>
                             <th>User</th>
+                            <th>Hour</th>
+                            <th>Shift</th>
+                            <th>Process</th>
+                            <th>Flow</th>
+                            <th>Units</th>
                         </tr>
                     </thead>
                     <tbody id="data-tbody"></tbody>
@@ -87,5 +87,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/hxh_data/hxh_data.js' %}?v=3"></script>
+<script src="{% static 'dashboard/hxh_data/hxh_data.js' %}?v=4"></script>
 {% endblock %}

@@ -82,20 +82,20 @@
             totalUnits += r.units;
             html += '<tr>' +
                 '<td>' + LMS.fmtDate(r.d) + '</td>' +
-                '<td>' + r.f + '</td>' +
-                '<td>' + r.h + '</td>' +
-                '<td>' + r.p + '</td>' +
-                '<td>' + getShift(r.h) + '</td>' +
-                '<td>' + fmtNumber(r.units) + '</td>' +
                 '<td>' + r.u + '</td>' +
+                '<td>' + r.h + '</td>' +
+                '<td>' + getShift(r.h) + '</td>' +
+                '<td>' + r.p + '</td>' +
+                '<td>' + r.f + '</td>' +
+                '<td>' + fmtNumber(r.units) + '</td>' +
                 '</tr>';
         }
         // Total row
         html += '<tr class="total-row">' +
             '<td><strong>Total</strong></td>' +
-            '<td></td><td></td><td></td><td></td>' +
+            '<td></td><td></td><td></td><td></td><td></td>' +
             '<td><strong>' + fmtNumber(totalUnits) + '</strong></td>' +
-            '<td></td></tr>';
+            '</tr>';
         tbody.innerHTML = html;
         countEl.textContent = fmtNumber(filtered.length) + ' rows';
     }
@@ -256,9 +256,9 @@
             return a.u.localeCompare(b.u);
         });
 
-        var rows = [['Date', 'Flow', 'Hour', 'Process', 'Shift', 'Units', 'User']];
+        var rows = [['Date', 'User', 'Hour', 'Shift', 'Process', 'Flow', 'Units']];
         filtered.forEach(function(r) {
-            rows.push([LMS.fmtDate(r.d), r.f, r.h, r.p, getShift(r.h), r.units, r.u]);
+            rows.push([LMS.fmtDate(r.d), r.u, r.h, getShift(r.h), r.p, r.f, r.units]);
         });
 
         var dateFrom = document.getElementById('filter-date-from').value;

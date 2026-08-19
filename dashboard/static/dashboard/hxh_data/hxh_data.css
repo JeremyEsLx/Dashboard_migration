@@ -75,9 +75,9 @@ html, body {
     background: #f1f5f9;
 }
 
-/* Units column right-aligned */
-.data-table td:nth-child(6),
-.data-table th:nth-child(6) {
+/* Units column right-aligned (7th column) */
+.data-table td:nth-child(7),
+.data-table th:nth-child(7) {
     text-align: right;
 }
 
