@@ -1,0 +1,153 @@
+/* ============================================================
+   HxH Performance by User - Page Styles
+   ============================================================ */
+
+/* Layout: left (Units by User) | right (Small Multiples) */
+.pbu-layout {
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    gap: 8px;
+    height: calc(100vh - 195px);
+    overflow: hidden;
+}
+
+/* Left column: Units by User chart */
+.pbu-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.pbu-left .chart-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.pbu-left .chart-container {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Right column: Small multiples */
+.pbu-right {
+    display: flex;
+    flex-direction: column;
+}
+
+.pbu-right .chart-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.pbu-multiples {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+    min-height: 0;
+}
+
+.pbu-user-panel {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 6px 0;
+}
+
+.pbu-user-panel:last-child {
+    border-bottom: none;
+}
+
+.pbu-user-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 0 4px;
+}
+
+.pbu-user-chart {
+    height: 90px;
+    width: 100%;
+}
+
+/* Chart card styling (matches components.css) */
+.chart-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.chart-card-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+    padding: 6px 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.chart-container {
+    width: 100%;
+    height: calc(100% - 24px);
+    padding: 0 2px 2px;
+}
+
+/* Skeleton loading */
+.pbu-skeleton {
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    gap: 8px;
+    height: calc(100vh - 195px);
+    overflow: hidden;
+}
+
+.pbu-skeleton .skeleton-left,
+.pbu-skeleton .skeleton-right {
+    display: flex;
+    flex-direction: column;
+}
+
+.pbu-skeleton .skeleton-box {
+    flex: 1;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Hidden utility */
+.hidden {
+    display: none !important;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1024px) {
+    .pbu-layout,
+    .pbu-skeleton {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .pbu-left .chart-card {
+        min-height: 300px;
+    }
+
+    .pbu-right .chart-card {
+        min-height: 400px;
+    }
+
+    .pbu-multiples {
+        max-height: 500px;
+    }
+}

@@ -1,0 +1,85 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Performance by User - HxH{% endblock %}
+{% block nav_hxh_perfbyuser %}active{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'dashboard/hxh_perfbyuser/hxh_perfbyuser.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<button class="filters-toggle" id="filters-toggle">
+    <span>Filters</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+
+<div class="filters-bar filters-collapsible" id="filters-bar">
+    <div class="filter-group">
+        <label for="filter-process">Process</label>
+        <select id="filter-process"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-flow">Flow</label>
+        <select id="filter-flow"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-shift">Shift</label>
+        <select id="filter-shift">
+            <option>All</option>
+            <option>Morning Shift</option>
+            <option>Night Shift</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-date">Date</label>
+        <select id="filter-date"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-user">User</label>
+        <select id="filter-user"><option>All</option></select>
+    </div>
+    <div class="filter-group">
+        <label for="filter-date-from">Date From</label>
+        <input type="date" id="filter-date-from" value="{{ data.selected.date_from }}">
+    </div>
+    <div class="filter-group">
+        <label for="filter-date-to">Date To</label>
+        <input type="date" id="filter-date-to" value="{{ data.selected.date_to }}">
+    </div>
+    {% include "dashboard/_partials/_filter_actions.html" %}
+</div>
+
+{% include "dashboard/_partials/_banner.html" %}
+
+<!-- Skeleton Loading -->
+<div id="skeleton-loading" class="pbu-skeleton">
+    <div class="skeleton-left"><div class="skeleton-box"></div></div>
+    <div class="skeleton-right"><div class="skeleton-box"></div></div>
+</div>
+
+<!-- Main Content -->
+<div id="pbu-widgets" class="hidden">
+    <div class="pbu-layout">
+        <!-- Left: Units by User -->
+        <div class="pbu-left">
+            <div class="chart-card">
+                <div class="chart-card-header">Units by User</div>
+                <div class="chart-container" id="chart-units-user"></div>
+            </div>
+        </div>
+        <!-- Right: Units by Date & Hour (small multiples) -->
+        <div class="pbu-right">
+            <div class="chart-card">
+                <div class="chart-card-header">Units by Date & Hour</div>
+                <div class="pbu-multiples" id="chart-multiples"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/hxh_perfbyuser/hxh_perfbyuser.js' %}?v=1"></script>
+{% endblock %}

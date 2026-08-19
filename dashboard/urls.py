@@ -35,6 +35,7 @@ urlpatterns = [
 
     # MX03 Performance HxH
     path('hxh/', views.hxh_overall, name='hxh_overall'),
+    path('hxhuser/', views.hxh_perfbyuser, name='hxh_perfbyuser'),
     path('api/hxh/', views.hxh_overall_data, name='hxh_overall_data'),
 
     # Placeholder dashboards (WIP)
