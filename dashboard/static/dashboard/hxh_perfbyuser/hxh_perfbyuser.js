@@ -284,6 +284,10 @@
                 LMS.populateDropdown('filter-process', data.filters.processes, getFilterVal('filter-process'));
                 LMS.populateDropdown('filter-flow', data.filters.flows, getFilterVal('filter-flow'));
                 LMS.populateDropdown('filter-date', data.filters.dates, getFilterVal('filter-date'));
+                var dSel = document.getElementById('filter-date');
+                if (dSel) Array.from(dSel.options).forEach(function(o) {
+                    if (o.value !== 'All') o.textContent = LMS.fmtDate(o.value);
+                });
 
                 // Build user list from cube
                 var users = [];
@@ -326,6 +330,10 @@
             LMS.populateDropdown('filter-process', cached.filters.processes, getFilterVal('filter-process'));
             LMS.populateDropdown('filter-flow', cached.filters.flows, getFilterVal('filter-flow'));
             LMS.populateDropdown('filter-date', cached.filters.dates, getFilterVal('filter-date'));
+            var dSel2 = document.getElementById('filter-date');
+            if (dSel2) Array.from(dSel2.options).forEach(function(o) {
+                if (o.value !== 'All') o.textContent = LMS.fmtDate(o.value);
+            });
 
             var users = [];
             var seen = {};

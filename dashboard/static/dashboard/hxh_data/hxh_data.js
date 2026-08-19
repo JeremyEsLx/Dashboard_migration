@@ -81,7 +81,7 @@
             var r = filtered[i];
             totalUnits += r.units;
             html += '<tr>' +
-                '<td>' + r.d + '</td>' +
+                '<td>' + LMS.fmtDate(r.d) + '</td>' +
                 '<td>' + r.f + '</td>' +
                 '<td>' + r.h + '</td>' +
                 '<td>' + r.p + '</td>' +
@@ -138,6 +138,11 @@
                 LMS.populateDropdown('filter-process', data.filters.processes, getFilterVal('filter-process'));
                 LMS.populateDropdown('filter-flow', data.filters.flows, getFilterVal('filter-flow'));
                 LMS.populateDropdown('filter-date', data.filters.dates, getFilterVal('filter-date'));
+                // Format date dropdown display to mm/dd/yyyy
+                var dSel = document.getElementById('filter-date');
+                if (dSel) Array.from(dSel.options).forEach(function(o) {
+                    if (o.value !== 'All') o.textContent = LMS.fmtDate(o.value);
+                });
 
                 // Build user list from cube
                 var users = [];
@@ -253,7 +258,7 @@
 
         var rows = [['Date', 'Flow', 'Hour', 'Process', 'Shift', 'Units', 'User']];
         filtered.forEach(function(r) {
-            rows.push([r.d, r.f, r.h, r.p, getShift(r.h), r.units, r.u]);
+            rows.push([LMS.fmtDate(r.d), r.f, r.h, r.p, getShift(r.h), r.units, r.u]);
         });
 
         var dateFrom = document.getElementById('filter-date-from').value;

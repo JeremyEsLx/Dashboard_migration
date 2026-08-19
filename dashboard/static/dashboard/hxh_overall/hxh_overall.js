@@ -353,6 +353,10 @@
                 LMS.populateDropdown('filter-flow', data.filters.flows, getFilterVal('filter-flow'));
                 LMS.populateDropdown('filter-carttype', data.filters.cart_types, getFilterVal('filter-carttype'));
                 LMS.populateDropdown('filter-date', data.filters.dates, getFilterVal('filter-date'));
+                var dSel = document.getElementById('filter-date');
+                if (dSel) Array.from(dSel.options).forEach(function(o) {
+                    if (o.value !== 'All') o.textContent = LMS.fmtDate(o.value);
+                });
 
                 // Set date inputs if empty
                 var dfEl = document.getElementById('filter-date-from');
@@ -378,6 +382,10 @@
             LMS.populateDropdown('filter-flow', cached.filters.flows, 'All');
             LMS.populateDropdown('filter-carttype', cached.filters.cart_types, 'All');
             LMS.populateDropdown('filter-date', cached.filters.dates, 'All');
+            var dSel2 = document.getElementById('filter-date');
+            if (dSel2) Array.from(dSel2.options).forEach(function(o) {
+                if (o.value !== 'All') o.textContent = LMS.fmtDate(o.value);
+            });
             var dfEl = document.getElementById('filter-date-from');
             var dtEl = document.getElementById('filter-date-to');
             if (!dfEl.value) dfEl.value = cached.selected.date_from;
@@ -441,13 +449,13 @@
         // Sheet 1: Summary by Hour (AOA format)
         var summaryRows = [['Date', 'Hour', 'Shift', 'Total Units', 'Active Users', 'Avg Units/User']];
         agg.slots.forEach(function(s) {
-            summaryRows.push([s.d, s.h, getShift(s.h), s.units, s.users, s.avg]);
+            summaryRows.push([LMS.fmtDate(s.d), s.h, getShift(s.h), s.units, s.users, s.avg]);
         });
 
         // Sheet 2: Detail (AOA format)
         var detailRows = [['Date', 'Hour', 'Shift', 'Process', 'Flow', 'Cart Type', 'User', 'Country of Origin', 'Units']];
         filtered.forEach(function(r) {
-            detailRows.push([r.d, r.h, getShift(r.h), r.p, r.f, r.ct, r.u, r.co, r.units]);
+            detailRows.push([LMS.fmtDate(r.d), r.h, getShift(r.h), r.p, r.f, r.ct, r.u, r.co, r.units]);
         });
 
         var dateFrom = document.getElementById('filter-date-from').value || DATA.selected.date_from;
