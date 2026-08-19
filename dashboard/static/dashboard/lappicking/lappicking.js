@@ -106,34 +106,31 @@
         });
 
         var dates = Object.keys(dateMap).sort();
-        var values = dates.map(function(d) {
+        var maxUph = 0;
+        var uphValues = dates.map(function(d) {
             var pairs = Object.keys(dateMap[d].userHours).length;
-            return pairs ? Math.round(dateMap[d].units / pairs) : 0;
+            var uph = pairs ? Math.round(dateMap[d].units / pairs) : 0;
+            if (uph > maxUph) maxUph = uph;
+            return uph;
         });
-        var labels = dates.map(function(d) { return LMS.fmtDate(d) + '\nNTRF'; });
 
-        var trace = {
-            y: labels.slice().reverse(),
-            x: values.slice().reverse(),
-            type: 'bar',
-            orientation: 'h',
-            marker: { color: '#94a3b8', line: { width: 0 } },
-            text: values.slice().reverse().map(String),
-            textposition: 'outside',
-            textfont: { size: 10 },
-            hovertemplate: '%{y}<br>UPH: %{x}<extra></extra>',
-        };
-
-        var layout = {
-            margin: { t: 4, r: 40, b: 24, l: 90 },
-            height: container.clientHeight || 300,
-            showlegend: false,
-            yaxis: { automargin: true, tickfont: { size: 9 } },
-            xaxis: { zeroline: false, gridcolor: '#f1f5f9', rangemode: 'tozero', tickfont: { size: 9 }, type: 'log' },
-            bargap: 0.3,
-        };
-
-        Plotly.newPlot(container, [trace], layout, CHART_CONFIG);
+        // Render as HTML bars (matches Power BI layout)
+        var html = '';
+        dates.forEach(function(d, i) {
+            var uph = uphValues[i];
+            var pct = maxUph ? Math.max((uph / maxUph) * 75, 10) : 10;
+            html += '<div class="uph-section">';
+            html += '<div class="uph-date">' + LMS.fmtDate(d) + '</div>';
+            html += '<div class="uph-bar-row">';
+            html += '<span class="uph-label">NTRF</span>';
+            html += '<div class="uph-bar" style="width:' + pct + '%">';
+            html += '<span class="uph-value">' + uph + '</span>';
+            html += '</div>';
+            html += '</div>';
+            if (i < dates.length - 1) html += '<div class="uph-divider"></div>';
+            html += '</div>';
+        });
+        container.innerHTML = html;
     }
 
     function renderCenterCharts(agg) {
