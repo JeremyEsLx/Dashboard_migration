@@ -9,12 +9,16 @@ html, body {
     max-height: 100vh;
 }
 
+.main {
+    overflow: hidden !important;
+}
+
 /* Layout: left (UPH) | center (3 charts) | right (3 KPIs) */
 .hxh-layout {
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 260px);
+    height: calc(100vh - 290px);
     overflow: hidden;
 }
 
@@ -121,7 +125,7 @@ html, body {
     display: grid;
     grid-template-columns: 160px 1fr 130px;
     gap: 8px;
-    height: calc(100vh - 260px);
+    height: calc(100vh - 290px);
     overflow: hidden;
 }
 
