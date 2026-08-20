@@ -665,15 +665,19 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
       AND [Previous Process] = 'CLOCK IN'
       AND [Process] NOT IN ('CLOCK IN', 'CLOCK OUT')
 """
+    params = []
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
         print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
         print(f"[LMS]   Mode: DATE FROM = {date_from}")
     elif date_to:
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.append(date_to)
         print(f"[LMS]   Mode: DATE TO = {date_to}")
     else:
         print(f"[LMS]   Mode: NO DATE FILTER")
@@ -706,7 +710,7 @@ def get_strongstart_cube(date_from=None, date_to=None, week=None):
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
-    df = run_query(query)
+    df = run_query(query, tuple(params))
     elapsed = time.time() - start
 
     if df.empty:
