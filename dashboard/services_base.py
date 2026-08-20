@@ -71,12 +71,17 @@ def _return_connection(conn):
                 pass
 
 
-def run_query(query: str) -> pd.DataFrame:
-    """Execute a SQL query and return results as a DataFrame (pooled connection)."""
+def run_query(query: str, params: tuple = ()) -> pd.DataFrame:
+    """Execute a SQL query and return results as a DataFrame (pooled connection).
+
+    Args:
+        query: SQL string. Use ? placeholders for user-supplied values.
+        params: Tuple of parameter values bound to ? placeholders.
+    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute(query)
+        cursor.execute(query, params) if params else cursor.execute(query)
         columns = [desc[0] for desc in cursor.description]
         rows = cursor.fetchall()
         _return_connection(conn)
@@ -168,28 +173,44 @@ def _base_subquery():
 
 
 def _build_date_where(date_filter=None, week=None):
-    """WHERE clause builder for single-date or week filtering (Summary)."""
+    """WHERE clause builder for single-date or week filtering (Summary).
+
+    Returns:
+        (where_clause_str, params_tuple)
+    """
     where = BASE_FILTERS
+    params = []
     if date_filter:
-        where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+        where += "  AND CAST([Date] AS DATE) = ?\n"
+        params.append(date_filter)
     elif week and week != 'All':
-        where += f"  AND [Fiscal Week] = '{week}'\n"
-    return where
+        where += "  AND [Fiscal Week] = ?\n"
+        params.append(week)
+    return where, tuple(params)
 
 
 def _build_date_range_where(date_from=None, date_to=None, week=None):
-    """WHERE clause builder for date-range or week filtering (Performance)."""
+    """WHERE clause builder for date-range or week filtering (Performance).
+
+    Returns:
+        (where_clause_str, params_tuple)
+    """
     where = BASE_FILTERS
+    params = []
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
     elif date_to:
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.append(date_to)
     elif week and week != 'All':
-        where += f"  AND [Fiscal Week] = '{week}'\n"
-    return where
+        where += "  AND [Fiscal Week] = ?\n"
+        params.append(week)
+    return where, tuple(params)
 
 
 def default_date_range(days=21):

@@ -78,28 +78,44 @@ def _base_subquery():
 
 
 def _build_date_where(date_filter=None, week=None):
-    """WHERE clause builder for single-date or week filtering (Summary)."""
+    """WHERE clause builder for single-date or week filtering (Summary).
+
+    Returns:
+        (where_clause_str, params_tuple)
+    """
     where = BASE_FILTERS
+    params = []
     if date_filter:
-        where += f"  AND CAST([Date] AS DATE) = '{date_filter}'\n"
+        where += "  AND CAST([Date] AS DATE) = ?\n"
+        params.append(date_filter)
     elif week and week != 'All':
-        where += f"  AND [Fiscal Week] = '{week}'\n"
-    return where
+        where += "  AND [Fiscal Week] = ?\n"
+        params.append(week)
+    return where, tuple(params)
 
 
 def _build_date_range_where(date_from=None, date_to=None, week=None):
-    """WHERE clause builder for date-range or week filtering (Performance)."""
+    """WHERE clause builder for date-range or week filtering (Performance).
+
+    Returns:
+        (where_clause_str, params_tuple)
+    """
     where = BASE_FILTERS
+    params = []
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
     elif date_to:
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.append(date_to)
     elif week and week != 'All':
-        where += f"  AND [Fiscal Week] = '{week}'\n"
-    return where
+        where += "  AND [Fiscal Week] = ?\n"
+        params.append(week)
+    return where, tuple(params)
 
 
 # ============================================================
@@ -192,7 +208,7 @@ def get_day_cube(date_filter=None, week=None):
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    where = _build_date_where(date_filter, week)
+    where, params = _build_date_where(date_filter, week)
     if date_filter:
         print(f"[LMS]   Mode: DATE = {date_filter}")
     elif week and week != 'All':
@@ -214,7 +230,7 @@ def get_day_cube(date_filter=None, week=None):
         GROUP BY [Movement], [Supervisor Full Name], [SHIFT2]
     """
 
-    df = run_query(query)
+    df = run_query(query, params)
     elapsed = time.time() - start
 
     if df.empty:
@@ -812,15 +828,19 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
     WHERE [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
       AND [Process] = 'CLOCK OUT'
 """
+    params = []
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= \'{date_from}\'\n"
-        where += f"  AND CAST([Date] AS DATE) <= \'{date_to}\'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
         print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= \'{date_from}\'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
         print(f"[LMS]   Mode: DATE FROM = {date_from}")
     elif date_to:
-        where += f"  AND CAST([Date] AS DATE) <= \'{date_to}\'\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.append(date_to)
         print(f"[LMS]   Mode: DATE TO = {date_to}")
     else:
         print(f"[LMS]   Mode: NO DATE FILTER")
@@ -835,9 +855,9 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
             [User Name] AS [user_name],
             ISNULL([Full Name], [User Name]) AS [full_name],
             [Supervisor Full Name] AS [supervisor],
-            ISNULL([Previous Process], \'\') AS [previous_process],
+            ISNULL([Previous Process], '') AS [previous_process],
             [SHIFT2] AS [shift],
-            ISNULL([Process], \'\') AS [process],
+            ISNULL([Process], '') AS [process],
             CAST(DATEPART(HOUR, [Previous Scan Day]) AS VARCHAR) + ':' +
                 RIGHT('0' + CAST(DATEPART(MINUTE, [Previous Scan Day]) AS VARCHAR), 2) + ':' +
                 RIGHT('0' + CAST(DATEPART(SECOND, [Previous Scan Day]) AS VARCHAR), 2) AS [scan_time],
@@ -850,7 +870,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
-    df = run_query(query)
+    df = run_query(query, tuple(params))
     elapsed = time.time() - start
 
     if df.empty:
@@ -1010,15 +1030,19 @@ def get_noactivity_cube(date_from=None, date_to=None):
       AND [Process] = 'CLOCK OUT'
       AND [Supervisor Full Name] NOT IN ({excl_sup})
 """
+    params = []
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
         print(f"[LMS]   Mode: DATE RANGE = {date_from} -> {date_to}")
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
         print(f"[LMS]   Mode: DATE FROM = {date_from}")
     elif date_to:
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.append(date_to)
         print(f"[LMS]   Mode: DATE TO = {date_to}")
     else:
         print(f"[LMS]   Mode: NO DATE FILTER")
@@ -1044,7 +1068,7 @@ def get_noactivity_cube(date_from=None, date_to=None):
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
-    df = run_query(query)
+    df = run_query(query, tuple(params))
     elapsed = time.time() - start
 
     if df.empty:

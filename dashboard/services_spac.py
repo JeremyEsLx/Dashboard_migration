@@ -31,12 +31,17 @@ def _bi_conn_str():
     )
 
 
-def _bi_query(query: str) -> pd.DataFrame:
-    """Execute a query against the Business_Intelligence database."""
+def _bi_query(query: str, params: tuple = ()) -> pd.DataFrame:
+    """Execute a query against the Business_Intelligence database.
+
+    Args:
+        query: SQL string. Use ? placeholders for user-supplied values.
+        params: Tuple of parameter values bound to ? placeholders.
+    """
     conn = pyodbc.connect(_bi_conn_str())
     try:
         cursor = conn.cursor()
-        cursor.execute(query)
+        cursor.execute(query, params) if params else cursor.execute(query)
         columns = [desc[0] for desc in cursor.description]
         rows = cursor.fetchall()
         return pd.DataFrame.from_records(rows, columns=columns)
@@ -69,7 +74,8 @@ def get_spac_data(date_from=None, date_to=None, user=None):
         date_from, date_to = _current_week_range()
 
     # WHERE clause: only date range (no user filter - client does that)
-    where_sql = f"[Date] >= '{date_from}' AND [Date] <= '{date_to}'"
+    where_sql = "[Date] >= ? AND [Date] <= ?"
+    params = (date_from, date_to)
 
     # Query 1: LastUpdate only (KPIs computed client-side from cube)
     meta_query = f"""
@@ -95,8 +101,8 @@ def get_spac_data(date_from=None, date_to=None, user=None):
 
     # Run cube + meta in parallel (only 2 queries now)
     with ThreadPoolExecutor(max_workers=2) as executor:
-        f_meta = executor.submit(_bi_query, meta_query)
-        f_cube = executor.submit(_bi_query, cube_query)
+        f_meta = executor.submit(_bi_query, meta_query, params)
+        f_cube = executor.submit(_bi_query, cube_query, params)
         meta_df = f_meta.result(timeout=30)
         cube_df = f_cube.result(timeout=30)
 
@@ -149,7 +155,8 @@ def get_spac_details_data(date_from=None, date_to=None):
         date_from = str(today - timedelta(days=4))
         date_to = str(today)
 
-    where_sql = f"[Date] >= '{date_from}' AND [Date] <= '{date_to}'"
+    where_sql = "[Date] >= ? AND [Date] <= ?"
+    params = (date_from, date_to)
 
     detail_query = f"""
         SELECT
@@ -174,8 +181,8 @@ def get_spac_details_data(date_from=None, date_to=None):
     """
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        f_meta = executor.submit(_bi_query, meta_query)
-        f_detail = executor.submit(_bi_query, detail_query)
+        f_meta = executor.submit(_bi_query, meta_query, params)
+        f_detail = executor.submit(_bi_query, detail_query, params)
         meta_df = f_meta.result(timeout=30)
         detail_df = f_detail.result(timeout=30)
 

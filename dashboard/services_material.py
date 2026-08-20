@@ -22,33 +22,45 @@ def _default_date_range():
 def _build_where(date_from, date_to, process=None, movement=None,
                  material=None, grid=None, stock_cat=None,
                  dest_bin=None, source_bin=None):
-    """Shared WHERE clauses for both queries."""
+    """Shared WHERE clauses for both queries.
+
+    Returns:
+        (where_sql_str, params_tuple)
+    """
     users = get_direct_users()
     users_str = ','.join(f"'{u}'" for u in users)
 
     clauses = [
         "[Activity Type] = 'DIRECT'",
         f"[User Name] IN ({users_str})",
-        f"CAST([Date] AS DATE) >= '{date_from}'",
-        f"CAST([Date] AS DATE) <= '{date_to}'",
+        "CAST([Date] AS DATE) >= ?",
+        "CAST([Date] AS DATE) <= ?",
     ]
+    params = [date_from, date_to]
 
     if process:
-        clauses.append(f"[Process] = '{process}'")
+        clauses.append("[Process] = ?")
+        params.append(process)
     if movement:
-        clauses.append(f"[Movement] = '{movement}'")
+        clauses.append("[Movement] = ?")
+        params.append(movement)
     if material:
-        clauses.append(f"[Material] = '{material}'")
+        clauses.append("[Material] = ?")
+        params.append(material)
     if grid:
-        clauses.append(f"[Grid Value] = '{grid}'")
+        clauses.append("[Grid Value] = ?")
+        params.append(grid)
     if stock_cat:
-        clauses.append(f"[Stock Category] = '{stock_cat}'")
+        clauses.append("[Stock Category] = ?")
+        params.append(stock_cat)
     if dest_bin:
-        clauses.append(f"[Destination Storage Bin] = '{dest_bin}'")
+        clauses.append("[Destination Storage Bin] = ?")
+        params.append(dest_bin)
     if source_bin:
-        clauses.append(f"[Source Storage Bin] = '{source_bin}'")
+        clauses.append("[Source Storage Bin] = ?")
+        params.append(source_bin)
 
-    return ' AND '.join(clauses)
+    return ' AND '.join(clauses), tuple(params)
 
 
 def _build_units_query(where_sql):
@@ -129,13 +141,13 @@ def get_material_export(date_from=None, date_to=None, process=None,
     if not date_from or not date_to:
         date_from, date_to = _default_date_range()
 
-    where_sql = _build_where(
+    where_sql, params = _build_where(
         date_from, date_to, process, movement,
         material, grid, stock_cat, dest_bin, source_bin
     )
 
-    units_df = run_query(_build_units_query(where_sql))
-    detail_df = run_query(_build_export_query(where_sql))
+    units_df = run_query(_build_units_query(where_sql), params)
+    detail_df = run_query(_build_export_query(where_sql), params)
     return units_df, detail_df
 
 
@@ -146,7 +158,7 @@ def get_material_data(date_from=None, date_to=None, process=None,
     if not date_from or not date_to:
         date_from, date_to = _default_date_range()
 
-    where_sql = _build_where(
+    where_sql, params = _build_where(
         date_from, date_to, process, movement,
         material, grid, stock_cat, dest_bin, source_bin
     )
@@ -157,9 +169,9 @@ def get_material_data(date_from=None, date_to=None, process=None,
     detail_df = None
 
     with ThreadPoolExecutor(max_workers=3) as executor:
-        f_units = executor.submit(run_query, _build_units_query(where_sql))
-        f_totals = executor.submit(run_query, _build_totals_query(where_sql))
-        f_detail = executor.submit(run_query, _build_detail_query(where_sql))
+        f_units = executor.submit(run_query, _build_units_query(where_sql), params)
+        f_totals = executor.submit(run_query, _build_totals_query(where_sql), params)
+        f_detail = executor.submit(run_query, _build_detail_query(where_sql), params)
         units_df = f_units.result(timeout=30)
         totals_df = f_totals.result(timeout=30)
         detail_df = f_detail.result(timeout=30)

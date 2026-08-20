@@ -114,30 +114,38 @@ def get_userperformance_cube(date_from=None, date_to=None, supervisor=None,
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
     where = "    WHERE [Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')\n"
+    params = []
 
     if date_from and date_to:
-        where += f"      AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"      AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "      AND CAST([Date] AS DATE) >= ?\n"
+        where += "      AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
         print(f"[LMS]   Date: {date_from} -> {date_to}")
     elif date_from:
-        where += f"      AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += "      AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
     elif date_to:
-        where += f"      AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "      AND CAST([Date] AS DATE) <= ?\n"
+        params.append(date_to)
 
     where += f"      AND [User Name] IN ({users_str})\n"
 
-    # Server-side filters
+    # Server-side filters (parameterized)
     if supervisor and supervisor != 'All':
-        where += f"      AND [Supervisor Full Name] = '{supervisor.replace(chr(39), chr(39)+chr(39))}'\n"
+        where += "      AND [Supervisor Full Name] = ?\n"
+        params.append(supervisor)
         print(f"[LMS]   Supervisor: {supervisor}")
     if user_name:
-        where += f"      AND [User Name] LIKE '%{user_name.replace(chr(39), chr(39)+chr(39))}%'\n"
+        where += "      AND [User Name] LIKE ?\n"
+        params.append(f'%{user_name}%')
         print(f"[LMS]   User Name: {user_name}")
     if process and process != 'All':
-        where += f"      AND [Process] = '{process.replace(chr(39), chr(39)+chr(39))}'\n"
+        where += "      AND [Process] = ?\n"
+        params.append(process)
         print(f"[LMS]   Process: {process}")
     if movement and movement != 'All':
-        where += f"      AND [Movement] = '{movement.replace(chr(39), chr(39)+chr(39))}'\n"
+        where += "      AND [Movement] = ?\n"
+        params.append(movement)
         print(f"[LMS]   Movement: {movement}")
     if shift and shift != 'All':
         shift_map = {
@@ -151,13 +159,16 @@ def get_userperformance_cube(date_from=None, date_to=None, supervisor=None,
             where += f"      AND [Shift] IN ({vals})\n"
             print(f"[LMS]   Shift: {shift}")
     if hour is not None and hour != '' and hour != 'All':
-        where += f"      AND DATEPART(HOUR, [Time]) = {int(hour)}\n"
+        where += "      AND DATEPART(HOUR, [Time]) = ?\n"
+        params.append(int(hour))
         print(f"[LMS]   Hour: {hour}")
     if week and week != 'All':
-        where += f"      AND [Fiscal Week] = '{week.replace(chr(39), chr(39)+chr(39))}'\n"
+        where += "      AND [Fiscal Week] = ?\n"
+        params.append(week)
         print(f"[LMS]   Week: {week}")
     if full_name and full_name != 'All':
-        where += f"      AND [Full Name] = '{full_name.replace(chr(39), chr(39)+chr(39))}'\n"
+        where += "      AND [Full Name] = ?\n"
+        params.append(full_name)
         print(f"[LMS]   Full Name: {full_name}")
 
     query = f"""
@@ -201,7 +212,7 @@ def get_userperformance_cube(date_from=None, date_to=None, supervisor=None,
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
-    df = run_query(query)
+    df = run_query(query, tuple(params))
     elapsed = time.time() - start
 
     if df.empty:

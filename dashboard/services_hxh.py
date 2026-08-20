@@ -40,11 +40,12 @@ def get_hxh_overall_data(date_from=None, date_to=None):
         date_from, date_to = _default_date_range()
 
     where_sql = (
-        f"[Process] IN ('PICKING', 'PUTAWAY', 'RECEIVING') "
-        f"AND [Flow_Type_Map] IS NOT NULL "
-        f"AND LTRIM(RTRIM([Flow_Type_Map])) <> '' "
-        f"AND [Date] >= '{date_from}' AND [Date] <= '{date_to}'"
+        "[Process] IN ('PICKING', 'PUTAWAY', 'RECEIVING') "
+        "AND [Flow_Type_Map] IS NOT NULL "
+        "AND LTRIM(RTRIM([Flow_Type_Map])) <> '' "
+        "AND [Date] >= ? AND [Date] <= ?"
     )
+    params = (date_from, date_to)
 
     cube_query = f"""
         SELECT
@@ -69,7 +70,7 @@ def get_hxh_overall_data(date_from=None, date_to=None):
         ORDER BY [day], [hour]
     """
 
-    cube_df = run_query(cube_query)
+    cube_df = run_query(cube_query, params)
 
     # Build cube JSON
     cube_data = []
@@ -130,12 +131,13 @@ def get_lap_picking_data():
     banner_from = str(today - timedelta(days=4))
 
     where_sql = (
-        f"[Process] = 'PICKING' "
-        f"AND [Cart Type] = 'NTRF' "
-        f"AND [Flow_Type_Map] IS NOT NULL "
-        f"AND LTRIM(RTRIM([Flow_Type_Map])) <> '' "
-        f"AND [Date] >= '{date_from}' AND [Date] <= '{date_to}'"
+        "[Process] = 'PICKING' "
+        "AND [Cart Type] = 'NTRF' "
+        "AND [Flow_Type_Map] IS NOT NULL "
+        "AND LTRIM(RTRIM([Flow_Type_Map])) <> '' "
+        "AND [Date] >= ? AND [Date] <= ?"
     )
+    params = (date_from, date_to)
 
     cube_query = f"""
         SELECT
@@ -154,7 +156,7 @@ def get_lap_picking_data():
         ORDER BY [day], [hour]
     """
 
-    cube_df = run_query(cube_query)
+    cube_df = run_query(cube_query, params)
 
     cube_data = []
     for _, row in cube_df.iterrows():

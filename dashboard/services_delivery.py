@@ -39,18 +39,23 @@ def _build_picking_cube(date_from, date_to, delivery=None, user_name=None):
       AND [Process] = 'PICKING'
       AND ISNULL([Cart Type], '') NOT IN ('NTRF', 'ST01')
 """
+    params = []
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
 
     where += f"  AND [User Name] IN ({users_str})\n"
 
     if delivery and delivery != 'All':
-        where += f"  AND [Delivery] = '{delivery}'\n"
+        where += "  AND [Delivery] = ?\n"
+        params.append(delivery)
     if user_name and user_name != 'All':
-        where += f"  AND [User Name] = '{user_name}'\n"
+        where += "  AND [User Name] = ?\n"
+        params.append(user_name)
 
     query = f"""
         SELECT TOP 10000
@@ -71,7 +76,7 @@ def _build_picking_cube(date_from, date_to, delivery=None, user_name=None):
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
-    df = run_query(query)
+    df = run_query(query, tuple(params))
     elapsed = time.time() - start
 
     if df.empty:
@@ -117,20 +122,26 @@ def _build_packing_cube(date_from, date_to, delivery=None,
       AND ISNULL(TRY_CAST([Quantity] AS INT), 0) != 0
       AND [User Name] NOT IN ('756777', 'CONTROLM', 'RFCDWP', 'WSDLWCS3')
 """
+    params = []
     if date_from and date_to:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
-        where += f"  AND CAST([Date] AS DATE) <= '{date_to}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        where += "  AND CAST([Date] AS DATE) <= ?\n"
+        params.extend([date_from, date_to])
     elif date_from:
-        where += f"  AND CAST([Date] AS DATE) >= '{date_from}'\n"
+        where += "  AND CAST([Date] AS DATE) >= ?\n"
+        params.append(date_from)
 
     where += f"  AND [User Name] IN ({users_str})\n"
 
     if delivery and delivery != 'All':
-        where += f"  AND [Delivery] = '{delivery}'\n"
+        where += "  AND [Delivery] = ?\n"
+        params.append(delivery)
     if packing_object and packing_object != 'All':
-        where += f"  AND [Packing Object] = '{packing_object}'\n"
+        where += "  AND [Packing Object] = ?\n"
+        params.append(packing_object)
     if user_name and user_name != 'All':
-        where += f"  AND [User Name] = '{user_name}'\n"
+        where += "  AND [User Name] = ?\n"
+        params.append(user_name)
 
     query = f"""
         SELECT TOP 10000
@@ -149,7 +160,7 @@ def _build_packing_cube(date_from, date_to, delivery=None,
         ORDER BY CAST([Date] AS DATE) DESC, [User Name]
     """
 
-    df = run_query(query)
+    df = run_query(query, tuple(params))
     elapsed = time.time() - start
 
     if df.empty:

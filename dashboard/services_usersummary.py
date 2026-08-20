@@ -52,26 +52,36 @@ def get_usersummary_filters():
 
 
 def _build_where(date_filter=None, week=None, supervisor=None, user_name=None):
-    """Build WHERE clause for user summary queries."""
+    """Build WHERE clause for user summary queries.
+
+    Returns:
+        (where_sql_str, params_tuple)
+    """
     clauses = [
         f"[User Name] NOT IN ({_EXCLUDED_USERS_SQL})",
     ]
+    params = []
 
     if user_name:
-        clauses.append(f"[User Name] = '{user_name}'")
+        clauses.append("[User Name] = ?")
+        params.append(user_name)
     if supervisor:
-        clauses.append(f"[Supervisor Full Name] = '{supervisor}'")
+        clauses.append("[Supervisor Full Name] = ?")
+        params.append(supervisor)
 
     # Date filtering
     if week:
-        clauses.append(f"[Fiscal Week] = '{week}'")
+        clauses.append("[Fiscal Week] = ?")
+        params.append(week)
     elif date_filter:
-        clauses.append(f"CAST([Date] AS DATE) = '{date_filter}'")
+        clauses.append("CAST([Date] AS DATE) = ?")
+        params.append(date_filter)
     else:
         # Default: today
-        clauses.append(f"CAST([Date] AS DATE) = '{date.today()}'")
+        clauses.append("CAST([Date] AS DATE) = ?")
+        params.append(str(date.today()))
 
-    return ' AND '.join(clauses)
+    return ' AND '.join(clauses), tuple(params)
 
 
 def _build_performance_query(where_sql):
@@ -125,13 +135,13 @@ def _build_detail_query(where_sql):
 
 def get_usersummary_data(date_filter=None, week=None, supervisor=None, user_name=None):
     """Main entry point - returns performance + by-hour + detail + filters."""
-    where_sql = _build_where(date_filter, week, supervisor, user_name)
+    where_sql, params = _build_where(date_filter, week, supervisor, user_name)
 
     # Run all 3 queries in parallel
     with ThreadPoolExecutor(max_workers=3) as executor:
-        f_perf = executor.submit(run_query, _build_performance_query(where_sql))
-        f_hour = executor.submit(run_query, _build_byhour_query(where_sql))
-        f_detail = executor.submit(run_query, _build_detail_query(where_sql))
+        f_perf = executor.submit(run_query, _build_performance_query(where_sql), params)
+        f_hour = executor.submit(run_query, _build_byhour_query(where_sql), params)
+        f_detail = executor.submit(run_query, _build_detail_query(where_sql), params)
         perf_df = f_perf.result(timeout=30)
         hour_df = f_hour.result(timeout=30)
         detail_df = f_detail.result(timeout=30)
