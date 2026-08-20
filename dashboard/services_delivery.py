@@ -52,7 +52,10 @@ def _build_picking_cube(date_from, date_to, delivery=None, user_name=None):
 
     if delivery and delivery != 'All':
         where += "  AND [Delivery] = ?\n"
-        params.append(delivery)
+        try:
+            params.append(int(delivery))
+        except (ValueError, TypeError):
+            params.append(delivery)
     if user_name and user_name != 'All':
         where += "  AND [User Name] = ?\n"
         params.append(user_name)
@@ -135,7 +138,10 @@ def _build_packing_cube(date_from, date_to, delivery=None,
 
     if delivery and delivery != 'All':
         where += "  AND [Delivery] = ?\n"
-        params.append(delivery)
+        try:
+            params.append(int(delivery))
+        except (ValueError, TypeError):
+            params.append(delivery)
     if packing_object and packing_object != 'All':
         where += "  AND [Packing Object] = ?\n"
         params.append(packing_object)

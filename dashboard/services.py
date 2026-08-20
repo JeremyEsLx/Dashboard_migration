@@ -826,7 +826,7 @@ def get_strongfinish_cube(date_from=None, date_to=None, week=None):
     start = time.time()
 
     direct_users = get_direct_users()
-    users_str = ", ".join(f"\'{u}\'" for u in direct_users)
+    users_str = ", ".join(f"'{u}'" for u in direct_users)
 
     where = """
     WHERE [Previous Process] NOT IN ('CLOCK IN', 'CLOCK OUT', 'TEMP EXIT')
