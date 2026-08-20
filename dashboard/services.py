@@ -389,7 +389,7 @@ def get_performance_cube(date_from=None, date_to=None, week=None):
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    where = _build_date_range_where(date_from, date_to, week)
+    where, params = _build_date_range_where(date_from, date_to, week)
     where += f"  AND [User Name] IN ({users_str})\n"
 
     if date_from and date_to:
@@ -417,7 +417,7 @@ def get_performance_cube(date_from=None, date_to=None, week=None):
                  [Supervisor Full Name], [SHIFT2]
     """
 
-    df = run_query(query)
+    df = run_query(query, params)
     elapsed = time.time() - start
 
     if df.empty:
@@ -456,7 +456,7 @@ def get_user_cube(date_from=None, date_to=None, week=None):
     direct_users = get_direct_users()
     users_str = ", ".join(f"'{u}'" for u in direct_users)
 
-    where = _build_date_range_where(date_from, date_to, week)
+    where, params = _build_date_range_where(date_from, date_to, week)
     where += f"  AND [User Name] IN ({users_str})\n"
 
     query = f"""
@@ -473,7 +473,7 @@ def get_user_cube(date_from=None, date_to=None, week=None):
         GROUP BY [User Name], [Process], [Supervisor Full Name], [SHIFT2]
     """
 
-    df = run_query(query)
+    df = run_query(query, params)
     elapsed = time.time() - start
 
     if df.empty:
