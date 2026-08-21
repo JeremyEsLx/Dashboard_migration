@@ -144,16 +144,14 @@ def get_filter_options():
     processes = ['All']
 
     try:
-        df_sup = run_query(f"""
-            SELECT DISTINCT [Supervisor Full Name]
-            FROM ({_base_subquery()}) AS LMS
-            {BASE_FILTERS}
-              AND [User Name] IN ({users_str})
-              AND [Supervisor Full Name] IS NOT NULL
-              AND [Supervisor Full Name] != ''
-            ORDER BY [Supervisor Full Name]
+        df_sup = run_query("""
+            SELECT DISTINCT [Supervisor_Name]
+            FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
+            WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
+              AND [Supervisor_Name] IS NOT NULL AND [Supervisor_Name] != ''
+            ORDER BY [Supervisor_Name]
         """)
-        supervisors = ['All'] + df_sup['Supervisor Full Name'].tolist()
+        supervisors = ['All'] + df_sup['Supervisor_Name'].tolist()
     except Exception as e:
         print(f"[LMS]   ✗ Supervisor query failed: {e}")
 

@@ -19,33 +19,43 @@ _EXCLUDED_USERS_SQL = ','.join(_EXCLUDED_USERS)
 
 
 def get_usersummary_filters():
-    """Return supervisor list + supervisor-to-user mapping for cascading dropdowns."""
+    """Return supervisor list + supervisor-to-user mapping for cascading dropdowns.
+
+    Sources supervisor-user pairs from the BI Roster table (MX03_Roster)
+    since the LMS table's [Supervisor Full Name] column is no longer populated.
+    """
     filter_opts = get_filter_options()
 
-    # Get distinct (Supervisor Full Name, User Name) pairs for cascading
+    # Get distinct (Supervisor, User) pairs from roster for cascading dropdowns
     try:
-        df = run_query(f"""
+        df = run_query("""
             SELECT DISTINCT
-                ISNULL([Supervisor Full Name], '') AS [Supervisor],
-                [User Name]
-            FROM [LMS_Database].[dbo].[LMS_PBI_Dashboard_MX03] WITH (NOLOCK)
-            WHERE [User Name] NOT IN ({_EXCLUDED_USERS_SQL})
-              AND [User Name] IS NOT NULL AND [User Name] != ''
-              AND [Supervisor Full Name] IS NOT NULL AND [Supervisor Full Name] != ''
+                ISNULL([Supervisor_Name], '') AS [Supervisor],
+                ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50))) AS [User]
+            FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
+            WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
+              AND [Supervisor_Name] IS NOT NULL AND [Supervisor_Name] != ''
+              AND ([Alias_SAP] IS NOT NULL AND [Alias_SAP] != '')
             ORDER BY 1, 2
         """)
         user_map = []
         for _, row in df.iterrows():
             user_map.append({
                 'supervisor': row['Supervisor'],
-                'user': row['User Name'],
+                'user': row['User'],
             })
     except Exception as e:
         print(f"[UserSummary] user mapping query failed: {e}")
         user_map = []
 
+    # Extract unique supervisors from user_map
+    supervisors = ['All']
+    if user_map:
+        unique_sups = sorted(set(entry['supervisor'] for entry in user_map))
+        supervisors += unique_sups
+
     return {
-        'supervisors': filter_opts.get('supervisors', ['All']),
+        'supervisors': supervisors,
         'weeks': filter_opts.get('weeks', ['All']),
         'user_map': user_map,
     }
