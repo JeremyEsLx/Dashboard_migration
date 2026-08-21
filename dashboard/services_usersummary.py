@@ -36,12 +36,12 @@ def get_usersummary_filters():
         df = run_query("""
             SELECT DISTINCT
                 ISNULL(CAST([Supervisor_Name] AS VARCHAR(200)), '') AS [Supervisor],
-                ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50))) AS [User]
+                ISNULL(CAST([Alias_SAP] AS VARCHAR(50)), CAST([EE_ID] AS VARCHAR(50))) AS [User]
             FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
             WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
               AND [Supervisor_Name] IS NOT NULL
               AND CAST([Supervisor_Name] AS VARCHAR(200)) != ''
-              AND ([Alias_SAP] IS NOT NULL AND [Alias_SAP] != '')
+              AND ([Alias_SAP] IS NOT NULL AND CAST([Alias_SAP] AS VARCHAR(50)) != '')
             ORDER BY 1, 2
         """)
         print(f"[UserSummary] Query returned {len(df)} rows")
