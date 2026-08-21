@@ -261,7 +261,7 @@ function renderDateChart(filtered) {
 function renderTable(filtered) {
     var tbody = document.getElementById('detail-tbody');
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="9" style="padding:20px;color:#6b7280;">No data for current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;color:#6b7280;">No data for current filters.</td></tr>';
         return;
     }
 
@@ -272,7 +272,6 @@ function renderTable(filtered) {
         html += '<tr>';
         html += '<td>' + fmtDate(r.d) + '</td>';
         html += '<td>' + r.u + '</td>';
-        html += '<td>' + (r.fn || '') + '</td>';
         html += '<td>' + r.s + '</td>';
         html += '<td>' + r.p + '</td>';
         html += '<td>' + (r.cit || '') + '</td>';
@@ -386,10 +385,10 @@ document.getElementById('filter-date-to').addEventListener('change', reloadForDa
 
 function exportData() {
     var filtered = filterCube();
-    var rows = [['Date', 'User Name', 'Full Name', 'Supervisor', 'Process', 'Clock In Time', 'First Scan Time', 'Shift', 'Duration (hrs)']];
+    var rows = [['Date', 'User Name', 'Supervisor', 'Process', 'Clock In Time', 'First Scan Time', 'Shift', 'Duration (hrs)']];
     for (var i = 0; i < filtered.length; i++) {
         var r = filtered[i];
-        rows.push([fmtDate(r.d), r.u, r.fn || '', r.s, r.p, r.cit || '', r.fst || '', r.sh, Math.round((r.ld / 60) * 100) / 100]);
+        rows.push([fmtDate(r.d), r.u, r.s, r.p, r.cit || '', r.fst || '', r.sh, Math.round((r.ld / 60) * 100) / 100]);
     }
 
     var dateFrom = SELECTED_STATE.date_from || '';

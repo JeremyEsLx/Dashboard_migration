@@ -137,7 +137,6 @@ function renderAll() {
         html += '<tr>';
         html += '<td>' + r.sh + '</td>';
         html += '<td>' + r.u + '</td>';
-        html += '<td>' + (r.fn || '') + '</td>';
         html += '<td>' + r.s + '</td>';
         html += '<td>' + fmtDate(r.d) + '</td>';
         html += '<td>' + (r.cit || '') + '</td>';
@@ -301,10 +300,10 @@ document.getElementById('btn-refresh').addEventListener('click', function() {
 document.getElementById('btn-export').addEventListener('click', function() {
     var filtered = getFiltered();
     if (!filtered.length) return;
-    var csv = 'Shift,User Name,Full Name,Supervisor,Date,Clock In,Clock Out,Duration (hrs)\n';
+    var csv = 'Shift,User Name,Supervisor,Date,Clock In,Clock Out,Duration (hrs)\n';
     filtered.forEach(function(r) {
         var dur = (r.ld / 60).toFixed(2);
-        csv += [r.sh, r.u, '"' + (r.fn||'') + '"', '"' + r.s + '"', fmtDate(r.d), r.cit, r.cot, dur].join(',') + '\n';
+        csv += [r.sh, r.u, '"' + r.s + '"', fmtDate(r.d), r.cit, r.cot, dur].join(',') + '\n';
     });
     var blob = new Blob([csv], {type: 'text/csv'});
     var a = document.createElement('a');
