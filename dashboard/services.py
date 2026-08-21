@@ -145,11 +145,12 @@ def get_filter_options():
 
     try:
         df_sup = run_query("""
-            SELECT DISTINCT [Supervisor_Name]
+            SELECT DISTINCT CAST([Supervisor_Name] AS VARCHAR(200)) AS [Supervisor_Name]
             FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
             WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
-              AND [Supervisor_Name] IS NOT NULL AND [Supervisor_Name] != ''
-            ORDER BY [Supervisor_Name]
+              AND [Supervisor_Name] IS NOT NULL
+              AND CAST([Supervisor_Name] AS VARCHAR(200)) != ''
+            ORDER BY 1
         """)
         supervisors = ['All'] + df_sup['Supervisor_Name'].tolist()
     except Exception as e:

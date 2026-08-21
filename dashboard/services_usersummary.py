@@ -35,11 +35,12 @@ def get_usersummary_filters():
         print("[UserSummary] Executing roster user_map query...")
         df = run_query("""
             SELECT DISTINCT
-                ISNULL([Supervisor_Name], '') AS [Supervisor],
+                ISNULL(CAST([Supervisor_Name] AS VARCHAR(200)), '') AS [Supervisor],
                 ISNULL([Alias_SAP], CAST([EE_ID] AS VARCHAR(50))) AS [User]
             FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
             WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
-              AND [Supervisor_Name] IS NOT NULL AND [Supervisor_Name] != ''
+              AND [Supervisor_Name] IS NOT NULL
+              AND CAST([Supervisor_Name] AS VARCHAR(200)) != ''
               AND ([Alias_SAP] IS NOT NULL AND [Alias_SAP] != '')
             ORDER BY 1, 2
         """)
