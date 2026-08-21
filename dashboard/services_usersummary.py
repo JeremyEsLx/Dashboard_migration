@@ -84,10 +84,11 @@ def get_usersummary_filters():
         user_map = []
 
     # Extract unique supervisors from user_map
-    supervisors = ['All']
+    # NOTE: Do NOT prepend 'All' here — LMS.populateDropdown adds it automatically
+    supervisors = []
     if user_map:
         unique_sups = sorted(set(entry['supervisor'] for entry in user_map))
-        supervisors += unique_sups
+        supervisors = unique_sups
         print(f"[UserSummary] Extracted {len(unique_sups)} unique supervisors")
     else:
         print("[UserSummary] ⚠ user_map is empty — no supervisors extracted")
