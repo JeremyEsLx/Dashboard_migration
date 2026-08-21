@@ -24,10 +24,15 @@ def get_usersummary_filters():
     Sources supervisor-user pairs from the BI Roster table (MX03_Roster)
     since the LMS table's [Supervisor Full Name] column is no longer populated.
     """
+    print("[UserSummary] ─── get_usersummary_filters() called ───")
     filter_opts = get_filter_options()
+    print(f"[UserSummary] filter_opts keys: {list(filter_opts.keys())}")
+    print(f"[UserSummary] filter_opts supervisors count: {len(filter_opts.get('supervisors', []))}")
+    print(f"[UserSummary] filter_opts weeks count: {len(filter_opts.get('weeks', []))}")
 
     # Get distinct (Supervisor, User) pairs from roster for cascading dropdowns
     try:
+        print("[UserSummary] Executing roster user_map query...")
         df = run_query("""
             SELECT DISTINCT
                 ISNULL([Supervisor_Name], '') AS [Supervisor],
@@ -38,14 +43,43 @@ def get_usersummary_filters():
               AND ([Alias_SAP] IS NOT NULL AND [Alias_SAP] != '')
             ORDER BY 1, 2
         """)
+        print(f"[UserSummary] Query returned {len(df)} rows")
+        print(f"[UserSummary] DataFrame columns: {list(df.columns)}")
+        if not df.empty:
+            print(f"[UserSummary] First 5 rows:")
+            for i, (_, row) in enumerate(df.head(5).iterrows()):
+                print(f"[UserSummary]   {i}: Supervisor='{row['Supervisor']}' | User='{row['User']}'")
+        else:
+            print("[UserSummary] ⚠ DataFrame is EMPTY!")
+            # Debug: try without the Alias_SAP filter to see if that's the issue
+            print("[UserSummary] Trying broader query (no Alias_SAP filter)...")
+            df_debug = run_query("""
+                SELECT TOP 10
+                    ISNULL([Supervisor_Name], '') AS [Supervisor],
+                    [Alias_SAP],
+                    [EE_ID],
+                    [Employee_Name],
+                    [Estacion_de_Trabajo]
+                FROM [Business_Intelligence].[dbo].[MX03_Roster] WITH (NOLOCK)
+                WHERE CAST([Active_YN] AS VARCHAR(MAX)) = 'SI'
+                  AND [Supervisor_Name] IS NOT NULL AND [Supervisor_Name] != ''
+            """)
+            print(f"[UserSummary] Broader query returned {len(df_debug)} rows")
+            if not df_debug.empty:
+                for i, (_, r) in enumerate(df_debug.head(5).iterrows()):
+                    print(f"[UserSummary]   {i}: Sup='{r['Supervisor']}' | Alias='{r['Alias_SAP']}' | EE_ID={r['EE_ID']} | Name='{r['Employee_Name']}' | Role='{r['Estacion_de_Trabajo']}'")
+
         user_map = []
         for _, row in df.iterrows():
             user_map.append({
                 'supervisor': row['Supervisor'],
                 'user': row['User'],
             })
+        print(f"[UserSummary] Built user_map with {len(user_map)} entries")
     except Exception as e:
-        print(f"[UserSummary] user mapping query failed: {e}")
+        import traceback
+        print(f"[UserSummary] ✗ user mapping query FAILED: {type(e).__name__}: {e}")
+        print(f"[UserSummary] Traceback: {traceback.format_exc()}")
         user_map = []
 
     # Extract unique supervisors from user_map
@@ -53,7 +87,11 @@ def get_usersummary_filters():
     if user_map:
         unique_sups = sorted(set(entry['supervisor'] for entry in user_map))
         supervisors += unique_sups
+        print(f"[UserSummary] Extracted {len(unique_sups)} unique supervisors")
+    else:
+        print("[UserSummary] ⚠ user_map is empty — no supervisors extracted")
 
+    print(f"[UserSummary] RETURNING: {len(supervisors)} supervisors, {len(user_map)} user_map entries")
     return {
         'supervisors': supervisors,
         'weeks': filter_opts.get('weeks', ['All']),
