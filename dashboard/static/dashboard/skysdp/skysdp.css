@@ -103,7 +103,8 @@
 
 /* --- Main Row (Aging chart + Carrier sidebar) --- */
 .sky-main-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 3fr 2fr;
     gap: 16px;
     margin-top: 8px;
     margin-bottom: 16px;
@@ -115,8 +116,8 @@
 }
 
 .sky-carrier-panel {
-    flex: 2 1 0;
     min-width: 240px;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -270,7 +271,9 @@
 
 /* --- Responsive --- */
 @media (max-width: 900px) {
-    .sky-main-row,
+    .sky-main-row {
+        grid-template-columns: 1fr;
+    }
     .sky-charts-row {
         flex-direction: column;
     }
