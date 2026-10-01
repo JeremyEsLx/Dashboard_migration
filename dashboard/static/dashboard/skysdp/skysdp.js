@@ -25,6 +25,8 @@
     function showContent() {
         document.getElementById('skeleton-loading').style.display = 'none';
         document.getElementById('sky-widgets').classList.remove('hidden');
+        // Plotly renders at 0-width when container was hidden; force re-measure
+        setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 80);
     }
 
     // --------------------------------------------------------

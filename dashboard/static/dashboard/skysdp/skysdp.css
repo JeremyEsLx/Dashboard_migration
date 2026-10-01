@@ -257,6 +257,8 @@
     background: #fff;
     padding: 6px 4px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    max-height: 290px;
+    overflow: hidden;
 }
 
 .carrier-detail-slot:nth-child(2) { border-top-color: #f59e0b; }
