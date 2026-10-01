@@ -41,6 +41,10 @@ urlpatterns = [
     path('api/hxh/', views.hxh_overall_data, name='hxh_overall_data'),
     path('api/lappicking/', views.lap_picking_data, name='lap_picking_data'),
 
+    # SKY SDP
+    path('skysdp/', views.skysdp, name='skysdp'),
+    path('api/skysdp/', views.skysdp_data, name='skysdp_data'),
+
     # Placeholder dashboards (WIP)
     path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),
     path('wearables/', views.placeholder_dashboard, {'dashboard_key': 'wearables'}, name='wearables'),

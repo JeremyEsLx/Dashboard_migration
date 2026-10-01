@@ -7,6 +7,7 @@ from .services_material import get_material_data, get_material_export
 from .services_usersummary import get_usersummary_data, get_usersummary_filters
 from .services_spac import get_spac_data, get_spac_details_data
 from .services_hxh import get_hxh_overall_data, get_lap_picking_data
+from .services_skysdp import get_skysdp_data
 
 
 # ============================================================
@@ -552,6 +553,31 @@ def lap_picking_data(request):
     """API: Lab Picking Performance cube (hardcoded filters)."""
     data = get_lap_picking_data()
     return JsonResponse(data)
+
+
+# ============================================================
+# SKY SDP
+# ============================================================
+
+def skysdp(request):
+    """Render SKY SDP shell (instant, no SQL) - JS hydrates via /api/skysdp/."""
+    return render(request, 'dashboard/skysdp.html')
+
+
+def skysdp_data(request):
+    """API: returns SKY SDP aging cube as JSON."""
+    try:
+        data = get_skysdp_data()
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'cube_json': '[]',
+            'latest_date': '',
+            'selected': {'week_from': '', 'week_to': ''},
+        }, status=200)
 
 
 _PLACEHOLDER_DASHBOARDS = {

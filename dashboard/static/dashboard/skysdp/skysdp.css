@@ -1,0 +1,128 @@
+/* ============================================================
+   SKY SDP - Aging Dashboard Styles
+   ============================================================ */
+
+/* --- KPI Strip --- */
+.sky-kpi-strip {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.sky-kpi-card {
+    flex: 1 1 160px;
+    min-width: 140px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 18px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.sky-kpi-card .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.sky-kpi-card .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.1;
+}
+
+.sky-kpi-card .kpi-value-sm {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* --- Charts Row --- */
+.sky-charts-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.sky-chart-card {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.sky-chart-card .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+}
+
+/* --- Action bar override (right-align when no filters) --- */
+.filters-bar {
+    justify-content: flex-end;
+}
+
+/* --- Skeleton Shimmer --- */
+.skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+.skeleton-value {
+    height: 32px;
+    width: 80%;
+    margin: 0 auto;
+}
+
+.skeleton-chart {
+    height: 300px;
+    width: 100%;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* --- Hidden class --- */
+.hidden {
+    display: none !important;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+    .sky-charts-row {
+        flex-direction: column;
+    }
+    .sky-kpi-strip {
+        gap: 8px;
+    }
+    .sky-kpi-card {
+        flex: 1 1 100px;
+        padding: 12px 10px;
+    }
+    .sky-kpi-card .kpi-value {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 600px) {
+    .sky-kpi-strip {
+        flex-wrap: wrap;
+    }
+    .sky-kpi-card {
+        flex: 1 1 45%;
+    }
+}
