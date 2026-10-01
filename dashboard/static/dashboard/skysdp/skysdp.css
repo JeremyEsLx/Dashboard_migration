@@ -101,8 +101,103 @@
     display: none !important;
 }
 
+/* --- Main Row (Aging chart + Carrier sidebar) --- */
+.sky-main-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+}
+
+.sky-chart-wide {
+    flex: 3 1 0;
+    min-width: 0;
+}
+
+.sky-carrier-panel {
+    flex: 2 1 0;
+    min-width: 240px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+/* --- Carrier Ranked List --- */
+.carrier-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.carrier-item:last-child {
+    border-bottom: none;
+}
+
+.carrier-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.carrier-rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.carrier-item:nth-child(1) .carrier-rank { background: #fbbf24; color: #78350f; }
+.carrier-item:nth-child(2) .carrier-rank { background: #d1d5db; color: #374151; }
+.carrier-item:nth-child(3) .carrier-rank { background: #fdba74; color: #7c2d12; }
+
+.carrier-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    flex: 1;
+}
+
+.carrier-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.carrier-bar-bg {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 2px;
+}
+
+.carrier-bar-fill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.carrier-pct {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.skeleton-chart-sm {
+    height: 200px;
+    width: 100%;
+}
+
 /* --- Responsive --- */
 @media (max-width: 900px) {
+    .sky-main-row,
     .sky-charts-row {
         flex-direction: column;
     }

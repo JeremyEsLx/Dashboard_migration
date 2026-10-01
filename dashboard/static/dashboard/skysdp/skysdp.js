@@ -111,116 +111,208 @@
             'Data as of: ' + LMS.fmtDate(latestDate);
 
         // --- Charts ---
-        renderTodayChart(todayRows);
-        renderTrendChart(cube);
+        renderAgingChart(todayRows);
+        renderCarrierSidebar(todayRows);
+        renderOnTimeChart(todayRows);
+        renderHeatmap(todayRows);
     }
 
     // --------------------------------------------------------
-    // CHART 1: Today's Aging by Carrier (grouped bar)
-    // X = Aging bucket (1-7), Y = Count, color = Carrier
+    // CHART 1: Aging Distribution (total bars, gradient colors)
     // --------------------------------------------------------
-    function renderTodayChart(todayRows) {
-        // Build carrier -> { agingBucket -> count }
-        var carriers = {};
-        todayRows.forEach(function (r) {
-            if (r.a <= 0) return;
-            if (!carriers[r.c]) carriers[r.c] = {};
-            carriers[r.c][r.a] = (carriers[r.c][r.a] || 0) + r.n;
-        });
-
+    function renderAgingChart(todayRows) {
         var agingBuckets = [1, 2, 3, 4, 5, 6, 7];
-        var carrierNames = Object.keys(carriers).sort();
-        var traces = [];
-
-        carrierNames.forEach(function (c, i) {
-            traces.push({
-                x: agingBuckets,
-                y: agingBuckets.map(function (a) { return carriers[c][a] || 0; }),
-                name: c,
-                type: 'bar',
-                marker: { color: COLORS[i % COLORS.length] }
-            });
+        var totals = {};
+        todayRows.forEach(function (r) {
+            if (r.a > 0 && r.a <= 7) totals[r.a] = (totals[r.a] || 0) + r.n;
         });
 
-        // Add total trend line overlay
-        var totals = agingBuckets.map(function (a) {
-            var sum = 0;
-            carrierNames.forEach(function (c) { sum += (carriers[c][a] || 0); });
-            return sum;
+        var counts = agingBuckets.map(function (a) { return totals[a] || 0; });
+        var barColors = agingBuckets.map(function (a) {
+            if (a <= 2) return '#3b82f6';
+            if (a <= 4) return '#f59e0b';
+            return '#ef4444';
         });
-        traces.push({
-            x: agingBuckets,
-            y: totals,
-            name: 'Total',
-            type: 'scatter',
-            mode: 'lines+markers',
-            line: { color: '#1e293b', width: 2.5, dash: 'dot' },
-            marker: { size: 6, color: '#1e293b' },
-            yaxis: 'y'
-        });
-
-        var layout = {
-            barmode: 'group',
-            xaxis: {
-                title: 'Aging (Days)',
-                tickmode: 'array',
-                tickvals: agingBuckets,
-                ticktext: agingBuckets.map(String),
-                dtick: 1
-            },
-            yaxis: { title: 'Count' },
-            margin: { t: 10, r: 20, b: 50, l: 55 },
-            legend: { orientation: 'h', y: -0.28, x: 0.5, xanchor: 'center' },
-            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
-            height: 370,
-            bargap: 0.15
-        };
-
-        Plotly.newPlot('chart-today', traces, layout, P_CFG);
-    }
-
-    // --------------------------------------------------------
-    // CHART 2: Weekly Aging Trend (line chart)
-    // X = Update Date, Y = Total aging items (per snapshot)
-    // --------------------------------------------------------
-    function renderTrendChart(cube) {
-        // Group by Update Date -> total items with aging > 0
-        var dateMap = {};
-        cube.forEach(function (r) {
-            if (r.a <= 0) return;
-            if (!dateMap[r.ud]) dateMap[r.ud] = 0;
-            dateMap[r.ud] += r.n;
-        });
-
-        var dates  = Object.keys(dateMap).sort();
-        var counts = dates.map(function (d) { return dateMap[d]; });
-        var labels = dates.map(LMS.fmtDate);
 
         var traces = [{
-            x: labels,
+            x: agingBuckets,
             y: counts,
-            type: 'scatter',
-            mode: 'lines+markers+text',
+            type: 'bar',
+            marker: { color: barColors, line: { color: '#fff', width: 1 } },
             text: counts.map(function (v) { return v.toLocaleString(); }),
-            textposition: 'top center',
-            textfont: { size: 11, color: '#334155' },
-            line: { shape: 'spline', color: '#3b82f6', width: 3 },
-            marker: { size: 9, color: '#3b82f6' },
-            name: 'Total Aging Items',
-            fill: 'tozeroy',
-            fillcolor: 'rgba(59,130,246,0.08)'
+            textposition: 'outside',
+            textfont: { size: 12, family: 'Inter, sans-serif', color: '#334155' },
+            hovertemplate: 'Aging %{x} days<br>Count: %{y:,}<extra></extra>'
         }];
 
         var layout = {
-            xaxis: { title: 'Upload Date', type: 'category' },
-            yaxis: { title: 'Total Aging Items' },
-            margin: { t: 10, r: 20, b: 50, l: 55 },
+            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String) },
+            yaxis: { title: 'Count' },
+            margin: { t: 30, r: 20, b: 50, l: 60 },
             font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
-            height: 370,
+            height: 380,
+            bargap: 0.25,
             showlegend: false
         };
 
-        Plotly.newPlot('chart-trend', traces, layout, P_CFG);
+        Plotly.newPlot('chart-aging', traces, layout, P_CFG);
+    }
+
+    // --------------------------------------------------------
+    // CHART 2: Carrier Breakdown (HTML ranked list)
+    // --------------------------------------------------------
+    function renderCarrierSidebar(todayRows) {
+        var carriers = {};
+        var total = 0;
+        todayRows.forEach(function (r) {
+            if (r.a > 0) {
+                carriers[r.c] = (carriers[r.c] || 0) + r.n;
+                total += r.n;
+            }
+        });
+
+        var sorted = Object.keys(carriers).sort(function (a, b) { return carriers[b] - carriers[a]; });
+        var maxCount = sorted.length > 0 ? carriers[sorted[0]] : 1;
+
+        var html = '';
+        sorted.forEach(function (c, i) {
+            var count = carriers[c];
+            var pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+            var barW = (count / maxCount * 100).toFixed(1);
+            html += '<div class="carrier-item">' +
+                '<div class="carrier-header">' +
+                    '<span class="carrier-rank">' + (i + 1) + '</span>' +
+                    '<span class="carrier-name">' + c + '</span>' +
+                    '<span class="carrier-count">' + count.toLocaleString() + '</span>' +
+                '</div>' +
+                '<div class="carrier-bar-bg"><div class="carrier-bar-fill" style="width:' + barW + '%"></div></div>' +
+                '<span class="carrier-pct">' + pct + '% of total</span>' +
+            '</div>';
+        });
+
+        document.getElementById('carrier-list').innerHTML = html;
+    }
+
+    // --------------------------------------------------------
+    // CHART 3: On-Time Rate by Carrier (horizontal bar)
+    // --------------------------------------------------------
+    function renderOnTimeChart(todayRows) {
+        var carriers = {};
+        todayRows.forEach(function (r) {
+            if (!carriers[r.c]) carriers[r.c] = { y: 0, total: 0 };
+            carriers[r.c].total += r.n;
+            if (r.ot === 'Y') carriers[r.c].y += r.n;
+        });
+
+        var sorted = Object.keys(carriers).sort(function (a, b) {
+            var pA = carriers[a].total > 0 ? carriers[a].y / carriers[a].total : 0;
+            var pB = carriers[b].total > 0 ? carriers[b].y / carriers[b].total : 0;
+            return pA - pB;
+        });
+
+        var names = sorted;
+        var rates = sorted.map(function (c) {
+            return carriers[c].total > 0 ? Math.round((carriers[c].y / carriers[c].total) * 1000) / 10 : 0;
+        });
+        var barColors = rates.map(function (r) {
+            if (r >= 80) return '#10b981';
+            if (r >= 60) return '#f59e0b';
+            return '#ef4444';
+        });
+
+        var traces = [{
+            x: rates,
+            y: names,
+            type: 'bar',
+            orientation: 'h',
+            marker: { color: barColors, line: { color: '#fff', width: 1 } },
+            text: rates.map(function (r) { return r + '%'; }),
+            textposition: 'auto',
+            textfont: { size: 11, color: '#fff', family: 'Inter, sans-serif' },
+            hovertemplate: '%{y}<br>On-Time: %{x}%<extra></extra>'
+        }];
+
+        var layout = {
+            xaxis: { title: 'On-Time Rate (%)', range: [0, 105] },
+            yaxis: { automargin: true },
+            margin: { t: 10, r: 20, b: 50, l: 110 },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
+            height: 350,
+            bargap: 0.2,
+            showlegend: false,
+            shapes: [{
+                type: 'line', x0: 80, x1: 80, y0: -0.5, y1: names.length - 0.5,
+                line: { color: '#94a3b8', width: 1.5, dash: 'dash' }
+            }],
+            annotations: [{
+                x: 80, y: names.length - 0.3, text: '80% target',
+                showarrow: false, font: { size: 10, color: '#94a3b8' }, xanchor: 'left'
+            }]
+        };
+
+        Plotly.newPlot('chart-ontime', traces, layout, P_CFG);
+    }
+
+    // --------------------------------------------------------
+    // CHART 4: Carrier x Aging Heatmap
+    // --------------------------------------------------------
+    function renderHeatmap(todayRows) {
+        var grid = {};
+        todayRows.forEach(function (r) {
+            if (r.a > 0 && r.a <= 7) {
+                if (!grid[r.c]) grid[r.c] = {};
+                grid[r.c][r.a] = (grid[r.c][r.a] || 0) + r.n;
+            }
+        });
+
+        var carrierNames = Object.keys(grid).sort();
+        var agingDays = [1, 2, 3, 4, 5, 6, 7];
+
+        var z = carrierNames.map(function (c) {
+            return agingDays.map(function (a) { return grid[c][a] || 0; });
+        });
+
+        var annotations = [];
+        var maxVal = 0;
+        carrierNames.forEach(function (c, i) {
+            agingDays.forEach(function (a, j) {
+                var val = z[i][j];
+                if (val > maxVal) maxVal = val;
+            });
+        });
+        carrierNames.forEach(function (c, i) {
+            agingDays.forEach(function (a, j) {
+                var val = z[i][j];
+                annotations.push({
+                    x: a, y: c,
+                    text: val > 0 ? val.toLocaleString() : '',
+                    showarrow: false,
+                    font: { size: 11, color: val > maxVal * 0.5 ? '#fff' : '#1e293b', family: 'Inter, sans-serif' }
+                });
+            });
+        });
+
+        var traces = [{
+            x: agingDays,
+            y: carrierNames,
+            z: z,
+            type: 'heatmap',
+            colorscale: [[0,'#f0f9ff'],[0.15,'#bae6fd'],[0.35,'#7dd3fc'],[0.55,'#38bdf8'],[0.75,'#0284c7'],[1,'#1e3a5f']],
+            showscale: true,
+            colorbar: { title: 'Count', thickness: 12, len: 0.9 },
+            hovertemplate: '%{y}<br>Aging: %{x} days<br>Count: %{z:,}<extra></extra>'
+        }];
+
+        var layout = {
+            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingDays, ticktext: agingDays.map(String) },
+            yaxis: { automargin: true },
+            margin: { t: 10, r: 80, b: 50, l: 110 },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
+            height: 350,
+            annotations: annotations
+        };
+
+        Plotly.newPlot('chart-heatmap', traces, layout, P_CFG);
     }
 
     // --------------------------------------------------------

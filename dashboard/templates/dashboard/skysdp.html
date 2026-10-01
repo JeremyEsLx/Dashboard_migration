@@ -49,9 +49,13 @@
         <div class="sky-kpi-card"><div class="kpi-label">Worst Carrier</div><div class="skeleton skeleton-value"></div></div>
         <div class="sky-kpi-card"><div class="kpi-label">Critical (5+ Days)</div><div class="skeleton skeleton-value"></div></div>
     </div>
+    <div class="sky-main-row">
+        <div class="sky-chart-card sky-chart-wide"><div class="card-title">Aging Distribution</div><div class="skeleton skeleton-chart"></div></div>
+        <div class="sky-chart-card sky-carrier-panel"><div class="card-title">Aging by Carrier</div><div class="skeleton skeleton-chart-sm"></div></div>
+    </div>
     <div class="sky-charts-row">
-        <div class="sky-chart-card"><div class="card-title">Today's Aging by Carrier</div><div class="skeleton skeleton-chart"></div></div>
-        <div class="sky-chart-card"><div class="card-title">Weekly Aging Trend</div><div class="skeleton skeleton-chart"></div></div>
+        <div class="sky-chart-card"><div class="card-title">On-Time Rate by Carrier</div><div class="skeleton skeleton-chart"></div></div>
+        <div class="sky-chart-card"><div class="card-title">Carrier &times; Aging Heatmap</div><div class="skeleton skeleton-chart"></div></div>
     </div>
 </div>
 
@@ -79,14 +83,24 @@
             <div class="kpi-value" id="kpi-critical">--</div>
         </div>
     </div>
+    <div class="sky-main-row">
+        <div class="sky-chart-card sky-chart-wide">
+            <div class="card-title">Aging Distribution</div>
+            <div id="chart-aging"></div>
+        </div>
+        <div class="sky-chart-card sky-carrier-panel">
+            <div class="card-title">Aging by Carrier</div>
+            <div id="carrier-list"></div>
+        </div>
+    </div>
     <div class="sky-charts-row">
         <div class="sky-chart-card">
-            <div class="card-title">Today's Aging by Carrier</div>
-            <div id="chart-today"></div>
+            <div class="card-title">On-Time Rate by Carrier</div>
+            <div id="chart-ontime"></div>
         </div>
         <div class="sky-chart-card">
-            <div class="card-title">Weekly Aging Trend</div>
-            <div id="chart-trend"></div>
+            <div class="card-title">Carrier &times; Aging Heatmap</div>
+            <div id="chart-heatmap"></div>
         </div>
     </div>
 </div>
