@@ -110,49 +110,79 @@
         document.getElementById('updated-on').textContent =
             'Data as of: ' + LMS.fmtDate(latestDate);
 
+        // --- Build carrier list for detail viewer ---
+        CARRIER_LIST = Object.keys(carrierAging).sort();
+        var sel = document.getElementById('carrier-select');
+        if (sel) {
+            sel.innerHTML = CARRIER_LIST.map(function (c) {
+                return '<option value="' + c + '">' + c + '</option>';
+            }).join('');
+        }
+
         // --- Charts ---
         renderAgingChart(todayRows);
         renderCarrierSidebar(todayRows);
+        renderCarrierDetail(todayRows, CARRIER_LIST[0] || '');
         renderOnTimeChart(todayRows);
         renderHeatmap(todayRows);
     }
 
     // --------------------------------------------------------
-    // CHART 1: Aging Distribution (total bars, gradient colors)
+    // CHART 1: Aging Distribution (stacked bars by carrier + trend line)
     // --------------------------------------------------------
     function renderAgingChart(todayRows) {
-        var agingBuckets = [1, 2, 3, 4, 5, 6, 7];
-        var totals = {};
+        var carriers = {};
         todayRows.forEach(function (r) {
-            if (r.a > 0 && r.a <= 7) totals[r.a] = (totals[r.a] || 0) + r.n;
+            if (r.a > 0 && r.a <= 7) {
+                if (!carriers[r.c]) carriers[r.c] = {};
+                carriers[r.c][r.a] = (carriers[r.c][r.a] || 0) + r.n;
+            }
         });
 
-        var counts = agingBuckets.map(function (a) { return totals[a] || 0; });
-        var barColors = agingBuckets.map(function (a) {
-            if (a <= 2) return '#3b82f6';
-            if (a <= 4) return '#f59e0b';
-            return '#ef4444';
+        var agingBuckets = [1, 2, 3, 4, 5, 6, 7];
+        var carrierNames = Object.keys(carriers).sort();
+        var traces = [];
+
+        carrierNames.forEach(function (c, i) {
+            traces.push({
+                x: agingBuckets,
+                y: agingBuckets.map(function (a) { return carriers[c][a] || 0; }),
+                name: c,
+                type: 'bar',
+                marker: { color: COLORS[i % COLORS.length] },
+                hovertemplate: c + '<br>Aging %{x} days<br>Count: %{y:,}<extra></extra>'
+            });
         });
 
-        var traces = [{
+        // Trend line (totals)
+        var totals = agingBuckets.map(function (a) {
+            var sum = 0;
+            carrierNames.forEach(function (c) { sum += (carriers[c][a] || 0); });
+            return sum;
+        });
+        traces.push({
             x: agingBuckets,
-            y: counts,
-            type: 'bar',
-            marker: { color: barColors, line: { color: '#fff', width: 1 } },
-            text: counts.map(function (v) { return v.toLocaleString(); }),
-            textposition: 'outside',
-            textfont: { size: 12, family: 'Inter, sans-serif', color: '#334155' },
-            hovertemplate: 'Aging %{x} days<br>Count: %{y:,}<extra></extra>'
-        }];
+            y: totals,
+            name: 'Total',
+            type: 'scatter',
+            mode: 'lines+markers+text',
+            text: totals.map(function (v) { return v.toLocaleString(); }),
+            textposition: 'top center',
+            textfont: { size: 11, color: '#1e293b' },
+            line: { color: '#1e293b', width: 2.5, dash: 'dot' },
+            marker: { size: 6, color: '#1e293b' },
+            hovertemplate: 'Total<br>Aging %{x} days<br>Count: %{y:,}<extra></extra>'
+        });
 
         var layout = {
+            barmode: 'stack',
             xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String) },
             yaxis: { title: 'Count' },
-            margin: { t: 30, r: 20, b: 50, l: 60 },
+            margin: { t: 30, r: 20, b: 60, l: 60 },
+            legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
             font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
-            height: 380,
-            bargap: 0.25,
-            showlegend: false
+            height: 420,
+            bargap: 0.2
         };
 
         Plotly.newPlot('chart-aging', traces, layout, P_CFG);
@@ -191,6 +221,70 @@
         });
 
         document.getElementById('carrier-list').innerHTML = html;
+    }
+
+    // --------------------------------------------------------
+    // CARRIER DETAIL: Individual carrier aging viewer
+    // --------------------------------------------------------
+    var CARRIER_LIST = [];
+    var CARRIER_IDX = 0;
+
+    function renderCarrierDetail(todayRows, carrierName) {
+        if (!carrierName) return;
+        var agingBuckets = [1, 2, 3, 4, 5, 6, 7];
+        var counts = {};
+        var total = 0;
+        todayRows.forEach(function (r) {
+            if (r.c === carrierName && r.a > 0 && r.a <= 7) {
+                counts[r.a] = (counts[r.a] || 0) + r.n;
+                total += r.n;
+            }
+        });
+
+        var y = agingBuckets.map(function (a) { return counts[a] || 0; });
+        var barColors = agingBuckets.map(function (a) {
+            if (a <= 2) return '#3b82f6';
+            if (a <= 4) return '#f59e0b';
+            return '#ef4444';
+        });
+
+        var traces = [{
+            x: agingBuckets,
+            y: y,
+            type: 'bar',
+            marker: { color: barColors, line: { color: '#fff', width: 1 } },
+            text: y.map(function (v) { return v > 0 ? v.toLocaleString() : ''; }),
+            textposition: 'outside',
+            textfont: { size: 12, color: '#334155' },
+            hovertemplate: carrierName + '<br>Aging %{x} days<br>Count: %{y:,}<extra></extra>'
+        }];
+
+        var layout = {
+            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets },
+            yaxis: { title: 'Count' },
+            margin: { t: 30, r: 20, b: 50, l: 60 },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
+            height: 300,
+            bargap: 0.25,
+            showlegend: false,
+            annotations: [{
+                x: 0.5, y: 1.08, xref: 'paper', yref: 'paper',
+                text: '<b>' + carrierName + '</b>  \u2014  ' + total.toLocaleString() + ' aging items',
+                showarrow: false,
+                font: { size: 14, color: '#1e293b', family: 'Inter, sans-serif' }
+            }]
+        };
+
+        Plotly.newPlot('chart-carrier-detail', traces, layout, P_CFG);
+    }
+
+    function setCarrier(idx) {
+        if (CARRIER_LIST.length === 0) return;
+        CARRIER_IDX = ((idx % CARRIER_LIST.length) + CARRIER_LIST.length) % CARRIER_LIST.length;
+        var sel = document.getElementById('carrier-select');
+        if (sel) sel.value = CARRIER_LIST[CARRIER_IDX];
+        var todayRows = DATA.cube.filter(function (r) { return r.ud === DATA.latest_date; });
+        renderCarrierDetail(todayRows, CARRIER_LIST[CARRIER_IDX]);
     }
 
     // --------------------------------------------------------
@@ -357,6 +451,18 @@
 
         // Export button
         document.getElementById('btn-export').addEventListener('click', exportData);
+
+        // Carrier detail navigation
+        document.getElementById('btn-carrier-prev').addEventListener('click', function () {
+            setCarrier(CARRIER_IDX - 1);
+        });
+        document.getElementById('btn-carrier-next').addEventListener('click', function () {
+            setCarrier(CARRIER_IDX + 1);
+        });
+        document.getElementById('carrier-select').addEventListener('change', function () {
+            var idx = CARRIER_LIST.indexOf(this.value);
+            if (idx >= 0) setCarrier(idx);
+        });
     }
 
     init();

@@ -53,6 +53,7 @@
         <div class="sky-chart-card sky-chart-wide"><div class="card-title">Aging Distribution</div><div class="skeleton skeleton-chart"></div></div>
         <div class="sky-chart-card sky-carrier-panel"><div class="card-title">Aging by Carrier</div><div class="skeleton skeleton-chart-sm"></div></div>
     </div>
+    <div class="sky-chart-card sky-chart-full"><div class="card-title">Carrier Detail</div><div class="skeleton skeleton-chart-sm"></div></div>
     <div class="sky-charts-row">
         <div class="sky-chart-card"><div class="card-title">On-Time Rate by Carrier</div><div class="skeleton skeleton-chart"></div></div>
         <div class="sky-chart-card"><div class="card-title">Carrier &times; Aging Heatmap</div><div class="skeleton skeleton-chart"></div></div>
@@ -92,6 +93,21 @@
             <div class="card-title">Aging by Carrier</div>
             <div id="carrier-list"></div>
         </div>
+    </div>
+    <div class="sky-chart-card sky-chart-full">
+        <div class="card-title-row">
+            <div class="card-title">Carrier Detail</div>
+            <div class="carrier-nav">
+                <button class="btn-carrier-nav" id="btn-carrier-prev" title="Previous carrier">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+                </button>
+                <select id="carrier-select" class="carrier-select"></select>
+                <button class="btn-carrier-nav" id="btn-carrier-next" title="Next carrier">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4l4 4-4 4"/></svg>
+                </button>
+            </div>
+        </div>
+        <div id="chart-carrier-detail"></div>
     </div>
     <div class="sky-charts-row">
         <div class="sky-chart-card">

@@ -190,6 +190,62 @@
     font-weight: 500;
 }
 
+/* --- Full-width chart card --- */
+.sky-chart-full {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 16px;
+}
+
+/* --- Card Title Row (title + controls) --- */
+.card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+/* --- Carrier Navigation Controls --- */
+.carrier-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-carrier-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-carrier-nav:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.carrier-select {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 13px;
+    font-family: Inter, Noto Sans, sans-serif;
+    color: #1e293b;
+    cursor: pointer;
+    min-width: 140px;
+}
+
 .skeleton-chart-sm {
     height: 200px;
     width: 100%;
