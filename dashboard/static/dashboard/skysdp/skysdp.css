@@ -114,7 +114,11 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+}
+
+.sky-chart-wide #chart-aging {
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .sky-carrier-panel {
