@@ -280,12 +280,12 @@
 
         var layout = {
             title: { text: '<b>' + carrierName + '</b> \u2014 ' + total.toLocaleString() + ' items', font: { size: 13, color: '#1e293b' }, x: 0.5 },
-            xaxis: { title: 'Days', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String) },
-            yaxis: { title: '' },
-            margin: { t: 40, r: 10, b: 40, l: 40 },
+            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String), range: [0.4, 7.6] },
+            yaxis: { title: '', automargin: true },
+            margin: { t: 40, r: 8, b: 38, l: 30 },
             font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
-            height: 280,
-            bargap: 0.25,
+            height: 260,
+            bargap: 0.35,
             showlegend: false
         };
 
