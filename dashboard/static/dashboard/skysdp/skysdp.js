@@ -17,10 +17,24 @@
     // Plotly shared config
     var P_CFG = { responsive: true, displayModeBar: false };
     var COLORS = [
-        '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
-        '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
-        '#84cc16', '#14b8a6', '#f43f5e', '#a855f7'
+        '#2563eb', '#dc2626', '#059669', '#d97706',
+        '#7c3aed', '#db2777', '#0891b2', '#ea580c',
+        '#65a30d', '#0d9488', '#e11d48', '#9333ea'
     ];
+
+    // Shared Plotly axis styling (professional grid)
+    var AXIS_STYLE = {
+        gridcolor: '#eef2f7',
+        gridwidth: 1,
+        linecolor: '#d8dee6',
+        linewidth: 1,
+        zerolinecolor: '#d8dee6',
+        zerolinewidth: 1,
+        tickfont: { size: 11, color: '#475569' },
+        titlefont: { size: 12, color: '#334155', family: 'Inter, Noto Sans, sans-serif' }
+    };
+    var PLOT_BG = '#fff';
+    var PAPER_BG = '#fff';
 
     function showContent() {
         document.getElementById('skeleton-loading').style.display = 'none';
@@ -171,13 +185,15 @@
 
         var layout = {
             barmode: 'stack',
-            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String) },
-            yaxis: { title: 'Count' },
-            margin: { t: 30, r: 20, b: 60, l: 60 },
-            legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String), showgrid: false }),
+            yaxis: Object.assign({}, AXIS_STYLE, { title: 'Count' }),
+            margin: { t: 20, r: 20, b: 60, l: 60 },
+            legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center', font: { size: 11, color: '#475569' } },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
+            plot_bgcolor: PLOT_BG,
+            paper_bgcolor: PAPER_BG,
             height: 420,
-            bargap: 0.2
+            bargap: 0.18
         };
 
         Plotly.newPlot('chart-aging', traces, layout, P_CFG);
@@ -279,11 +295,13 @@
         }];
 
         var layout = {
-            title: { text: '<b>' + carrierName + '</b> \u2014 ' + total.toLocaleString() + ' items', font: { size: 13, color: '#1e293b' }, x: 0.5 },
-            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String), range: [0.4, 7.6] },
-            yaxis: { title: '', automargin: true },
+            title: { text: '<b>' + carrierName + '</b> \u2014 ' + total.toLocaleString() + ' items', font: { size: 12, color: '#1e293b' }, x: 0.5 },
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String), range: [0.4, 7.6], showgrid: false }),
+            yaxis: Object.assign({}, AXIS_STYLE, { title: '', automargin: true }),
             margin: { t: 40, r: 8, b: 38, l: 30 },
             font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
+            plot_bgcolor: PLOT_BG,
+            paper_bgcolor: PAPER_BG,
             height: 260,
             bargap: 0.35,
             showlegend: false
@@ -340,12 +358,14 @@
         }];
 
         var layout = {
-            xaxis: { title: 'On-Time Rate (%)', range: [0, 105] },
-            yaxis: { automargin: true },
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'On-Time Rate (%)', range: [0, 105] }),
+            yaxis: Object.assign({}, AXIS_STYLE, { automargin: true }),
             margin: { t: 10, r: 20, b: 50, l: 110 },
-            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
+            plot_bgcolor: PLOT_BG,
+            paper_bgcolor: PAPER_BG,
             height: 350,
-            bargap: 0.2,
+            bargap: 0.18,
             showlegend: false,
             shapes: [{
                 type: 'line', x0: 80, x1: 80, y0: -0.5, y1: names.length - 0.5,
@@ -404,17 +424,19 @@
             y: carrierNames,
             z: z,
             type: 'heatmap',
-            colorscale: [[0,'#f0f9ff'],[0.15,'#bae6fd'],[0.35,'#7dd3fc'],[0.55,'#38bdf8'],[0.75,'#0284c7'],[1,'#1e3a5f']],
+            colorscale: [[0,'#f8fafc'],[0.15,'#e2e8f0'],[0.35,'#94a3b8'],[0.55,'#64748b'],[0.75,'#334155'],[1,'#0f172a']],
             showscale: true,
             colorbar: { title: 'Count', thickness: 12, len: 0.9 },
             hovertemplate: '%{y}<br>Aging: %{x} days<br>Count: %{z:,}<extra></extra>'
         }];
 
         var layout = {
-            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingDays, ticktext: agingDays.map(String) },
-            yaxis: { automargin: true },
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Aging (Days)', tickmode: 'array', tickvals: agingDays, ticktext: agingDays.map(String), showgrid: false }),
+            yaxis: Object.assign({}, AXIS_STYLE, { automargin: true, showgrid: false }),
             margin: { t: 10, r: 80, b: 50, l: 110 },
-            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
+            plot_bgcolor: PLOT_BG,
+            paper_bgcolor: PAPER_BG,
             height: 350,
             annotations: annotations
         };
