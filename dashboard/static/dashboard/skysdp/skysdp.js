@@ -25,13 +25,6 @@
     function showContent() {
         document.getElementById('skeleton-loading').style.display = 'none';
         document.getElementById('sky-widgets').classList.remove('hidden');
-        // Plotly renders at 0-width when container was hidden; explicitly resize each chart
-        requestAnimationFrame(function () {
-            ['chart-aging', 'carrier-slot-0', 'carrier-slot-1', 'carrier-slot-2', 'chart-ontime', 'chart-heatmap'].forEach(function (id) {
-                var el = document.getElementById(id);
-                if (el && el._fullLayout) Plotly.Plots.resize(el);
-            });
-        });
     }
 
     // --------------------------------------------------------
@@ -52,9 +45,9 @@
                 DATA = data;
                 DATA.cube = JSON.parse(data.cube_json || '[]');
                 cache.set(data);
+                showContent();
                 renderDashboard();
                 if (!showSkeleton) LMS.hideLoading(DATA.selected.week_from, DATA.selected.week_to);
-                showContent();
             })
             .catch(function (err) {
                 console.error('[SKY SDP] fetch error:', err);
@@ -453,8 +446,8 @@
         if (cached) {
             DATA = cached;
             DATA.cube = JSON.parse(cached.cube_json || '[]');
-            renderDashboard();
             showContent();
+            renderDashboard();
         } else {
             doFetch(true);
         }
