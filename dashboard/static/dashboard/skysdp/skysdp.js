@@ -112,17 +112,12 @@
 
         // --- Build carrier list for detail viewer ---
         CARRIER_LIST = Object.keys(carrierAging).sort();
-        var sel = document.getElementById('carrier-select');
-        if (sel) {
-            sel.innerHTML = CARRIER_LIST.map(function (c) {
-                return '<option value="' + c + '">' + c + '</option>';
-            }).join('');
-        }
+        CARRIER_PAGE = 0;
 
         // --- Charts ---
         renderAgingChart(todayRows);
         renderCarrierSidebar(todayRows);
-        renderCarrierDetail(todayRows, CARRIER_LIST[0] || '');
+        renderCarrierPage(todayRows);
         renderOnTimeChart(todayRows);
         renderHeatmap(todayRows);
     }
@@ -227,10 +222,34 @@
     // CARRIER DETAIL: Individual carrier aging viewer
     // --------------------------------------------------------
     var CARRIER_LIST = [];
-    var CARRIER_IDX = 0;
+    var CARRIER_PAGE = 0;
+    var PAGE_SIZE = 3;
 
-    function renderCarrierDetail(todayRows, carrierName) {
-        if (!carrierName) return;
+    function renderCarrierPage(todayRows) {
+        var start = CARRIER_PAGE * PAGE_SIZE;
+        var pageCarriers = CARRIER_LIST.slice(start, start + PAGE_SIZE);
+
+        // Update page indicator
+        var info = document.getElementById('carrier-page-info');
+        if (info) {
+            info.textContent = (start + 1) + '\u2013' + Math.min(start + PAGE_SIZE, CARRIER_LIST.length) + ' of ' + CARRIER_LIST.length;
+        }
+
+        // Render each slot (3 per page)
+        for (var s = 0; s < PAGE_SIZE; s++) {
+            var slotId = 'carrier-slot-' + s;
+            var el = document.getElementById(slotId);
+            if (!el) continue;
+
+            if (s >= pageCarriers.length) {
+                el.innerHTML = '<div style="height:280px;display:flex;align-items:center;justify-content:center;color:#94a3b8;">\u2014</div>';
+                continue;
+            }
+            renderSingleCarrier(slotId, todayRows, pageCarriers[s]);
+        }
+    }
+
+    function renderSingleCarrier(containerId, todayRows, carrierName) {
         var agingBuckets = [1, 2, 3, 4, 5, 6, 7];
         var counts = {};
         var total = 0;
@@ -255,36 +274,30 @@
             marker: { color: barColors, line: { color: '#fff', width: 1 } },
             text: y.map(function (v) { return v > 0 ? v.toLocaleString() : ''; }),
             textposition: 'outside',
-            textfont: { size: 12, color: '#334155' },
+            textfont: { size: 11, color: '#334155' },
             hovertemplate: carrierName + '<br>Aging %{x} days<br>Count: %{y:,}<extra></extra>'
         }];
 
         var layout = {
-            xaxis: { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets },
-            yaxis: { title: 'Count' },
-            margin: { t: 30, r: 20, b: 50, l: 60 },
-            font: { family: 'Inter, Noto Sans, sans-serif', size: 12 },
-            height: 300,
+            title: { text: '<b>' + carrierName + '</b> \u2014 ' + total.toLocaleString() + ' items', font: { size: 13, color: '#1e293b' }, x: 0.5 },
+            xaxis: { title: 'Days', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String) },
+            yaxis: { title: '' },
+            margin: { t: 40, r: 10, b: 40, l: 40 },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
+            height: 280,
             bargap: 0.25,
-            showlegend: false,
-            annotations: [{
-                x: 0.5, y: 1.08, xref: 'paper', yref: 'paper',
-                text: '<b>' + carrierName + '</b>  \u2014  ' + total.toLocaleString() + ' aging items',
-                showarrow: false,
-                font: { size: 14, color: '#1e293b', family: 'Inter, sans-serif' }
-            }]
+            showlegend: false
         };
 
-        Plotly.newPlot('chart-carrier-detail', traces, layout, P_CFG);
+        Plotly.newPlot(containerId, traces, layout, P_CFG);
     }
 
-    function setCarrier(idx) {
-        if (CARRIER_LIST.length === 0) return;
-        CARRIER_IDX = ((idx % CARRIER_LIST.length) + CARRIER_LIST.length) % CARRIER_LIST.length;
-        var sel = document.getElementById('carrier-select');
-        if (sel) sel.value = CARRIER_LIST[CARRIER_IDX];
+    function setCarrierPage(page) {
+        var totalPages = Math.ceil(CARRIER_LIST.length / PAGE_SIZE);
+        if (totalPages === 0) return;
+        CARRIER_PAGE = ((page % totalPages) + totalPages) % totalPages;
         var todayRows = DATA.cube.filter(function (r) { return r.ud === DATA.latest_date; });
-        renderCarrierDetail(todayRows, CARRIER_LIST[CARRIER_IDX]);
+        renderCarrierPage(todayRows);
     }
 
     // --------------------------------------------------------
@@ -452,16 +465,12 @@
         // Export button
         document.getElementById('btn-export').addEventListener('click', exportData);
 
-        // Carrier detail navigation
+        // Carrier detail navigation (pages of 3)
         document.getElementById('btn-carrier-prev').addEventListener('click', function () {
-            setCarrier(CARRIER_IDX - 1);
+            setCarrierPage(CARRIER_PAGE - 1);
         });
         document.getElementById('btn-carrier-next').addEventListener('click', function () {
-            setCarrier(CARRIER_IDX + 1);
-        });
-        document.getElementById('carrier-select').addEventListener('change', function () {
-            var idx = CARRIER_LIST.indexOf(this.value);
-            if (idx >= 0) setCarrier(idx);
+            setCarrierPage(CARRIER_PAGE + 1);
         });
     }
 
