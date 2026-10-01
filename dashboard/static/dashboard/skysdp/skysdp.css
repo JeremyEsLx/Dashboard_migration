@@ -246,6 +246,7 @@
 .carrier-detail-row {
     display: flex;
     gap: 12px;
+    height: 290px;
 }
 
 .carrier-detail-slot {
@@ -257,7 +258,6 @@
     background: #fff;
     padding: 6px 4px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    max-height: 290px;
     overflow: hidden;
 }
 

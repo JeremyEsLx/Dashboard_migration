@@ -25,8 +25,13 @@
     function showContent() {
         document.getElementById('skeleton-loading').style.display = 'none';
         document.getElementById('sky-widgets').classList.remove('hidden');
-        // Plotly renders at 0-width when container was hidden; force re-measure
-        setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 80);
+        // Plotly renders at 0-width when container was hidden; explicitly resize each chart
+        requestAnimationFrame(function () {
+            ['chart-aging', 'carrier-slot-0', 'carrier-slot-1', 'carrier-slot-2', 'chart-ontime', 'chart-heatmap'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el && el._fullLayout) Plotly.Plots.resize(el);
+            });
+        });
     }
 
     // --------------------------------------------------------
