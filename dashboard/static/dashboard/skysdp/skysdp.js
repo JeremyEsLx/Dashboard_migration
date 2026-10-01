@@ -10,6 +10,10 @@
     var TIMER_KEY = 'lms_timer_skysdp';
     var DATA      = null;
 
+    // Cache + Timer instances (LMS.Cache/Timer are constructors)
+    var cache = new LMS.Cache(CACHE_KEY, 15);
+    var timer = null;
+
     // Plotly shared config
     var P_CFG = { responsive: true, displayModeBar: false };
     var COLORS = [
@@ -17,16 +21,6 @@
         '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
         '#84cc16', '#14b8a6', '#f43f5e', '#a855f7'
     ];
-
-    // --------------------------------------------------------
-    // HELPERS
-    // --------------------------------------------------------
-    function fmtDate(ymd) {
-        // YYYY-MM-DD -> MM/DD/YYYY
-        if (!ymd) return '--';
-        var p = ymd.split('-');
-        return p.length === 3 ? p[1] + '/' + p[2] + '/' + p[0] : ymd;
-    }
 
     function showContent() {
         document.getElementById('skeleton-loading').style.display = 'none';
@@ -50,9 +44,9 @@
             .then(function (data) {
                 DATA = data;
                 DATA.cube = JSON.parse(data.cube_json || '[]');
-                LMS.Cache.set(CACHE_KEY, data);
+                cache.set(data);
                 renderDashboard();
-                if (!showSkeleton) LMS.hideLoading();
+                if (!showSkeleton) LMS.hideLoading(DATA.selected.week_from, DATA.selected.week_to);
                 showContent();
             })
             .catch(function (err) {
@@ -111,10 +105,10 @@
         document.getElementById('kpi-critical').textContent      = criticalCount.toLocaleString();
 
         // --- Banner ---
-        document.getElementById('banner-date-range').textContent =
-            fmtDate(DATA.selected.week_from) + ' \u2013 ' + fmtDate(DATA.selected.week_to);
+        document.getElementById('banner-date-range').innerHTML =
+            '<strong>Showing:</strong> ' + LMS.fmtDate(DATA.selected.week_from) + ' \u2014 ' + LMS.fmtDate(DATA.selected.week_to);
         document.getElementById('updated-on').textContent =
-            'Data as of: ' + fmtDate(latestDate);
+            'Data as of: ' + LMS.fmtDate(latestDate);
 
         // --- Charts ---
         renderTodayChart(todayRows);
@@ -200,7 +194,7 @@
 
         var dates  = Object.keys(dateMap).sort();
         var counts = dates.map(function (d) { return dateMap[d]; });
-        var labels = dates.map(fmtDate);
+        var labels = dates.map(LMS.fmtDate);
 
         var traces = [{
             x: labels,
@@ -249,7 +243,7 @@
     // --------------------------------------------------------
     function init() {
         // Check sessionStorage cache
-        var cached = LMS.Cache.get(CACHE_KEY);
+        var cached = cache.get();
         if (cached) {
             DATA = cached;
             DATA.cube = JSON.parse(cached.cube_json || '[]');
@@ -260,12 +254,12 @@
         }
 
         // 15-minute auto-refresh timer
-        LMS.Timer.start(TIMER_KEY, 15, function () { doFetch(false); }, 'refresh-timer');
+        timer = new LMS.Timer(TIMER_KEY, 15, function () { doFetch(false); });
 
         // Refresh button
         document.getElementById('btn-refresh').addEventListener('click', function () {
-            LMS.Cache.clear(CACHE_KEY);
-            LMS.Timer.reset(TIMER_KEY);
+            cache.clear();
+            timer.reset();
             doFetch(true);
         });
 
