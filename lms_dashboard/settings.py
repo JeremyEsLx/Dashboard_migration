@@ -68,11 +68,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# In DEBUG mode: Django's dev server serves static files directly from app dirs.
-# In production: WhiteNoise serves pre-collected files with compression + caching.
-if DEBUG:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-else:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# WhiteNoise serves static files in both modes.
+# CompressedStaticFilesStorage (filename hashing) is disabled — the manual ?v=N
+# cache busters in templates handle browser caching, and WHITENOISE_USE_FINDERS
+# lets WhiteNoise serve directly from app static/ dirs (no collectstatic needed).
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+WHITENOISE_USE_FINDERS = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
