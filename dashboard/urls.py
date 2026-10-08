@@ -41,9 +41,13 @@ urlpatterns = [
     path('api/hxh/', views.hxh_overall_data, name='hxh_overall_data'),
     path('api/lappicking/', views.lap_picking_data, name='lap_picking_data'),
 
-    # SKY SDP
+    # SKY SDP (In Transit)
     path('skysdp/', views.skysdp, name='skysdp'),
     path('api/skysdp/', views.skysdp_data, name='skysdp_data'),
+
+    # Aging Dashboard (Pickup Date = NULL/empty)
+    path('aging/', views.aging, name='aging'),
+    path('api/aging/', views.aging_data, name='aging_data'),
 
     # Placeholder dashboards (WIP)
     path('frames/', views.placeholder_dashboard, {'dashboard_key': 'frames'}, name='frames'),

@@ -1,23 +1,22 @@
 {% extends "dashboard/base.html" %}
 {% load static %}
 
-{% block title %}In Transit{% endblock %}
+{% block title %}Aging Dashboard{% endblock %}
 {% block tab_lms %}tab-active{% endblock %}
-{% block nav_skysdp %}active{% endblock %}
+{% block nav_aging %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/skysdp/skysdp.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'dashboard/aging/aging.css' %}?v=1">
 {% endblock %}
 
 {% block page_title %}
 <div class="page-header">
-    <h1 class="page-title">In Transit</h1>
+    <h1 class="page-title">Aging Dashboard</h1>
     <span class="updated-on" id="updated-on"></span>
 </div>
 {% endblock %}
 
 {% block content %}
-<!-- ACTION BAR (no filters for now, just refresh/export/timer) -->
 <div class="filters-bar" id="filters-bar">
     <div class="filter-actions">
         <button class="btn-filter btn-export" id="btn-export">
@@ -32,7 +31,6 @@
     </div>
 </div>
 
-<!-- ACTIVE FILTERS BANNER -->
 <div class="active-filters-banner" id="active-filters-banner">
     <span class="banner-icon" id="banner-icon">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5.5 1.5v3"/><path d="M10.5 1.5v3"/></svg>
@@ -40,7 +38,6 @@
     <span class="banner-date-range" id="banner-date-range">Loading...</span>
 </div>
 
-<!-- SKELETON LOADING (shown until data arrives) -->
 <div id="skeleton-loading">
     <div class="sky-kpi-strip">
         <div class="sky-kpi-card"><div class="kpi-label">Total Aging Items</div><div class="skeleton skeleton-value"></div></div>
@@ -67,7 +64,6 @@
     </div>
 </div>
 
-<!-- REAL DASHBOARD WIDGETS (hidden until data loads) -->
 <div id="sky-widgets" class="hidden">
     <div class="sky-kpi-strip" id="sky-kpi-strip">
         <div class="sky-kpi-card">
@@ -134,5 +130,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/skysdp/skysdp.js' %}?v=1"></script>
+<script src="{% static 'dashboard/aging/aging.js' %}?v=1"></script>
 {% endblock %}

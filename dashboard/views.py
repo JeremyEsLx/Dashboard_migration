@@ -8,6 +8,7 @@ from .services_usersummary import get_usersummary_data, get_usersummary_filters
 from .services_spac import get_spac_data, get_spac_details_data
 from .services_hxh import get_hxh_overall_data, get_lap_picking_data
 from .services_skysdp import get_skysdp_data
+from .services_aging import get_aging_data
 
 
 # ============================================================
@@ -601,3 +602,28 @@ def placeholder_dashboard(request, dashboard_key):
         'dashboard_name': name,
         'dashboard_url': url,
     })
+
+
+# ============================================================
+# AGING DASHBOARD (Pickup Date = NULL/empty)
+# ============================================================
+
+def aging(request):
+    """Render Aging Dashboard shell (instant, no SQL) - JS hydrates via /api/aging/."""
+    return render(request, 'dashboard/aging.html')
+
+
+def aging_data(request):
+    """API: returns aging cube (Pickup Date IS NULL) as JSON."""
+    try:
+        data = get_aging_data()
+        return JsonResponse(data)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e),
+            'cube_json': '[]',
+            'latest_date': '',
+            'selected': {'week_from': '', 'week_to': ''},
+        }, status=200)
