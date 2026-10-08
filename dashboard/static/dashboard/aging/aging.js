@@ -456,7 +456,7 @@
         todayRows.forEach(function (r) {
             aoa.push([r.c, r.a, r.ot, r.n]);
         });
-        LMS.exportXLSX(aoa, 'AGING_' + DATA.latest_date);
+        LMS.exportXLSX([{name: 'Aging Dashboard', rows: aoa}], 'AGING_' + DATA.latest_date + '.xlsx');
     }
 
     // --------------------------------------------------------

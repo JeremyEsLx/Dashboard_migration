@@ -456,7 +456,7 @@
         todayRows.forEach(function (r) {
             aoa.push([r.c, r.a, r.ot, r.n]);
         });
-        LMS.exportXLSX(aoa, 'SKY_SDP_' + DATA.latest_date);
+        LMS.exportXLSX([{name: 'In Transit', rows: aoa}], 'SKY_SDP_' + DATA.latest_date + '.xlsx');
     }
 
     // --------------------------------------------------------
