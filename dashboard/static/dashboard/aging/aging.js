@@ -42,18 +42,20 @@
     }
 
     // --------------------------------------------------------
-    // FETCH
+    // FETCH  (optional targetDate -> /api/aging/?date=YYYY-MM-DD)
     // --------------------------------------------------------
-    function doFetch(showSkeleton) {
+    function doFetch(showSkeleton, targetDate) {
         if (showSkeleton) {
             document.getElementById('skeleton-loading').style.display = '';
             document.getElementById('sky-widgets').classList.add('hidden');
-            // NO LMS.showLoading() when skeleton is active (size mismatch)
         } else {
             LMS.showLoading();
         }
 
-        fetch(API_URL)
+        var url = API_URL;
+        if (targetDate) url += '?date=' + encodeURIComponent(targetDate);
+
+        fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 DATA = data;
@@ -120,9 +122,10 @@
 
         // --- Banner ---
         document.getElementById('banner-date-range').innerHTML =
-            '<strong>Showing:</strong> ' + LMS.fmtDate(DATA.selected.week_from) + ' \u2014 ' + LMS.fmtDate(DATA.selected.week_to);
-        document.getElementById('updated-on').textContent =
-            'Data as of: ' + LMS.fmtDate(latestDate);
+            '<strong>Available:</strong> ' + LMS.fmtDate(DATA.selected.week_from) + ' \u2014 ' + LMS.fmtDate(DATA.selected.week_to);
+
+        // --- Date picker ---
+        renderDatePicker(DATA.available_dates || [], latestDate);
 
         // --- Build carrier list for detail viewer ---
         CARRIER_LIST = Object.keys(carrierAging).sort();
@@ -134,6 +137,26 @@
         renderCarrierPage(todayRows);
         renderOnTimeChart(todayRows);
         renderHeatmap(todayRows);
+    }
+
+    // --------------------------------------------------------
+    // DATE PICKER
+    // --------------------------------------------------------
+    function renderDatePicker(dates, selectedDate) {
+        var sel = document.getElementById('date-picker');
+        if (!sel || !dates.length) return;
+
+        // Rebuild options only when list changed
+        if (sel.options.length !== dates.length || sel.options[0].value !== dates[0]) {
+            sel.innerHTML = '';
+            dates.forEach(function (d) {
+                var opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = LMS.fmtDate(d);
+                sel.appendChild(opt);
+            });
+        }
+        sel.value = selectedDate;
     }
 
     // --------------------------------------------------------
@@ -477,12 +500,20 @@
         // 15-minute auto-refresh timer
         timer = new LMS.Timer(TIMER_KEY, 15, function () { doFetch(false); });
 
+        // Date picker — switch snapshot date
+        var datePicker = document.getElementById('date-picker');
+        if (datePicker) datePicker.addEventListener('change', function () {
+            cache.clear();
+            doFetch(false, datePicker.value);
+        });
+
         // Refresh button
         var btnRefresh = document.getElementById('btn-refresh');
         if (btnRefresh) btnRefresh.addEventListener('click', function () {
             cache.clear();
             timer.reset();
-            doFetch(true);
+            var dp = document.getElementById('date-picker');
+            doFetch(true, dp ? dp.value : null);
         });
 
         // Export button

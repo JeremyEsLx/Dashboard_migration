@@ -12,7 +12,12 @@
 {% block page_title %}
 <div class="page-header">
     <h1 class="page-title">Aging Dashboard</h1>
-    <span class="updated-on" id="updated-on"></span>
+    <div class="aging-date-picker-wrap">
+        <label class="aging-date-label" for="date-picker">Data as of:</label>
+        <select class="aging-date-select" id="date-picker">
+            <option value="">Loading...</option>
+        </select>
+    </div>
 </div>
 {% endblock %}
 

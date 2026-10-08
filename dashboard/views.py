@@ -614,9 +614,12 @@ def aging(request):
 
 
 def aging_data(request):
-    """API: returns aging cube (Pickup Date IS NULL) as JSON."""
+    """API: returns aging cube (Pickup Date IS NULL) as JSON.
+    Optional query param: ?date=YYYY-MM-DD to pick a specific snapshot.
+    """
     try:
-        data = get_aging_data()
+        target_date = request.GET.get('date') or None
+        data = get_aging_data(target_date=target_date)
         return JsonResponse(data)
     except Exception as e:
         import traceback
@@ -625,5 +628,6 @@ def aging_data(request):
             'error': str(e),
             'cube_json': '[]',
             'latest_date': '',
+            'available_dates': [],
             'selected': {'week_from': '', 'week_to': ''},
         }, status=200)
