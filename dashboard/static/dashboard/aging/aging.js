@@ -140,6 +140,58 @@
         renderCarrierPage(todayRows);
         renderOnTimeChart(todayRows);
         renderHeatmap(todayRows);
+        injectTooltips();
+    }
+
+    // --------------------------------------------------------
+    // INFO TOOLTIPS (? icon on each chart/KPI)
+    // --------------------------------------------------------
+    var TIPS_DONE = false;
+    var TIP_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="7"/><path d="M6.5 6a1.5 1.5 0 013 0c0 1-1.5 1.5-1.5 2.5"/><circle cx="8" cy="12" r="0.5" fill="currentColor" stroke="none"/></svg>';
+
+    var CHART_TIPS = {
+        'Aging Distribution': 'Shipments with no Pickup Date. Stacked bars by aging days (1\u20137) per carrier. Dotted line = total.',
+        'Aging by Carrier': 'Shipments with no Pickup Date. Ranked by total aging items. Bar = share of total.',
+        'Carrier Detail': 'Per-carrier aging bars. Blue = 1\u20132 days, Yellow = 3\u20134, Red = 5+. Navigate with arrows.',
+        'On-Time Rate by Carrier': 'Only rows with explicit Y or N in On Time(Y/N). Blanks excluded. Dashed line = 80% target.',
+        'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.'
+    };
+
+    var KPI_TIPS = {
+        'Total Aging Items': 'Shipments with no Pickup Date and aging > 0 on the selected date.',
+        'Avg Aging Days': 'Weighted average: sum(aging \u00d7 count) / total aging items.',
+        'On-Time %': 'Shipments marked Y / total marked Y or N. Blank values excluded.',
+        'Worst Carrier': 'Carrier with the highest weighted-average aging days.',
+        'Critical (5+ Days)': 'Count of shipments aging 5 or more days.'
+    };
+
+    function injectTooltips() {
+        if (TIPS_DONE) return;
+        TIPS_DONE = true;
+
+        document.querySelectorAll('#sky-widgets .card-title').forEach(function (el) {
+            var text = el.childNodes[0] ? el.childNodes[0].textContent.trim() : '';
+            var tip = CHART_TIPS[text];
+            if (tip && !el.querySelector('.info-tip')) {
+                var s = document.createElement('span');
+                s.className = 'info-tip';
+                s.setAttribute('data-tip', tip);
+                s.innerHTML = TIP_SVG;
+                el.appendChild(s);
+            }
+        });
+
+        document.querySelectorAll('#sky-widgets .kpi-label').forEach(function (el) {
+            var text = el.textContent.trim();
+            var tip = KPI_TIPS[text];
+            if (tip && !el.querySelector('.info-tip')) {
+                var s = document.createElement('span');
+                s.className = 'info-tip';
+                s.setAttribute('data-tip', tip);
+                s.innerHTML = TIP_SVG;
+                el.appendChild(s);
+            }
+        });
     }
 
     // --------------------------------------------------------

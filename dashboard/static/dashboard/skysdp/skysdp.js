@@ -140,6 +140,7 @@
         renderCarrierPage(todayRows);
         renderOnTimeChart(todayRows);
         renderHeatmap(todayRows);
+        injectTooltips();
     }
 
     // --------------------------------------------------------
@@ -163,6 +164,57 @@
                     cache.clear();
                     doFetch(false, dateStr);
                 }
+            }
+        });
+    }
+
+    // --------------------------------------------------------
+    // INFO TOOLTIPS (? icon on each chart/KPI)
+    // --------------------------------------------------------
+    var TIPS_DONE = false;
+    var TIP_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="7"/><path d="M6.5 6a1.5 1.5 0 013 0c0 1-1.5 1.5-1.5 2.5"/><circle cx="8" cy="12" r="0.5" fill="currentColor" stroke="none"/></svg>';
+
+    var CHART_TIPS = {
+        'Aging Distribution': 'Stacked bars showing shipment count by aging days (1\u20137) for all carriers on the selected date. Dotted line = total across all carriers.',
+        'Aging by Carrier': 'Ranked list of carriers sorted by total aging items. Progress bar shows each carrier\u2019s share of the total.',
+        'Carrier Detail': 'Per-carrier aging bar chart. Blue = 1\u20132 days, Yellow = 3\u20134 days, Red = 5+ days. Navigate with arrows.',
+        'On-Time Rate by Carrier': 'Percentage of shipments with On Time(Y/N) = Y out of those explicitly marked Y or N. Blank values excluded. Dashed line = 80% target.',
+        'Carrier \u00d7 Aging Heatmap': 'Grid of shipment counts per carrier per aging day. Darker cells = higher volume.'
+    };
+
+    var KPI_TIPS = {
+        'Total Aging Items': 'Count of shipments with aging > 0 days on the selected date.',
+        'Avg Aging Days': 'Weighted average: sum(aging \u00d7 count) / total aging items.',
+        'On-Time %': 'Shipments marked Y / total marked Y or N. Blank On-Time values are excluded.',
+        'Worst Carrier': 'Carrier with the highest weighted-average aging days.',
+        'Critical (5+ Days)': 'Count of shipments aging 5 or more days.'
+    };
+
+    function injectTooltips() {
+        if (TIPS_DONE) return;
+        TIPS_DONE = true;
+
+        document.querySelectorAll('#sky-widgets .card-title').forEach(function (el) {
+            var text = el.childNodes[0] ? el.childNodes[0].textContent.trim() : '';
+            var tip = CHART_TIPS[text];
+            if (tip && !el.querySelector('.info-tip')) {
+                var s = document.createElement('span');
+                s.className = 'info-tip';
+                s.setAttribute('data-tip', tip);
+                s.innerHTML = TIP_SVG;
+                el.appendChild(s);
+            }
+        });
+
+        document.querySelectorAll('#sky-widgets .kpi-label').forEach(function (el) {
+            var text = el.textContent.trim();
+            var tip = KPI_TIPS[text];
+            if (tip && !el.querySelector('.info-tip')) {
+                var s = document.createElement('span');
+                s.className = 'info-tip';
+                s.setAttribute('data-tip', tip);
+                s.innerHTML = TIP_SVG;
+                el.appendChild(s);
             }
         });
     }
