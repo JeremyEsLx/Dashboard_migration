@@ -87,11 +87,13 @@
 
         // --- Compute KPIs from latest snapshot ---
         var totalAging = 0, weightedAging = 0, totalAll = 0;
-        var onTimeCount = 0, criticalCount = 0;
+        var onTimeCount = 0, onTimeTotal = 0, criticalCount = 0;
         var carrierAging = {};  // carrier -> {sum, cnt}
 
         todayRows.forEach(function (r) {
             totalAll += r.n;
+            // On-time: only count rows with explicit Y or N (skip blanks)
+            if (r.ot === 'Y' || r.ot === 'N') { onTimeTotal += r.n; }
             if (r.ot === 'Y') onTimeCount += r.n;
             if (r.a > 0) {
                 totalAging   += r.n;
@@ -104,7 +106,7 @@
         });
 
         var avgAging   = totalAging > 0 ? (weightedAging / totalAging).toFixed(1) : '0';
-        var onTimePct  = totalAll > 0 ? ((onTimeCount / totalAll) * 100).toFixed(1) : '0';
+        var onTimePct  = onTimeTotal > 0 ? ((onTimeCount / onTimeTotal) * 100).toFixed(1) : '0';
 
         // Worst carrier = highest weighted avg aging
         var worstCarrier = '--';
@@ -353,6 +355,8 @@
     function renderOnTimeChart(todayRows) {
         var carriers = {};
         todayRows.forEach(function (r) {
+            // Only count rows with explicit Y or N (skip blanks)
+            if (r.ot !== 'Y' && r.ot !== 'N') return;
             if (!carriers[r.c]) carriers[r.c] = { y: 0, total: 0 };
             carriers[r.c].total += r.n;
             if (r.ot === 'Y') carriers[r.c].y += r.n;
