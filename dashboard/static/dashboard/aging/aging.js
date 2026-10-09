@@ -136,7 +136,7 @@
         renderAgingChart(todayRows);
         renderCarrierSidebar(todayRows);
         renderCarrierPage(todayRows);
-        renderSeverityChart(todayRows);
+        renderCriticalChart(todayRows);
         renderHeatmap(todayRows);
         injectTooltips();
     }
@@ -151,7 +151,7 @@
         'Aging Distribution': 'Shipments with no Pickup Date. Stacked bars by aging days (1\u20137) per carrier. Dotted line = total.',
         'Aging by Carrier': 'Shipments with no Pickup Date. Ranked by total aging items. Bar = share of total.',
         'Carrier Detail': 'Per-carrier aging bars. Blue = 1\u20132 days, Yellow = 3\u20134, Red = 5+. Navigate with arrows.',
-        'Aging Severity by Carrier': 'Proportion of each carrier\u2019s shipments by severity. Blue = 1\u20132 days (Low), Amber = 3\u20134 days (Medium), Red = 5+ days (High). Sorted by % critical.',
+        'Critical Items by Carrier': 'Count of shipments aging 5+ days per carrier. Sorted by volume \u2014 tallest bar = most overdue shipments to follow up on.',
         'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.'
     };
 
@@ -402,56 +402,46 @@
     // --------------------------------------------------------
     // CHART 3: On-Time Rate by Carrier (horizontal bar)
     // --------------------------------------------------------
-    function renderSeverityChart(todayRows) {
+    function renderCriticalChart(todayRows) {
         var carriers = {};
         todayRows.forEach(function (r) {
-            if (r.a <= 0) return; // skip non-aging rows
-            if (!carriers[r.c]) carriers[r.c] = { low: 0, med: 0, high: 0, total: 0 };
-            carriers[r.c].total += r.n;
-            if (r.a <= 2)      carriers[r.c].low  += r.n;
-            else if (r.a <= 4) carriers[r.c].med  += r.n;
-            else               carriers[r.c].high += r.n;
+            if (r.a < 5) return; // only 5+ day items
+            if (!carriers[r.c]) carriers[r.c] = 0;
+            carriers[r.c] += r.n;
         });
 
-        // Sort by % high (critical) descending — worst at top
+        // Sort ascending so highest count appears at top in Plotly
         var sorted = Object.keys(carriers).sort(function (a, b) {
-            var pA = carriers[a].total > 0 ? carriers[a].high / carriers[a].total : 0;
-            var pB = carriers[b].total > 0 ? carriers[b].high / carriers[b].total : 0;
-            return pA - pB; // ascending so worst appears at top in Plotly (top = last)
+            return carriers[a] - carriers[b];
         });
 
-        var names = sorted;
-        function pct(c, bucket) {
-            return carriers[c].total > 0 ? Math.round((carriers[c][bucket] / carriers[c].total) * 1000) / 10 : 0;
-        }
+        var names  = sorted;
+        var counts = sorted.map(function (c) { return carriers[c]; });
+        var maxVal = Math.max.apply(null, counts.concat([1]));
 
-        var lowPcts  = names.map(function (c) { return pct(c, 'low'); });
-        var medPcts  = names.map(function (c) { return pct(c, 'med'); });
-        var highPcts = names.map(function (c) { return pct(c, 'high'); });
+        // Red gradient: more critical items = darker red
+        var barColors = counts.map(function (n) {
+            var t = maxVal > 0 ? n / maxVal : 0;
+            var r = Math.round(220 + t * 35);   // 220 -> 255
+            var g = Math.round(120 - t * 80);    // 120 -> 40
+            var b = Math.round(120 - t * 80);    // 120 -> 40
+            return 'rgb(' + r + ',' + g + ',' + b + ')';
+        });
 
-        function makeTrace(label, vals, color, counts, bucket) {
-            return {
-                x: vals, y: names, type: 'bar', orientation: 'h', name: label,
-                marker: { color: color, line: { color: '#fff', width: 1 } },
-                text: vals.map(function (v, i) { return v >= 8 ? counts[i] + ' (' + v + '%)' : ''; }),
-                textposition: 'inside',
-                textfont: { size: 10, color: '#fff', family: 'Inter, sans-serif' },
-                hovertemplate: '%{y}<br>' + label + ': %{x}% (' + bucket + ')<extra></extra>'
-            };
-        }
-
-        var lowCounts  = names.map(function (c) { return carriers[c].low; });
-        var medCounts  = names.map(function (c) { return carriers[c].med; });
-        var highCounts = names.map(function (c) { return carriers[c].high; });
-
-        var traces = [
-            makeTrace('Low (1-2d)',  lowPcts,  '#3b82f6', lowCounts,  '1\u20132 days'),
-            makeTrace('Medium (3-4d)', medPcts, '#f59e0b', medCounts, '3\u20134 days'),
-            makeTrace('High (5+d)', highPcts, '#ef4444', highCounts, '5+ days')
-        ];
+        var traces = [{
+            x: counts,
+            y: names,
+            type: 'bar',
+            orientation: 'h',
+            marker: { color: barColors, line: { color: '#fff', width: 1 } },
+            text: counts.map(function (n) { return n.toLocaleString(); }),
+            textposition: 'auto',
+            textfont: { size: 11, color: '#fff', family: 'Inter, sans-serif' },
+            hovertemplate: '%{y}<br>Critical items (5+ days): %{x}<extra></extra>'
+        }];
 
         var layout = {
-            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Severity Mix (%)', range: [0, 105], ticksuffix: '%' }),
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Shipments (5+ Days Aging)' }),
             yaxis: Object.assign({}, AXIS_STYLE, { automargin: true }),
             margin: { t: 10, r: 20, b: 50, l: 110 },
             font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
@@ -459,9 +449,7 @@
             paper_bgcolor: PAPER_BG,
             height: 350,
             bargap: 0.18,
-            barmode: 'stack',
-            showlegend: true,
-            legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: 1.06, font: { size: 10 } }
+            showlegend: false
         };
 
         Plotly.newPlot('chart-ontime', traces, layout, P_CFG);
