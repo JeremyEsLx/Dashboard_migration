@@ -136,7 +136,7 @@
         renderAgingChart(todayRows);
         renderCarrierSidebar(todayRows);
         renderCarrierPage(todayRows);
-        renderOnTimeChart(todayRows);
+        renderSeverityChart(todayRows);
         renderHeatmap(todayRows);
         injectTooltips();
     }
@@ -151,7 +151,7 @@
         'Aging Distribution': 'Shipments with no Pickup Date. Stacked bars by aging days (1\u20137) per carrier. Dotted line = total.',
         'Aging by Carrier': 'Shipments with no Pickup Date. Ranked by total aging items. Bar = share of total.',
         'Carrier Detail': 'Per-carrier aging bars. Blue = 1\u20132 days, Yellow = 3\u20134, Red = 5+. Navigate with arrows.',
-        'On-Time Rate by Carrier': 'On-time Y count vs ALL shipments (including blank/undetermined). Dashed line = 80% target.',
+        'Aging Severity by Carrier': 'Proportion of each carrier\u2019s shipments by severity. Blue = 1\u20132 days (Low), Amber = 3\u20134 days (Medium), Red = 5+ days (High). Sorted by % critical.',
         'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.'
     };
 
@@ -402,44 +402,56 @@
     // --------------------------------------------------------
     // CHART 3: On-Time Rate by Carrier (horizontal bar)
     // --------------------------------------------------------
-    function renderOnTimeChart(todayRows) {
+    function renderSeverityChart(todayRows) {
         var carriers = {};
         todayRows.forEach(function (r) {
-            if (!carriers[r.c]) carriers[r.c] = { y: 0, total: 0 };
+            if (r.a <= 0) return; // skip non-aging rows
+            if (!carriers[r.c]) carriers[r.c] = { low: 0, med: 0, high: 0, total: 0 };
             carriers[r.c].total += r.n;
-            if (r.ot === 'Y') carriers[r.c].y += r.n;
+            if (r.a <= 2)      carriers[r.c].low  += r.n;
+            else if (r.a <= 4) carriers[r.c].med  += r.n;
+            else               carriers[r.c].high += r.n;
         });
 
+        // Sort by % high (critical) descending — worst at top
         var sorted = Object.keys(carriers).sort(function (a, b) {
-            var pA = carriers[a].total > 0 ? carriers[a].y / carriers[a].total : 0;
-            var pB = carriers[b].total > 0 ? carriers[b].y / carriers[b].total : 0;
-            return pA - pB;
+            var pA = carriers[a].total > 0 ? carriers[a].high / carriers[a].total : 0;
+            var pB = carriers[b].total > 0 ? carriers[b].high / carriers[b].total : 0;
+            return pA - pB; // ascending so worst appears at top in Plotly (top = last)
         });
 
         var names = sorted;
-        var rates = sorted.map(function (c) {
-            return carriers[c].total > 0 ? Math.round((carriers[c].y / carriers[c].total) * 1000) / 10 : 0;
-        });
-        var barColors = rates.map(function (r) {
-            if (r >= 80) return '#10b981';
-            if (r >= 60) return '#f59e0b';
-            return '#ef4444';
-        });
+        function pct(c, bucket) {
+            return carriers[c].total > 0 ? Math.round((carriers[c][bucket] / carriers[c].total) * 1000) / 10 : 0;
+        }
 
-        var traces = [{
-            x: rates,
-            y: names,
-            type: 'bar',
-            orientation: 'h',
-            marker: { color: barColors, line: { color: '#fff', width: 1 } },
-            text: rates.map(function (r) { return r + '%'; }),
-            textposition: 'auto',
-            textfont: { size: 11, color: '#fff', family: 'Inter, sans-serif' },
-            hovertemplate: '%{y}<br>On-Time: %{x}%<extra></extra>'
-        }];
+        var lowPcts  = names.map(function (c) { return pct(c, 'low'); });
+        var medPcts  = names.map(function (c) { return pct(c, 'med'); });
+        var highPcts = names.map(function (c) { return pct(c, 'high'); });
+
+        function makeTrace(label, vals, color, counts, bucket) {
+            return {
+                x: vals, y: names, type: 'bar', orientation: 'h', name: label,
+                marker: { color: color, line: { color: '#fff', width: 1 } },
+                text: vals.map(function (v, i) { return v >= 8 ? counts[i] + ' (' + v + '%)' : ''; }),
+                textposition: 'inside',
+                textfont: { size: 10, color: '#fff', family: 'Inter, sans-serif' },
+                hovertemplate: '%{y}<br>' + label + ': %{x}% (' + bucket + ')<extra></extra>'
+            };
+        }
+
+        var lowCounts  = names.map(function (c) { return carriers[c].low; });
+        var medCounts  = names.map(function (c) { return carriers[c].med; });
+        var highCounts = names.map(function (c) { return carriers[c].high; });
+
+        var traces = [
+            makeTrace('Low (1-2d)',  lowPcts,  '#3b82f6', lowCounts,  '1\u20132 days'),
+            makeTrace('Medium (3-4d)', medPcts, '#f59e0b', medCounts, '3\u20134 days'),
+            makeTrace('High (5+d)', highPcts, '#ef4444', highCounts, '5+ days')
+        ];
 
         var layout = {
-            xaxis: Object.assign({}, AXIS_STYLE, { title: 'On-Time Rate (%)', range: [0, 105] }),
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Severity Mix (%)', range: [0, 105], ticksuffix: '%' }),
             yaxis: Object.assign({}, AXIS_STYLE, { automargin: true }),
             margin: { t: 10, r: 20, b: 50, l: 110 },
             font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
@@ -447,15 +459,9 @@
             paper_bgcolor: PAPER_BG,
             height: 350,
             bargap: 0.18,
-            showlegend: false,
-            shapes: [{
-                type: 'line', x0: 80, x1: 80, y0: -0.5, y1: names.length - 0.5,
-                line: { color: '#94a3b8', width: 1.5, dash: 'dash' }
-            }],
-            annotations: [{
-                x: 80, y: names.length - 0.3, text: '80% target',
-                showarrow: false, font: { size: 10, color: '#94a3b8' }, xanchor: 'left'
-            }]
+            barmode: 'stack',
+            showlegend: true,
+            legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: 1.06, font: { size: 10 } }
         };
 
         Plotly.newPlot('chart-ontime', traces, layout, P_CFG);
