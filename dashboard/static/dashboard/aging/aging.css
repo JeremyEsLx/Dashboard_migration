@@ -1,45 +1,4 @@
-/* Aging Dashboard shares the same styles as SKY SDP (In Transit) */
+/* Aging Dashboard shares the same styles as SKY SDP (In Transit).
+   All shared styles (KPI, charts, calendar, Flatpickr overrides,
+   hidden export/timer) come from skysdp.css via this import. */
 @import url('/static/dashboard/skysdp/skysdp.css');
-
-/* --- Date Picker (Aging Dashboard only) --- */
-.aging-date-picker-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-}
-
-.aging-date-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #64748b;
-    white-space: nowrap;
-}
-
-.aging-date-select {
-    font-family: Inter, 'Noto Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: #1e293b;
-    background: #fff;
-    border: 1px solid #d8dee6;
-    border-radius: 4px;
-    padding: 5px 28px 5px 10px;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    transition: border-color 0.15s;
-}
-
-.aging-date-select:hover {
-    border-color: #94a3b8;
-}
-
-.aging-date-select:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-}

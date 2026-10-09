@@ -566,9 +566,12 @@ def skysdp(request):
 
 
 def skysdp_data(request):
-    """API: returns SKY SDP aging cube as JSON."""
+    """API: returns In Transit cube as JSON.
+    Optional query param: ?date=YYYY-MM-DD to pick a specific snapshot.
+    """
     try:
-        data = get_skysdp_data()
+        target_date = request.GET.get('date') or None
+        data = get_skysdp_data(target_date=target_date)
         return JsonResponse(data)
     except Exception as e:
         import traceback
@@ -577,6 +580,7 @@ def skysdp_data(request):
             'error': str(e),
             'cube_json': '[]',
             'latest_date': '',
+            'available_dates': [],
             'selected': {'week_from': '', 'week_to': ''},
         }, status=200)
 

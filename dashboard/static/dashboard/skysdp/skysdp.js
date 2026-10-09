@@ -9,6 +9,7 @@
     var CACHE_KEY = 'lms_skysdp_cache';
     var TIMER_KEY = 'lms_timer_skysdp';
     var DATA      = null;
+    var fp        = null;   // Flatpickr instance
 
     // Cache + Timer instances (LMS.Cache/Timer are constructors)
     var cache = new LMS.Cache(CACHE_KEY, 15);
@@ -44,16 +45,18 @@
     // --------------------------------------------------------
     // FETCH
     // --------------------------------------------------------
-    function doFetch(showSkeleton) {
+    function doFetch(showSkeleton, targetDate) {
         if (showSkeleton) {
             document.getElementById('skeleton-loading').style.display = '';
             document.getElementById('sky-widgets').classList.add('hidden');
-            // NO LMS.showLoading() when skeleton is active (size mismatch)
         } else {
             LMS.showLoading();
         }
 
-        fetch(API_URL)
+        var url = API_URL;
+        if (targetDate) url += '?date=' + encodeURIComponent(targetDate);
+
+        fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 DATA = data;
@@ -120,9 +123,10 @@
 
         // --- Banner ---
         document.getElementById('banner-date-range').innerHTML =
-            '<strong>Showing:</strong> ' + LMS.fmtDate(DATA.selected.week_from) + ' \u2014 ' + LMS.fmtDate(DATA.selected.week_to);
-        document.getElementById('updated-on').textContent =
-            'Data as of: ' + LMS.fmtDate(latestDate);
+            '<strong>Available:</strong> ' + LMS.fmtDate(DATA.selected.week_from) + ' \u2014 ' + LMS.fmtDate(DATA.selected.week_to);
+
+        // --- Date picker (Flatpickr) ---
+        initDatePicker(DATA.available_dates || [], latestDate);
 
         // --- Build carrier list for detail viewer ---
         CARRIER_LIST = Object.keys(carrierAging).sort();
@@ -134,6 +138,31 @@
         renderCarrierPage(todayRows);
         renderOnTimeChart(todayRows);
         renderHeatmap(todayRows);
+    }
+
+    // --------------------------------------------------------
+    // DATE PICKER (Flatpickr — only available dates clickable)
+    // --------------------------------------------------------
+    function initDatePicker(dates, selectedDate) {
+        var el = document.getElementById('date-picker');
+        if (!el || !dates.length) return;
+
+        if (fp) { fp.destroy(); fp = null; }
+
+        fp = flatpickr(el, {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'm/d/Y',
+            enable: dates,
+            defaultDate: selectedDate,
+            disableMobile: true,
+            onChange: function (sel, dateStr) {
+                if (dateStr && dateStr !== DATA.latest_date) {
+                    cache.clear();
+                    doFetch(false, dateStr);
+                }
+            }
+        });
     }
 
     // --------------------------------------------------------
@@ -463,7 +492,6 @@
     // INIT
     // --------------------------------------------------------
     function init() {
-        // Check sessionStorage cache
         var cached = cache.get();
         if (cached) {
             DATA = cached;
@@ -474,24 +502,30 @@
             doFetch(true);
         }
 
-        // 15-minute auto-refresh timer
+        // 15-minute auto-refresh (timer hidden via CSS, still runs)
         timer = new LMS.Timer(TIMER_KEY, 15, function () { doFetch(false); });
 
-        // Refresh button
-        document.getElementById('btn-refresh').addEventListener('click', function () {
+        // Refresh button (respects selected date)
+        var btnRefresh = document.getElementById('btn-refresh');
+        if (btnRefresh) btnRefresh.addEventListener('click', function () {
             cache.clear();
             timer.reset();
-            doFetch(true);
+            var cur = fp ? fp.selectedDates[0] : null;
+            var dateStr = cur ? flatpickr.formatDate(cur, 'Y-m-d') : null;
+            doFetch(true, dateStr);
         });
 
-        // Export button
-        document.getElementById('btn-export').addEventListener('click', exportData);
+        // Export button (hidden via CSS but wired)
+        var btnExport = document.getElementById('btn-export');
+        if (btnExport) btnExport.addEventListener('click', exportData);
 
-        // Carrier detail navigation (pages of 3)
-        document.getElementById('btn-carrier-prev').addEventListener('click', function () {
+        // Carrier detail navigation
+        var btnPrev = document.getElementById('btn-carrier-prev');
+        if (btnPrev) btnPrev.addEventListener('click', function () {
             setCarrierPage(CARRIER_PAGE - 1);
         });
-        document.getElementById('btn-carrier-next').addEventListener('click', function () {
+        var btnNext = document.getElementById('btn-carrier-next');
+        if (btnNext) btnNext.addEventListener('click', function () {
             setCarrierPage(CARRIER_PAGE + 1);
         });
     }

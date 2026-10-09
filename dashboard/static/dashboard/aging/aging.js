@@ -9,6 +9,7 @@
     var CACHE_KEY = 'lms_aging_cache';
     var TIMER_KEY = 'lms_timer_aging';
     var DATA      = null;
+    var fp        = null;   // Flatpickr instance
 
     // Cache + Timer instances (LMS.Cache/Timer are constructors)
     var cache = new LMS.Cache(CACHE_KEY, 15);
@@ -124,8 +125,8 @@
         document.getElementById('banner-date-range').innerHTML =
             '<strong>Available:</strong> ' + LMS.fmtDate(DATA.selected.week_from) + ' \u2014 ' + LMS.fmtDate(DATA.selected.week_to);
 
-        // --- Date picker ---
-        renderDatePicker(DATA.available_dates || [], latestDate);
+        // --- Date picker (Flatpickr) ---
+        initDatePicker(DATA.available_dates || [], latestDate);
 
         // --- Build carrier list for detail viewer ---
         CARRIER_LIST = Object.keys(carrierAging).sort();
@@ -140,23 +141,28 @@
     }
 
     // --------------------------------------------------------
-    // DATE PICKER
+    // DATE PICKER (Flatpickr — only available dates clickable)
     // --------------------------------------------------------
-    function renderDatePicker(dates, selectedDate) {
-        var sel = document.getElementById('date-picker');
-        if (!sel || !dates.length) return;
+    function initDatePicker(dates, selectedDate) {
+        var el = document.getElementById('date-picker');
+        if (!el || !dates.length) return;
 
-        // Rebuild options only when list changed
-        if (sel.options.length !== dates.length || sel.options[0].value !== dates[0]) {
-            sel.innerHTML = '';
-            dates.forEach(function (d) {
-                var opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = LMS.fmtDate(d);
-                sel.appendChild(opt);
-            });
-        }
-        sel.value = selectedDate;
+        if (fp) { fp.destroy(); fp = null; }
+
+        fp = flatpickr(el, {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'm/d/Y',
+            enable: dates,
+            defaultDate: selectedDate,
+            disableMobile: true,
+            onChange: function (sel, dateStr) {
+                if (dateStr && dateStr !== DATA.latest_date) {
+                    cache.clear();
+                    doFetch(false, dateStr);
+                }
+            }
+        });
     }
 
     // --------------------------------------------------------
@@ -500,20 +506,14 @@
         // 15-minute auto-refresh timer
         timer = new LMS.Timer(TIMER_KEY, 15, function () { doFetch(false); });
 
-        // Date picker — switch snapshot date
-        var datePicker = document.getElementById('date-picker');
-        if (datePicker) datePicker.addEventListener('change', function () {
-            cache.clear();
-            doFetch(false, datePicker.value);
-        });
-
-        // Refresh button
+        // Refresh button (respects selected date)
         var btnRefresh = document.getElementById('btn-refresh');
         if (btnRefresh) btnRefresh.addEventListener('click', function () {
             cache.clear();
             timer.reset();
-            var dp = document.getElementById('date-picker');
-            doFetch(true, dp ? dp.value : null);
+            var cur = fp ? fp.selectedDates[0] : null;
+            var dateStr = cur ? flatpickr.formatDate(cur, 'Y-m-d') : null;
+            doFetch(true, dateStr);
         });
 
         // Export button
