@@ -87,13 +87,11 @@
 
         // --- Compute KPIs from latest snapshot ---
         var totalAging = 0, weightedAging = 0, totalAll = 0;
-        var onTimeCount = 0, onTimeTotal = 0, criticalCount = 0;
+        var onTimeCount = 0, criticalCount = 0;
         var carrierAging = {};  // carrier -> {sum, cnt}
 
         todayRows.forEach(function (r) {
             totalAll += r.n;
-            // On-time: only count rows with explicit Y or N (skip blanks)
-            if (r.ot === 'Y' || r.ot === 'N') { onTimeTotal += r.n; }
             if (r.ot === 'Y') onTimeCount += r.n;
             if (r.a > 0) {
                 totalAging   += r.n;
@@ -106,7 +104,7 @@
         });
 
         var avgAging   = totalAging > 0 ? (weightedAging / totalAging).toFixed(1) : '0';
-        var onTimePct  = onTimeTotal > 0 ? ((onTimeCount / onTimeTotal) * 100).toFixed(1) : '0';
+        var onTimePct  = totalAll > 0 ? ((onTimeCount / totalAll) * 100).toFixed(1) : '0';
 
         // Worst carrier = highest weighted avg aging
         var worstCarrier = '--';
@@ -153,14 +151,14 @@
         'Aging Distribution': 'Shipments with no Pickup Date. Stacked bars by aging days (1\u20137) per carrier. Dotted line = total.',
         'Aging by Carrier': 'Shipments with no Pickup Date. Ranked by total aging items. Bar = share of total.',
         'Carrier Detail': 'Per-carrier aging bars. Blue = 1\u20132 days, Yellow = 3\u20134, Red = 5+. Navigate with arrows.',
-        'On-Time Rate by Carrier': 'Only rows with explicit Y or N in On Time(Y/N). Blanks excluded. Dashed line = 80% target.',
+        'On-Time Rate by Carrier': 'On-time Y count vs ALL shipments (including blank/undetermined). Dashed line = 80% target.',
         'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.'
     };
 
     var KPI_TIPS = {
         'Total Aging Items': 'Shipments with no Pickup Date and aging > 0 on the selected date.',
         'Avg Aging Days': 'Weighted average: sum(aging \u00d7 count) / total aging items.',
-        'On-Time %': 'Shipments marked Y / total marked Y or N. Blank values excluded.',
+        'On-Time %': 'Shipments marked Y / ALL shipments (blanks count toward total).',
         'Worst Carrier': 'Carrier with the highest weighted-average aging days.',
         'Critical (5+ Days)': 'Count of shipments aging 5 or more days.'
     };
@@ -407,8 +405,6 @@
     function renderOnTimeChart(todayRows) {
         var carriers = {};
         todayRows.forEach(function (r) {
-            // Only count rows with explicit Y or N (skip blanks)
-            if (r.ot !== 'Y' && r.ot !== 'N') return;
             if (!carriers[r.c]) carriers[r.c] = { y: 0, total: 0 };
             carriers[r.c].total += r.n;
             if (r.ot === 'Y') carriers[r.c].y += r.n;
