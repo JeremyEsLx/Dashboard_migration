@@ -118,6 +118,13 @@ def get_aging_data(target_date=None, compare_date=None):
             default_comp = (sel - timedelta(days=7)).isoformat()
             if default_comp in available_dates:
                 comparison_date = default_comp
+            else:
+                # Fallback: closest available date before selected (within 14 days)
+                cutoff = (sel - timedelta(days=14)).isoformat()
+                for d in available_dates:
+                    if d < selected_date and d >= cutoff:
+                        comparison_date = d
+                        break  # available_dates is sorted DESC, first match is closest
 
     cube_data = []
     comparison_cube_data = []
