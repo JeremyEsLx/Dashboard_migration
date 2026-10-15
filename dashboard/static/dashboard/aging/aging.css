@@ -3,6 +3,19 @@
    hidden export/timer) come from skysdp.css via this import. */
 @import url('/static/dashboard/skysdp/skysdp.css');
 
+/* === Inline Refresh Button (next to date picker) === */
+.btn-refresh-inline {
+    display: inline-flex !important;
+    margin-left: 10px;
+    padding: 6px 14px;
+    font-size: 12px;
+    height: 32px;
+    align-items: center;
+    gap: 5px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
 /* === Week-over-Week Comparison Section === */
 .comparison-section {
     background: #fff;
