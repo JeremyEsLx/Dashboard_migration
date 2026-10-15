@@ -6,7 +6,7 @@
 {% block nav_aging %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/aging/aging.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'dashboard/aging/aging.css' %}?v=5">
 {% endblock %}
 
 {% block page_title %}
@@ -94,8 +94,10 @@
         <div class="comparison-header">
             <div class="card-title">Date Comparison</div>
             <div class="comparison-controls">
-                <label class="comp-picker-label">Compare with</label>
-                <input type="text" class="comp-date-input" id="compare-picker" placeholder="Select date..." readonly>
+                <span class="comp-viewing-label" id="comp-viewing-label">Viewing</span>
+                <span class="comp-viewing-date" id="comp-viewing-date"></span>
+                <span class="comp-vs-label">vs</span>
+                <input type="text" class="comp-date-input" id="compare-picker" placeholder="Pick a previous date..." readonly>
             </div>
         </div>
         <div class="comparison-kpi-row" id="comparison-kpis"></div>
@@ -148,5 +150,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/aging/aging.js' %}?v=4"></script>
+<script src="{% static 'dashboard/aging/aging.js' %}?v=5"></script>
 {% endblock %}

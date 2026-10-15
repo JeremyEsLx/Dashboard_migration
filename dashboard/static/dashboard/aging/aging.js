@@ -166,7 +166,8 @@
         if (!el || !dates.length) return;
         if (fpComp) { fpComp.destroy(); fpComp = null; }
 
-        var compDates = dates.filter(function (d) { return d !== DATA.latest_date; });
+        // Only allow comparing with dates BEFORE the currently selected date
+        var compDates = dates.filter(function (d) { return d < DATA.latest_date; });
 
         fpComp = flatpickr(el, {
             dateFormat: 'Y-m-d',
@@ -188,6 +189,12 @@
         var section   = document.getElementById('comparison-section');
         var nodata    = document.getElementById('comparison-nodata');
         var nodataMsg = document.getElementById('comparison-nodata-msg');
+
+        // Set the "Viewing" date label
+        var viewingEl = document.getElementById('comp-viewing-date');
+        if (viewingEl && selectedDate) {
+            viewingEl.textContent = getDayName(selectedDate) + ' ' + fmtDate(selectedDate);
+        }
 
         // Always init the comparison picker so user can pick a date
         initComparePicker(DATA.available_dates || [], DATA.comparison_date || '');
@@ -312,7 +319,7 @@
         'Carrier Detail': 'Per-carrier aging bars. Blue = 1\u20132 days, Yellow = 3\u20134, Red = 5+. Navigate with arrows.',
         'Aging Severity by Carrier': 'Each bar shows how a carrier\u2019s aging shipments break down by severity. Blue = 1\u20132 days (Low), Amber = 3\u20134 days (Medium), Red = 5+ days (High). Wider red = worse. Sorted by % critical.',
         'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.',
-        'Week-over-Week Comparison': 'Compares aging counts by day (1\u20137) between the previous Friday and the selected date. Badges show total, average, and critical change with green (improved) or red (worsened).'
+        'Date Comparison': 'Compares aging counts by day (1\u20137) between two dates. Default: same weekday last week. Use the date picker to compare any available date. Badges show change with green (improved) or red (worsened).'
     };
 
     var KPI_TIPS = {
