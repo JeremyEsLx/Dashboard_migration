@@ -3,6 +3,9 @@
    hidden export/timer) come from skysdp.css via this import. */
 @import url('/static/dashboard/skysdp/skysdp.css');
 
+/* === Page header spacing (banner removed) === */
+.page-header { margin-bottom: 18px; }
+
 /* === Inline Refresh Button (next to date picker) === */
 .btn-refresh-inline {
     display: inline-flex !important;
