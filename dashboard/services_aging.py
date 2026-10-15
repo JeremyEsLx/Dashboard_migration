@@ -9,6 +9,7 @@ dropdown picker, and fetches the cube for a single selected date.
 import json
 import pyodbc
 import pandas as pd
+from datetime import date, timedelta
 from django.conf import settings
 from concurrent.futures import ThreadPoolExecutor
 
@@ -88,23 +89,51 @@ def get_aging_data(target_date=None):
     else:
         selected_date = ''
 
-    # --- fetch cube for that date ---
-    cube_data = []
-    if selected_date:
-        cube_df = _bi_query(cube_query, (selected_date,))
-        for _, row in cube_df.iterrows():
-            cube_data.append({
+    # --- fetch cube for selected date + comparison (last Friday) ---
+    def _build_cube(df):
+        data = []
+        for _, row in df.iterrows():
+            data.append({
                 'ud': str(row['ud']) if row['ud'] else '',
                 'c':  str(row['c']),
                 'a':  int(row['a']) if row['a'] is not None else 0,
                 'ot': str(row['ot']),
                 'n':  int(row['n']),
             })
+        return data
+
+    # Calculate last Friday relative to selected date
+    comparison_date = None
+    if selected_date:
+        sel = date.fromisoformat(selected_date)
+        # Most recent Friday strictly before selected date
+        days_back = (sel.weekday() + 3) % 7 or 7  # Mon=0 … Sun=6
+        last_friday = sel - timedelta(days=days_back)
+        last_friday_str = last_friday.isoformat()   # YYYY-MM-DD
+        if last_friday_str in available_dates:
+            comparison_date = last_friday_str
+
+    cube_data = []
+    comparison_cube_data = []
+
+    if selected_date:
+        if comparison_date:
+            # Parallel: fetch both cubes at once
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                f_sel  = pool.submit(_bi_query, cube_query, (selected_date,))
+                f_comp = pool.submit(_bi_query, cube_query, (comparison_date,))
+                cube_data = _build_cube(f_sel.result())
+                comparison_cube_data = _build_cube(f_comp.result())
+        else:
+            cube_df = _bi_query(cube_query, (selected_date,))
+            cube_data = _build_cube(cube_df)
 
     return {
         'cube_json': json.dumps(cube_data),
         'latest_date': selected_date,
         'available_dates': available_dates,
+        'comparison_date': comparison_date,
+        'comparison_cube_json': json.dumps(comparison_cube_data) if comparison_date else None,
         'selected': {
             'week_from': available_dates[-1] if available_dates else '',
             'week_to':   available_dates[0]  if available_dates else '',

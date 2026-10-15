@@ -61,6 +61,8 @@
             .then(function (data) {
                 DATA = data;
                 DATA.cube = JSON.parse(data.cube_json || '[]');
+                DATA.comparison_cube = data.comparison_cube_json ? JSON.parse(data.comparison_cube_json) : null;
+                DATA.comparison_date = data.comparison_date || null;
                 cache.set(data);
                 showContent();
                 renderDashboard();
@@ -138,7 +140,133 @@
         renderCarrierPage(todayRows);
         renderSeverityChart(todayRows);
         renderHeatmap(todayRows);
+        renderComparison(todayRows, latestDate);
         injectTooltips();
+    }
+
+    // --------------------------------------------------------
+    // WEEK-OVER-WEEK COMPARISON
+    // --------------------------------------------------------
+    function renderComparison(todayRows, selectedDate) {
+        var section  = document.getElementById('comparison-section');
+        var nodata   = document.getElementById('comparison-nodata');
+        var nodataMsg = document.getElementById('comparison-nodata-msg');
+
+        if (!DATA.comparison_cube || !DATA.comparison_date) {
+            section.classList.add('hidden');
+            nodata.classList.remove('hidden');
+            if (DATA.comparison_date === null && selectedDate) {
+                // Calculate what Friday would have been for the message
+                var sel = new Date(selectedDate + 'T00:00:00');
+                var day = sel.getDay(); // 0=Sun ... 6=Sat
+                var diff = (day + 2) % 7 || 7;
+                var fri = new Date(sel);
+                fri.setDate(fri.getDate() - diff);
+                var friStr = (fri.getMonth()+1) + '/' + fri.getDate() + '/' + fri.getFullYear();
+                nodataMsg.textContent = 'No comparison data available for Friday ' + friStr + '.';
+            }
+            return;
+        }
+
+        nodata.classList.add('hidden');
+        section.classList.remove('hidden');
+
+        var compRows = DATA.comparison_cube;
+        var compDate = DATA.comparison_date;
+
+        // --- Aggregate by aging day (1-7) for both dates ---
+        function agingTotals(rows) {
+            var totals = {}, grand = 0, weighted = 0, critical = 0;
+            rows.forEach(function (r) {
+                if (r.a >= 1 && r.a <= 7) {
+                    totals[r.a] = (totals[r.a] || 0) + r.n;
+                    grand += r.n;
+                    weighted += r.a * r.n;
+                    if (r.a >= 5) critical += r.n;
+                }
+            });
+            return { byDay: totals, total: grand, avg: grand > 0 ? weighted / grand : 0, critical: critical };
+        }
+
+        var curr = agingTotals(todayRows);
+        var prev = agingTotals(compRows);
+
+        // --- Comparison KPI badges ---
+        var kpiContainer = document.getElementById('comparison-kpis');
+        function badge(label, prevVal, currVal, fmt, lowerIsBetter) {
+            var diff = prevVal > 0 ? ((currVal - prevVal) / prevVal * 100) : 0;
+            var improved = lowerIsBetter ? currVal <= prevVal : currVal >= prevVal;
+            var arrow = diff > 0 ? '\u2191' : diff < 0 ? '\u2193' : '\u2192';
+            var cls = diff === 0 ? 'neutral' : improved ? 'improved' : 'worsened';
+            return '<div class="comp-badge ' + cls + '">' +
+                '<span class="comp-badge-label">' + label + '</span>' +
+                '<span class="comp-badge-values">' + fmt(prevVal) + ' \u2192 ' + fmt(currVal) + '</span>' +
+                '<span class="comp-badge-delta">' + arrow + ' ' + Math.abs(diff).toFixed(1) + '%</span>' +
+                '</div>';
+        }
+
+        var fmtInt = function (v) { return v.toLocaleString(); };
+        var fmtDec = function (v) { return v.toFixed(1); };
+
+        kpiContainer.innerHTML =
+            badge('Total Aging Items', prev.total, curr.total, fmtInt, true) +
+            badge('Avg Aging Days',   prev.avg,   curr.avg,   fmtDec, true) +
+            badge('Critical (5+)',    prev.critical, curr.critical, fmtInt, true);
+
+        // --- Date labels ---
+        var datesEl = document.getElementById('comparison-dates');
+        function fmtDate(iso) {
+            var parts = iso.split('-');
+            return parts[1] + '/' + parts[2] + '/' + parts[0];
+        }
+        datesEl.innerHTML = '<span class="comp-date-prev">\u25cb Fri ' + fmtDate(compDate) + '</span>' +
+            '<span class="comp-date-vs">vs</span>' +
+            '<span class="comp-date-curr">\u25cf ' + fmtDate(selectedDate) + '</span>';
+
+        // --- Grouped bar chart ---
+        var days = [1, 2, 3, 4, 5, 6, 7];
+        var dayLabels = days.map(function (d) { return d + (d === 1 ? ' day' : ' days'); });
+
+        var prevCounts = days.map(function (d) { return prev.byDay[d] || 0; });
+        var currCounts = days.map(function (d) { return curr.byDay[d] || 0; });
+
+        var traces = [
+            {
+                x: dayLabels, y: prevCounts, type: 'bar', name: 'Fri ' + fmtDate(compDate),
+                marker: { color: 'rgba(148,163,184,0.55)', line: { color: '#94a3b8', width: 1 } },
+                text: prevCounts.map(function (n) { return n > 0 ? n.toLocaleString() : ''; }),
+                textposition: 'outside',
+                textfont: { size: 10, color: '#64748b', family: 'Inter, sans-serif' },
+                hovertemplate: '%{x}<br>Fri ' + fmtDate(compDate) + ': %{y}<extra></extra>'
+            },
+            {
+                x: dayLabels, y: currCounts, type: 'bar', name: fmtDate(selectedDate),
+                marker: { color: '#2563eb', line: { color: '#1d4ed8', width: 1 } },
+                text: currCounts.map(function (n) { return n > 0 ? n.toLocaleString() : ''; }),
+                textposition: 'outside',
+                textfont: { size: 10, color: '#1e40af', family: 'Inter, sans-serif' },
+                hovertemplate: '%{x}<br>' + fmtDate(selectedDate) + ': %{y}<extra></extra>'
+            }
+        ];
+
+        var maxVal = Math.max.apply(null, prevCounts.concat(currCounts).concat([1]));
+
+        var layout = {
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Aging Days' }),
+            yaxis: Object.assign({}, AXIS_STYLE, { title: 'Shipments', range: [0, maxVal * 1.2] }),
+            margin: { t: 20, r: 20, b: 50, l: 60 },
+            font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
+            plot_bgcolor: PLOT_BG,
+            paper_bgcolor: PAPER_BG,
+            height: 300,
+            bargap: 0.25,
+            bargroupgap: 0.08,
+            barmode: 'group',
+            showlegend: true,
+            legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: 1.08, font: { size: 10 } }
+        };
+
+        Plotly.newPlot('chart-comparison', traces, layout, P_CFG);
     }
 
     // --------------------------------------------------------
@@ -152,7 +280,8 @@
         'Aging by Carrier': 'Shipments with no Pickup Date. Ranked by total aging items. Bar = share of total.',
         'Carrier Detail': 'Per-carrier aging bars. Blue = 1\u20132 days, Yellow = 3\u20134, Red = 5+. Navigate with arrows.',
         'Aging Severity by Carrier': 'Each bar shows how a carrier\u2019s aging shipments break down by severity. Blue = 1\u20132 days (Low), Amber = 3\u20134 days (Medium), Red = 5+ days (High). Wider red = worse. Sorted by % critical.',
-        'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.'
+        'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.',
+        'Week-over-Week Comparison': 'Compares aging counts by day (1\u20137) between the previous Friday and the selected date. Badges show total, average, and critical change with green (improved) or red (worsened).'
     };
 
     var KPI_TIPS = {

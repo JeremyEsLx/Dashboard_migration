@@ -6,7 +6,7 @@
 {% block nav_aging %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/aging/aging.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'dashboard/aging/aging.css' %}?v=3">
 {% endblock %}
 
 {% block page_title %}
@@ -90,6 +90,18 @@
             <div class="kpi-value" id="kpi-critical">--</div>
         </div>
     </div>
+    <div id="comparison-section" class="comparison-section hidden">
+        <div class="comparison-header">
+            <div class="card-title">Week-over-Week Comparison</div>
+            <div class="comparison-dates" id="comparison-dates"></div>
+        </div>
+        <div class="comparison-kpi-row" id="comparison-kpis"></div>
+        <div id="chart-comparison"></div>
+    </div>
+    <div id="comparison-nodata" class="comparison-nodata hidden">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="7"/><path d="M6.5 6a1.5 1.5 0 013 0c0 1-1.5 1.5-1.5 2.5"/><circle cx="8" cy="12" r="0.5" fill="currentColor" stroke="none"/></svg>
+        <span id="comparison-nodata-msg">No comparison data available for the previous Friday.</span>
+    </div>
     <div class="sky-main-row">
         <div class="sky-chart-card sky-chart-wide">
             <div class="card-title">Aging Distribution</div>
@@ -133,5 +145,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/aging/aging.js' %}?v=1"></script>
+<script src="{% static 'dashboard/aging/aging.js' %}?v=3"></script>
 {% endblock %}

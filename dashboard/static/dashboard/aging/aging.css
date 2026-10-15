@@ -2,3 +2,96 @@
    All shared styles (KPI, charts, calendar, Flatpickr overrides,
    hidden export/timer) come from skysdp.css via this import. */
 @import url('/static/dashboard/skysdp/skysdp.css');
+
+/* === Week-over-Week Comparison Section === */
+.comparison-section {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 22px 14px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.comparison-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.comparison-dates {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.comp-date-prev { color: #94a3b8; }
+.comp-date-vs   { color: #cbd5e1; font-size: 10px; }
+.comp-date-curr { color: #2563eb; }
+
+/* Comparison KPI badges */
+.comparison-kpi-row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.comp-badge {
+    flex: 1;
+    min-width: 160px;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.comp-badge-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.comp-badge-values {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+    font-family: 'Inter', 'Noto Sans', sans-serif;
+}
+
+.comp-badge-delta {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.comp-badge.improved { border-color: #bbf7d0; background: #f0fdf4; }
+.comp-badge.improved .comp-badge-delta { color: #16a34a; }
+
+.comp-badge.worsened { border-color: #fecaca; background: #fef2f2; }
+.comp-badge.worsened .comp-badge-delta { color: #dc2626; }
+
+.comp-badge.neutral { border-color: #e2e8f0; background: #f8fafc; }
+.comp-badge.neutral .comp-badge-delta { color: #94a3b8; }
+
+/* No-data message */
+.comparison-nodata {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    color: #92400e;
+    font-size: 12px;
+    font-weight: 500;
+}
