@@ -9,7 +9,8 @@
     var CACHE_KEY = 'lms_aging_cache';
     var TIMER_KEY = 'lms_timer_aging';
     var DATA      = null;
-    var fp        = null;   // Flatpickr instance
+    var fp        = null;   // Flatpickr instance (main date picker)
+    var fpComp    = null;   // Flatpickr instance (comparison date picker)
 
     // Cache + Timer instances (LMS.Cache/Timer are constructors)
     var cache = new LMS.Cache(CACHE_KEY, 15);
@@ -45,7 +46,7 @@
     // --------------------------------------------------------
     // FETCH  (optional targetDate -> /api/aging/?date=YYYY-MM-DD)
     // --------------------------------------------------------
-    function doFetch(showSkeleton, targetDate) {
+    function doFetch(showSkeleton, targetDate, compareDate) {
         if (showSkeleton) {
             document.getElementById('skeleton-loading').style.display = '';
             document.getElementById('sky-widgets').classList.add('hidden');
@@ -54,7 +55,10 @@
         }
 
         var url = API_URL;
-        if (targetDate) url += '?date=' + encodeURIComponent(targetDate);
+        var params = [];
+        if (targetDate) params.push('date=' + encodeURIComponent(targetDate));
+        if (compareDate) params.push('compare=' + encodeURIComponent(compareDate));
+        if (params.length) url += '?' + params.join('&');
 
         fetch(url)
             .then(function (r) { return r.json(); })
@@ -145,25 +149,62 @@
     }
 
     // --------------------------------------------------------
-    // WEEK-OVER-WEEK COMPARISON
+    // DATE COMPARISON
     // --------------------------------------------------------
+    function fmtDate(iso) {
+        var parts = iso.split('-');
+        return parts[1] + '/' + parts[2] + '/' + parts[0];
+    }
+
+    function getDayName(iso) {
+        var names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        return names[new Date(iso + 'T00:00:00').getDay()];
+    }
+
+    function initComparePicker(dates, compDate) {
+        var el = document.getElementById('compare-picker');
+        if (!el || !dates.length) return;
+        if (fpComp) { fpComp.destroy(); fpComp = null; }
+
+        var compDates = dates.filter(function (d) { return d !== DATA.latest_date; });
+
+        fpComp = flatpickr(el, {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'm/d/Y',
+            enable: compDates,
+            defaultDate: compDate,
+            disableMobile: true,
+            onChange: function (sel, dateStr) {
+                if (dateStr && dateStr !== DATA.comparison_date) {
+                    cache.clear();
+                    doFetch(false, DATA.latest_date, dateStr);
+                }
+            }
+        });
+    }
+
     function renderComparison(todayRows, selectedDate) {
-        var section  = document.getElementById('comparison-section');
-        var nodata   = document.getElementById('comparison-nodata');
+        var section   = document.getElementById('comparison-section');
+        var nodata    = document.getElementById('comparison-nodata');
         var nodataMsg = document.getElementById('comparison-nodata-msg');
 
+        // Always init the comparison picker so user can pick a date
+        initComparePicker(DATA.available_dates || [], DATA.comparison_date || '');
+
         if (!DATA.comparison_cube || !DATA.comparison_date) {
-            section.classList.add('hidden');
+            // Show section with picker but no chart
+            section.classList.remove('hidden');
+            document.getElementById('comparison-kpis').innerHTML = '';
+            var emptyChart = document.getElementById('chart-comparison');
+            if (emptyChart) emptyChart.innerHTML = '';
             nodata.classList.remove('hidden');
-            if (DATA.comparison_date === null && selectedDate) {
-                // Calculate what Friday would have been for the message
+            if (selectedDate) {
                 var sel = new Date(selectedDate + 'T00:00:00');
-                var day = sel.getDay(); // 0=Sun ... 6=Sat
-                var diff = (day + 2) % 7 || 7;
-                var fri = new Date(sel);
-                fri.setDate(fri.getDate() - diff);
-                var friStr = (fri.getMonth()+1) + '/' + fri.getDate() + '/' + fri.getFullYear();
-                nodataMsg.textContent = 'No comparison data available for Friday ' + friStr + '.';
+                var defComp = new Date(sel);
+                defComp.setDate(defComp.getDate() - 7);
+                var defStr = (defComp.getMonth()+1) + '/' + defComp.getDate() + '/' + defComp.getFullYear();
+                nodataMsg.textContent = 'No data for ' + getDayName(selectedDate) + ' ' + defStr + '. Pick a different date above.';
             }
             return;
         }
@@ -213,16 +254,6 @@
             badge('Avg Aging Days',   prev.avg,   curr.avg,   fmtDec, true) +
             badge('Critical (5+)',    prev.critical, curr.critical, fmtInt, true);
 
-        // --- Date labels ---
-        var datesEl = document.getElementById('comparison-dates');
-        function fmtDate(iso) {
-            var parts = iso.split('-');
-            return parts[1] + '/' + parts[2] + '/' + parts[0];
-        }
-        datesEl.innerHTML = '<span class="comp-date-prev">\u25cb Fri ' + fmtDate(compDate) + '</span>' +
-            '<span class="comp-date-vs">vs</span>' +
-            '<span class="comp-date-curr">\u25cf ' + fmtDate(selectedDate) + '</span>';
-
         // --- Grouped bar chart ---
         var days = [1, 2, 3, 4, 5, 6, 7];
         var dayLabels = days.map(function (d) { return d + (d === 1 ? ' day' : ' days'); });
@@ -232,20 +263,20 @@
 
         var traces = [
             {
-                x: dayLabels, y: prevCounts, type: 'bar', name: 'Fri ' + fmtDate(compDate),
+                x: dayLabels, y: prevCounts, type: 'bar', name: getDayName(compDate) + ' ' + fmtDate(compDate),
                 marker: { color: 'rgba(148,163,184,0.55)', line: { color: '#94a3b8', width: 1 } },
                 text: prevCounts.map(function (n) { return n > 0 ? n.toLocaleString() : ''; }),
                 textposition: 'outside',
                 textfont: { size: 10, color: '#64748b', family: 'Inter, sans-serif' },
-                hovertemplate: '%{x}<br>Fri ' + fmtDate(compDate) + ': %{y}<extra></extra>'
+                hovertemplate: '%{x}<br>' + getDayName(compDate) + ' ' + fmtDate(compDate) + ': %{y}<extra></extra>'
             },
             {
-                x: dayLabels, y: currCounts, type: 'bar', name: fmtDate(selectedDate),
+                x: dayLabels, y: currCounts, type: 'bar', name: getDayName(selectedDate) + ' ' + fmtDate(selectedDate),
                 marker: { color: '#2563eb', line: { color: '#1d4ed8', width: 1 } },
                 text: currCounts.map(function (n) { return n > 0 ? n.toLocaleString() : ''; }),
                 textposition: 'outside',
                 textfont: { size: 10, color: '#1e40af', family: 'Inter, sans-serif' },
-                hovertemplate: '%{x}<br>' + fmtDate(selectedDate) + ': %{y}<extra></extra>'
+                hovertemplate: '%{x}<br>' + getDayName(selectedDate) + ' ' + fmtDate(selectedDate) + ': %{y}<extra></extra>'
             }
         ];
 

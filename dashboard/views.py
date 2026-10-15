@@ -619,11 +619,12 @@ def aging(request):
 
 def aging_data(request):
     """API: returns aging cube (Pickup Date IS NULL) as JSON.
-    Optional query param: ?date=YYYY-MM-DD to pick a specific snapshot.
+    Optional query params: ?date=YYYY-MM-DD, ?compare=YYYY-MM-DD.
     """
     try:
-        target_date = request.GET.get('date') or None
-        data = get_aging_data(target_date=target_date)
+        target_date  = request.GET.get('date') or None
+        compare_date = request.GET.get('compare') or None
+        data = get_aging_data(target_date=target_date, compare_date=compare_date)
         return JsonResponse(data)
     except Exception as e:
         import traceback

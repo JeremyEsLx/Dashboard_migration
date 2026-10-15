@@ -37,13 +37,17 @@ def _bi_query(query: str, params: tuple = ()) -> pd.DataFrame:
         conn.close()
 
 
-def get_aging_data(target_date=None):
+def get_aging_data(target_date=None, compare_date=None):
     """Fetch aging cube for a single Update Date.
 
     Args:
-        target_date: YYYY-MM-DD string.  If None, uses the latest available.
+        target_date:  YYYY-MM-DD string.  If None, uses the latest available.
+        compare_date: YYYY-MM-DD string.  If None, defaults to same weekday
+                      last week (target_date - 7 days).  If that date has no
+                      data, comparison is omitted.
 
-    Returns dict with cube_json, latest_date, available_dates[], selected{}.
+    Returns dict with cube_json, latest_date, available_dates[], selected{},
+    comparison_date, comparison_cube_json.
     """
 
     # 1. All distinct Update Dates with missing Pickup Date (newest first)
@@ -102,16 +106,18 @@ def get_aging_data(target_date=None):
             })
         return data
 
-    # Calculate last Friday relative to selected date
+    # Resolve comparison date
     comparison_date = None
     if selected_date:
-        sel = date.fromisoformat(selected_date)
-        # Most recent Friday strictly before selected date
-        days_back = (sel.weekday() + 3) % 7 or 7  # Mon=0 … Sun=6
-        last_friday = sel - timedelta(days=days_back)
-        last_friday_str = last_friday.isoformat()   # YYYY-MM-DD
-        if last_friday_str in available_dates:
-            comparison_date = last_friday_str
+        if compare_date and compare_date in available_dates:
+            # User explicitly chose a comparison date
+            comparison_date = compare_date
+        else:
+            # Default: same weekday last week (7 days back)
+            sel = date.fromisoformat(selected_date)
+            default_comp = (sel - timedelta(days=7)).isoformat()
+            if default_comp in available_dates:
+                comparison_date = default_comp
 
     cube_data = []
     comparison_cube_data = []

@@ -19,6 +19,41 @@
     white-space: nowrap;
 }
 
+/* === Comparison date picker === */
+.comparison-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comp-picker-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.comp-date-input {
+    width: 130px;
+    padding: 5px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: Inter, 'Noto Sans', sans-serif;
+    color: #334155;
+    background: #fff;
+    cursor: pointer;
+    text-align: center;
+}
+
+.comp-date-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
 /* === Week-over-Week Comparison Section === */
 .comparison-section {
     background: #fff;
