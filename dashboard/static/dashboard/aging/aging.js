@@ -98,14 +98,10 @@
         // --- Filter cube to latest snapshot ---
         var todayRows = cube.filter(function (r) { return r.ud === latestDate; });
 
-        // --- Compute max aging from data and sync control ---
+        // --- Compute max aging from data ---
         var dataMax = 0;
         todayRows.forEach(function (r) { if (r.a > dataMax) dataMax = r.a; });
-        var agingInput = document.getElementById('aging-range-input');
-        if (agingInput && !agingInput._userSet) {
-            MAX_AGING = Math.max(dataMax, 1);
-            agingInput.value = MAX_AGING;
-        }
+        MAX_AGING = Math.max(dataMax, 1);
 
         // --- Compute KPIs from latest snapshot ---
         var totalAging = 0, weightedAging = 0, totalAll = 0;
@@ -330,12 +326,12 @@
     var TIP_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="7"/><path d="M6.5 6a1.5 1.5 0 013 0c0 1-1.5 1.5-1.5 2.5"/><circle cx="8" cy="12" r="0.5" fill="currentColor" stroke="none"/></svg>';
 
     var CHART_TIPS = {
-        'Aging Distribution': 'Shipments with no Pickup Date. Stacked bars by aging days (1\u20137) per carrier. Dotted line = total.',
+        'Aging Distribution': 'Shipments with no Pickup Date. Stacked bars by aging day per carrier. Dotted line = total. Range adjustable via Max Aging control.',
         'Aging by Carrier': 'Shipments with no Pickup Date. Ranked by total aging items. Bar = share of total.',
         'Carrier Detail': 'Per-carrier aging bars. Blue = 1\u20132 days, Yellow = 3\u20134, Red = 5+. Navigate with arrows.',
         'Aging Severity by Carrier': 'Each bar shows how a carrier\u2019s aging shipments break down by severity. Blue = 1\u20132 days (Low), Amber = 3\u20134 days (Medium), Red = 5+ days (High). Wider red = worse. Sorted by % critical.',
         'Carrier \u00d7 Aging Heatmap': 'Shipment count per carrier per aging day (no Pickup Date). Darker = higher volume.',
-        'Date Comparison': 'Compares aging counts by day (1\u20137) between two dates. Default: same weekday last week. Use the date picker to compare any available date. Badges show change with green (improved) or red (worsened).'
+        'Date Comparison': 'Compares aging counts by day between two dates. Default: same weekday last week. Use the date picker to compare any available date. Badges show change with green (improved) or red (worsened).'
     };
 
     var KPI_TIPS = {

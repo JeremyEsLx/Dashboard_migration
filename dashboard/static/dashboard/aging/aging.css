@@ -6,51 +6,6 @@
 /* === Page header spacing (banner removed) === */
 .page-header { margin-bottom: 18px; }
 
-/* === Max Aging control (inline with date picker) === */
-.header-divider {
-    display: inline-block;
-    width: 1px;
-    height: 22px;
-    background: #e2e8f0;
-    margin: 0 12px;
-    vertical-align: middle;
-}
-
-.sky-aging-input {
-    width: 52px;
-    height: 32px;
-    padding: 4px 6px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: Inter, Noto Sans, sans-serif;
-    color: #1e293b;
-    text-align: center;
-    background: #fff;
-    transition: border-color 0.15s;
-    -moz-appearance: textfield;
-}
-
-.sky-aging-input::-webkit-outer-spin-button,
-.sky-aging-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.sky-aging-input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37,99,235,0.12);
-}
-
-.aging-range-unit {
-    font-size: 11px;
-    font-weight: 600;
-    color: #64748b;
-    margin-left: 4px;
-    vertical-align: middle;
-}
-
 /* === Inline Refresh Button (next to date picker) === */
 .btn-refresh-inline {
     display: inline-flex !important;
