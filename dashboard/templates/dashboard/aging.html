@@ -6,7 +6,7 @@
 {% block nav_aging %}active{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'dashboard/aging/aging.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'dashboard/aging/aging.css' %}?v=6">
 {% endblock %}
 
 {% block page_title %}
@@ -15,6 +15,10 @@
     <div class="sky-date-picker-wrap">
         <label class="sky-date-label" for="date-picker">Date</label>
         <input type="text" class="sky-date-input" id="date-picker" placeholder="Select date..." readonly>
+        <span class="header-divider"></span>
+        <label class="sky-date-label" for="aging-range-input">Max Aging</label>
+        <input type="number" class="sky-aging-input" id="aging-range-input" min="1" max="30" value="7">
+        <span class="aging-range-unit">days</span>
         <button class="btn-filter btn-refresh btn-refresh-inline" id="btn-refresh">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0111.3-2.7M14 3v3h-3"/><path d="M14 8a6 6 0 01-11.3 2.7M2 13v-3h3"/></svg>
             Refresh
@@ -150,5 +154,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/aging/aging.js' %}?v=5"></script>
+<script src="{% static 'dashboard/aging/aging.js' %}?v=6"></script>
 {% endblock %}

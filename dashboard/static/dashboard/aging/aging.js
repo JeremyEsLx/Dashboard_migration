@@ -11,6 +11,13 @@
     var DATA      = null;
     var fp        = null;   // Flatpickr instance (main date picker)
     var fpComp    = null;   // Flatpickr instance (comparison date picker)
+    var MAX_AGING = 7;       // dynamic ceiling, computed from data or user input
+
+    function getAgingRange() {
+        var arr = [];
+        for (var i = 1; i <= MAX_AGING; i++) arr.push(i);
+        return arr;
+    }
 
     // Cache + Timer instances (LMS.Cache/Timer are constructors)
     var cache = new LMS.Cache(CACHE_KEY, 15);
@@ -90,6 +97,15 @@
 
         // --- Filter cube to latest snapshot ---
         var todayRows = cube.filter(function (r) { return r.ud === latestDate; });
+
+        // --- Compute max aging from data and sync control ---
+        var dataMax = 0;
+        todayRows.forEach(function (r) { if (r.a > dataMax) dataMax = r.a; });
+        var agingInput = document.getElementById('aging-range-input');
+        if (agingInput && !agingInput._userSet) {
+            MAX_AGING = Math.max(dataMax, 1);
+            agingInput.value = MAX_AGING;
+        }
 
         // --- Compute KPIs from latest snapshot ---
         var totalAging = 0, weightedAging = 0, totalAll = 0;
@@ -226,7 +242,7 @@
         function agingTotals(rows) {
             var totals = {}, grand = 0, weighted = 0, critical = 0;
             rows.forEach(function (r) {
-                if (r.a >= 1 && r.a <= 7) {
+                if (r.a >= 1 && r.a <= MAX_AGING) {
                     totals[r.a] = (totals[r.a] || 0) + r.n;
                     grand += r.n;
                     weighted += r.a * r.n;
@@ -262,7 +278,7 @@
             badge('Critical (5+)',    prev.critical, curr.critical, fmtInt, true);
 
         // --- Grouped bar chart ---
-        var days = [1, 2, 3, 4, 5, 6, 7];
+        var days = getAgingRange();
         var dayLabels = days.map(function (d) { return d + (d === 1 ? ' day' : ' days'); });
 
         var prevCounts = days.map(function (d) { return prev.byDay[d] || 0; });
@@ -390,13 +406,13 @@
     function renderAgingChart(todayRows) {
         var carriers = {};
         todayRows.forEach(function (r) {
-            if (r.a > 0 && r.a <= 7) {
+            if (r.a > 0 && r.a <= MAX_AGING) {
                 if (!carriers[r.c]) carriers[r.c] = {};
                 carriers[r.c][r.a] = (carriers[r.c][r.a] || 0) + r.n;
             }
         });
 
-        var agingBuckets = [1, 2, 3, 4, 5, 6, 7];
+        var agingBuckets = getAgingRange();
         var carrierNames = Object.keys(carriers).sort();
         var traces = [];
 
@@ -514,11 +530,11 @@
     }
 
     function renderSingleCarrier(containerId, todayRows, carrierName) {
-        var agingBuckets = [1, 2, 3, 4, 5, 6, 7];
+        var agingBuckets = getAgingRange();
         var counts = {};
         var total = 0;
         todayRows.forEach(function (r) {
-            if (r.c === carrierName && r.a > 0 && r.a <= 7) {
+            if (r.c === carrierName && r.a > 0 && r.a <= MAX_AGING) {
                 counts[r.a] = (counts[r.a] || 0) + r.n;
                 total += r.n;
             }
@@ -544,7 +560,7 @@
 
         var layout = {
             title: { text: '<b>' + carrierName + '</b> \u2014 ' + total.toLocaleString() + ' items', font: { size: 12, color: '#1e293b' }, x: 0.5 },
-            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String), range: [0.4, 7.6], showgrid: false }),
+            xaxis: Object.assign({}, AXIS_STYLE, { title: 'Aging (Days)', tickmode: 'array', tickvals: agingBuckets, ticktext: agingBuckets.map(String), range: [0.4, MAX_AGING + 0.6], showgrid: false }),
             yaxis: Object.assign({}, AXIS_STYLE, { title: '', automargin: true }),
             margin: { t: 40, r: 8, b: 38, l: 30 },
             font: { family: 'Inter, Noto Sans, sans-serif', size: 11 },
@@ -641,14 +657,14 @@
     function renderHeatmap(todayRows) {
         var grid = {};
         todayRows.forEach(function (r) {
-            if (r.a > 0 && r.a <= 7) {
+            if (r.a > 0 && r.a <= MAX_AGING) {
                 if (!grid[r.c]) grid[r.c] = {};
                 grid[r.c][r.a] = (grid[r.c][r.a] || 0) + r.n;
             }
         });
 
         var carrierNames = Object.keys(grid).sort();
-        var agingDays = [1, 2, 3, 4, 5, 6, 7];
+        var agingDays = getAgingRange();
 
         var z = carrierNames.map(function (c) {
             return agingDays.map(function (a) { return grid[c][a] || 0; });
